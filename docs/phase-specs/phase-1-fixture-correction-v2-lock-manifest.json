@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "manifestId": "phase-1-fixture-correction-lock-v2",
+  "status": "locked",
+  "hashAlgorithm": "sha256",
+  "bytePolicy": "Repository-relative file bytes with LF enforced by docs/.gitattributes",
+  "supplementsManifestId": "phase-1-preregistration-lock-v1",
+  "retainsManifestSha256": "a15e6d2b68d6deea29e0f839b3b6becdfa9205958945aab30bc1d119e887a5ed",
+  "scope": "The v1 manifest and all eight protected artifacts remain authoritative and byte-immutable. This additive lock changes only the effective interpretation of the contradictory maximal-fixture values and its corpus base-fixture authority as described by the correction document.",
+  "files": [
+    {
+      "path": "docs/phase-specs/phase-1-fixture-correction-v2.md",
+      "sha256": "2b8c3ba6370ccafdfd39fadc91684e848cb50f113c52341ddb19e9d8de0f39a1"
+    },
+    {
+      "path": "docs/save/run-state-v1-maximal.fixture-correction-v2.json",
+      "sha256": "9566fd1dd85ee3b9305425809f94d30c9cc28e430cd747a24b33d41be83120cf"
+    }
+  ]
+}

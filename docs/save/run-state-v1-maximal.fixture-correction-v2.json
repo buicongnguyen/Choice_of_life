@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "correctionId": "run-state-v1-maximal-fixture-correction-v2",
+  "status": "locked",
+  "supersedesArtifactPath": "docs/save/run-state-v1-maximal.fixture.json",
+  "supersedesArtifactSha256": "0b3d40e3af2aa2d2dae600d4907524a5346fa7509f973780d927330bccfbe4ec",
+  "supersedesCorpusPath": "docs/save/run-state-v1-fixture-corpus.json",
+  "supersedesCorpusSha256": "8cf425f7c99f8aba5e381d2ac6d38a2c5908a356f02d96c3d2231670a16c602a",
+  "designReason": "Persisted effect history must be replayable in application order, and recovery must preserve the exact pre-trigger snapshot rather than a score changed by a later choice.",
+  "operations": [
+    {
+      "op": "replace",
+      "path": "/effectLedger/recent",
+      "value": [
+        {
+          "effectId": "effect-runner-0002",
+          "scoreId": "health",
+          "requestedDelta": -10,
+          "source": "runner",
+          "categoryId": "hazard-depletion-v1",
+          "causedByChoiceId": null,
+          "transactionId": null,
+          "before": 5,
+          "after": 0,
+          "actualDelta": -5,
+          "simulationTick": 4100
+        },
+        {
+          "effectId": "effect-recovery-0003",
+          "scoreId": "health",
+          "requestedDelta": 5,
+          "source": "recovery",
+          "categoryId": "recovery-bounded-v1",
+          "causedByChoiceId": null,
+          "transactionId": "recovery-tx-0001",
+          "before": 0,
+          "after": 5,
+          "actualDelta": 5,
+          "simulationTick": 4115
+        },
+        {
+          "effectId": "effect-choice-0001",
+          "scoreId": "happiness",
+          "requestedDelta": 4,
+          "source": "choice",
+          "categoryId": "choice-practice-v1",
+          "causedByChoiceId": "choice-ask-for-help-v1",
+          "transactionId": "consequence-tx-0001",
+          "before": 59,
+          "after": 63,
+          "actualDelta": 4,
+          "simulationTick": 4200
+        }
+      ]
+    },
+    {
+      "op": "replace",
+      "path": "/recovery/preTriggerScores/happiness",
+      "value": 59
+    },
+    {
+      "op": "replace",
+      "path": "/recovery/targetScores/happiness",
+      "value": 59
+    }
+  ],
+  "corpusAuthority": {
+    "baseFixtureCorrectionId": "run-state-v1-maximal-fixture-correction-v2",
+    "pointerPatternsUnchanged": true,
+    "requiredBranchesUnchanged": true,
+    "statusPairsUnchanged": true,
+    "transactionCombinationsUnchanged": true,
+    "hashSensitivityUnchanged": true,
+    "semanticInvariantIdsUnchanged": true
+  },
+  "review": {
+    "originalBytesRemainImmutable": true,
+    "docsOnlyCommitRequired": true,
+    "independentLogicReviewRequired": true,
+    "observedFailureIsNotSoleReason": true
+  }
+}
