@@ -1,0 +1,513 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://buicongnguyen.github.io/Choice_of_life/schemas/run-state-v1.schema.json",
+  "title": "Choice of Life run state v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contentVersion",
+    "runId",
+    "runSeed",
+    "runStatus",
+    "difficulty",
+    "controlMode",
+    "identity",
+    "appearance",
+    "accessibility",
+    "startingProfileId",
+    "scores",
+    "effectLedger",
+    "storyState",
+    "stage",
+    "runner",
+    "recovery",
+    "encounter",
+    "consequences",
+    "simulationTick"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "contentVersion": {"const": "phase-1-v1"},
+    "runId": {"type": "string", "pattern": "^run-[0-9a-f]{16}$"},
+    "runSeed": {"type": "string", "pattern": "^[0-9a-f]{16}$"},
+    "runStatus": {"enum": ["setup", "active", "completed"]},
+    "difficulty": {"enum": ["story", "normal", "challenge"]},
+    "controlMode": {"enum": ["manual", "semantic-assist", "automatic-assist"]},
+    "identity": {"$ref": "#/$defs/identity"},
+    "appearance": {"$ref": "#/$defs/appearance"},
+    "accessibility": {"$ref": "#/$defs/accessibility"},
+    "startingProfileId": {
+      "enum": [
+        "steady-mix-v1",
+        "physical-head-start-v1",
+        "emotional-head-start-v1",
+        "resource-head-start-v1"
+      ]
+    },
+    "scores": {"$ref": "#/$defs/scores"},
+    "effectLedger": {"$ref": "#/$defs/effectLedger"},
+    "storyState": {"$ref": "#/$defs/storyState"},
+    "stage": {"$ref": "#/$defs/stage"},
+    "runner": {
+      "oneOf": [{"$ref": "#/$defs/runner"}, {"type": "null"}]
+    },
+    "recovery": {
+      "oneOf": [{"$ref": "#/$defs/recovery"}, {"type": "null"}]
+    },
+    "encounter": {
+      "oneOf": [{"$ref": "#/$defs/encounter"}, {"type": "null"}]
+    },
+    "consequences": {"$ref": "#/$defs/consequenceState"},
+    "simulationTick": {"$ref": "#/$defs/tick"}
+  },
+  "$defs": {
+    "safeInteger": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "tick": {"$ref": "#/$defs/safeInteger"},
+    "signedAggregate": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "catalogId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-v[1-9][0-9]*$",
+      "maxLength": 64
+    },
+    "instanceId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,63}$",
+      "maxLength": 64
+    },
+    "nullableCatalogId": {
+      "oneOf": [{"$ref": "#/$defs/catalogId"}, {"type": "null"}]
+    },
+    "nullableInstanceId": {
+      "oneOf": [{"$ref": "#/$defs/instanceId"}, {"type": "null"}]
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gender"],
+      "properties": {
+        "gender": {"enum": ["female", "male"]}
+      }
+    },
+    "appearance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["heritageStyleId", "hairStyleId", "hairColorId", "clothingPaletteId"],
+      "properties": {
+        "heritageStyleId": {"enum": ["asian", "western", "black", "middle-eastern"]},
+        "hairStyleId": {"enum": ["short-soft", "wavy-bob", "curly-crown", "tied-back"]},
+        "hairColorId": {"enum": ["black", "dark-brown", "warm-brown", "silver"]},
+        "clothingPaletteId": {"enum": ["sunrise", "meadow", "ocean", "berry"]}
+      }
+    },
+    "accessibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["highContrast", "reducedMotion", "textScale", "screenReaderAnnouncements"],
+      "properties": {
+        "highContrast": {"type": "boolean"},
+        "reducedMotion": {"type": "boolean"},
+        "textScale": {"enum": [100, 125, 150, 200]},
+        "screenReaderAnnouncements": {"type": "boolean"}
+      }
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["health", "happiness", "money"],
+      "properties": {
+        "health": {"type": "integer", "minimum": 0, "maximum": 100},
+        "happiness": {"type": "integer", "minimum": 0, "maximum": 100},
+        "money": {"type": "integer", "minimum": 0, "maximum": 100}
+      }
+    },
+    "scoreTotals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["healthPositive", "healthNegative", "happinessPositive", "happinessNegative", "moneyPositive", "moneyNegative"],
+      "properties": {
+        "healthPositive": {"$ref": "#/$defs/safeInteger"},
+        "healthNegative": {"$ref": "#/$defs/safeInteger"},
+        "happinessPositive": {"$ref": "#/$defs/safeInteger"},
+        "happinessNegative": {"$ref": "#/$defs/safeInteger"},
+        "moneyPositive": {"$ref": "#/$defs/safeInteger"},
+        "moneyNegative": {"$ref": "#/$defs/safeInteger"}
+      }
+    },
+    "sourceTotals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runner", "choice", "callback", "settlement", "recovery", "system"],
+      "properties": {
+        "runner": {"$ref": "#/$defs/scoreTotals"},
+        "choice": {"$ref": "#/$defs/scoreTotals"},
+        "callback": {"$ref": "#/$defs/scoreTotals"},
+        "settlement": {"$ref": "#/$defs/scoreTotals"},
+        "recovery": {"$ref": "#/$defs/scoreTotals"},
+        "system": {"$ref": "#/$defs/scoreTotals"}
+      }
+    },
+    "appliedEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["effectId", "scoreId", "requestedDelta", "source", "categoryId", "causedByChoiceId", "transactionId", "before", "after", "actualDelta", "simulationTick"],
+      "properties": {
+        "effectId": {"$ref": "#/$defs/instanceId"},
+        "scoreId": {"enum": ["health", "happiness", "money"]},
+        "requestedDelta": {"type": "integer", "minimum": -100, "maximum": 100},
+        "source": {"enum": ["runner", "choice", "callback", "settlement", "recovery", "system"]},
+        "categoryId": {"$ref": "#/$defs/catalogId"},
+        "causedByChoiceId": {"$ref": "#/$defs/nullableCatalogId"},
+        "transactionId": {"$ref": "#/$defs/nullableInstanceId"},
+        "before": {"type": "integer", "minimum": 0, "maximum": 100},
+        "after": {"type": "integer", "minimum": 0, "maximum": 100},
+        "actualDelta": {"type": "integer", "minimum": -100, "maximum": 100},
+        "simulationTick": {"$ref": "#/$defs/tick"}
+      }
+    },
+    "effectLedger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recent", "totalsBySource"],
+      "properties": {
+        "recent": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/appliedEffect"},
+          "maxItems": 128
+        },
+        "totalsBySource": {"$ref": "#/$defs/sourceTotals"}
+      }
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["factId", "kind", "valueId", "originChoiceId"],
+      "properties": {
+        "factId": {"$ref": "#/$defs/catalogId"},
+        "kind": {"enum": ["learning", "care", "community", "autonomy", "route"]},
+        "valueId": {"$ref": "#/$defs/catalogId"},
+        "originChoiceId": {"$ref": "#/$defs/nullableCatalogId"}
+      }
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memoryId", "kind", "stageId", "summary", "originChoiceId"],
+      "properties": {
+        "memoryId": {"$ref": "#/$defs/catalogId"},
+        "kind": {"enum": ["milestone", "relationship", "challenge", "joy"]},
+        "stageId": {"$ref": "#/$defs/catalogId"},
+        "summary": {"type": "string", "minLength": 1, "maxLength": 256},
+        "originChoiceId": {"$ref": "#/$defs/nullableCatalogId"}
+      }
+    },
+    "credential": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["credentialId", "kind", "level", "earnedStageId"],
+      "properties": {
+        "credentialId": {"$ref": "#/$defs/catalogId"},
+        "kind": {"enum": ["education", "training", "license", "experience"]},
+        "level": {"type": "integer", "minimum": 0, "maximum": 10},
+        "earnedStageId": {"$ref": "#/$defs/catalogId"}
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relationshipId", "personId", "kind", "closeness", "status"],
+      "properties": {
+        "relationshipId": {"$ref": "#/$defs/instanceId"},
+        "personId": {"$ref": "#/$defs/catalogId"},
+        "kind": {"enum": ["caregiver", "friend", "mentor", "partner", "colleague", "community"]},
+        "closeness": {"type": "integer", "minimum": 0, "maximum": 100},
+        "status": {"enum": ["active", "distant", "ended"]}
+      }
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conditionId", "kind", "severity", "startedTick", "expiresTick", "originChoiceId"],
+      "properties": {
+        "conditionId": {"$ref": "#/$defs/catalogId"},
+        "kind": {"enum": ["support", "stress", "health", "opportunity", "constraint"]},
+        "severity": {"type": "integer", "minimum": 1, "maximum": 5},
+        "startedTick": {"$ref": "#/$defs/tick"},
+        "expiresTick": {
+          "oneOf": [{"$ref": "#/$defs/tick"}, {"type": "null"}]
+        },
+        "originChoiceId": {"$ref": "#/$defs/nullableCatalogId"}
+      }
+    },
+    "storyState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["facts", "memories", "credentials", "relationships", "conditions"],
+      "properties": {
+        "facts": {"type": "array", "items": {"$ref": "#/$defs/fact"}, "maxItems": 256},
+        "memories": {"type": "array", "items": {"$ref": "#/$defs/memory"}, "maxItems": 128},
+        "credentials": {"type": "array", "items": {"$ref": "#/$defs/credential"}, "maxItems": 64},
+        "relationships": {"type": "array", "items": {"$ref": "#/$defs/relationship"}, "maxItems": 128},
+        "conditions": {"type": "array", "items": {"$ref": "#/$defs/condition"}, "maxItems": 64}
+      }
+    },
+    "settlement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["settlementId", "status", "startedTick", "completedTick", "effectIds"],
+      "properties": {
+        "settlementId": {"$ref": "#/$defs/instanceId"},
+        "status": {"enum": ["pending", "applied", "cancelled"]},
+        "startedTick": {"$ref": "#/$defs/tick"},
+        "completedTick": {"oneOf": [{"$ref": "#/$defs/tick"}, {"type": "null"}]},
+        "effectIds": {"type": "array", "items": {"$ref": "#/$defs/instanceId"}, "maxItems": 64, "uniqueItems": true}
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stageId", "phase", "ageMonths", "activeTicks", "worldDistanceMilli", "durationTicks", "settlement"],
+      "properties": {
+        "stageId": {"$ref": "#/$defs/catalogId"},
+        "phase": {"enum": ["shell", "active", "settling", "complete"]},
+        "ageMonths": {"type": "integer", "minimum": 0, "maximum": 1800},
+        "activeTicks": {"$ref": "#/$defs/tick"},
+        "worldDistanceMilli": {"$ref": "#/$defs/safeInteger"},
+        "durationTicks": {"$ref": "#/$defs/safeInteger"},
+        "settlement": {"oneOf": [{"$ref": "#/$defs/settlement"}, {"type": "null"}]}
+      }
+    },
+    "motionIdle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "currentLane", "sourceLane", "targetLane", "elapsedTicks", "totalTicks"],
+      "properties": {
+        "kind": {"const": "idle"},
+        "currentLane": {"type": "integer", "minimum": 0, "maximum": 2},
+        "sourceLane": {"type": "integer", "minimum": 0, "maximum": 2},
+        "targetLane": {"type": "integer", "minimum": 0, "maximum": 2},
+        "elapsedTicks": {"const": 0},
+        "totalTicks": {"const": 11}
+      }
+    },
+    "motionMoving": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "currentLane", "sourceLane", "targetLane", "elapsedTicks", "totalTicks"],
+      "properties": {
+        "kind": {"const": "moving"},
+        "currentLane": {"type": "integer", "minimum": 0, "maximum": 2},
+        "sourceLane": {"type": "integer", "minimum": 0, "maximum": 2},
+        "targetLane": {"type": "integer", "minimum": 0, "maximum": 2},
+        "elapsedTicks": {"type": "integer", "minimum": 1, "maximum": 10},
+        "totalTicks": {"const": 11}
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instanceId", "contentId", "kind", "patternIndex", "slotIndex", "lane", "xMilli", "widthMilli", "contactState"],
+      "properties": {
+        "instanceId": {"$ref": "#/$defs/instanceId"},
+        "contentId": {"$ref": "#/$defs/catalogId"},
+        "kind": {"enum": ["benefit", "hazard", "narrative", "opportunity"]},
+        "patternIndex": {"$ref": "#/$defs/safeInteger"},
+        "slotIndex": {"type": "integer", "minimum": 0, "maximum": 63},
+        "lane": {"type": "integer", "minimum": 0, "maximum": 2},
+        "xMilli": {"$ref": "#/$defs/safeInteger"},
+        "widthMilli": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "contactState": {"enum": ["pending", "contacted", "passed"]}
+      }
+    },
+    "spawn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patternIndex", "nextSpawnDistanceMilli", "nextSpawnTick", "resolvedThroughPatternIndex", "resolvedEntityIds"],
+      "properties": {
+        "patternIndex": {"$ref": "#/$defs/safeInteger"},
+        "nextSpawnDistanceMilli": {"$ref": "#/$defs/safeInteger"},
+        "nextSpawnTick": {"$ref": "#/$defs/tick"},
+        "resolvedThroughPatternIndex": {"$ref": "#/$defs/safeInteger"},
+        "resolvedEntityIds": {"type": "array", "items": {"$ref": "#/$defs/instanceId"}, "maxItems": 64, "uniqueItems": true}
+      }
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["motion", "inputBuffer", "spawn", "activeEntities", "invulnerableUntilTick", "userPaused"],
+      "properties": {
+        "motion": {"oneOf": [{"$ref": "#/$defs/motionIdle"}, {"$ref": "#/$defs/motionMoving"}]},
+        "inputBuffer": {"oneOf": [{"enum": ["up", "down"]}, {"type": "null"}]},
+        "spawn": {"$ref": "#/$defs/spawn"},
+        "activeEntities": {"type": "array", "items": {"$ref": "#/$defs/entity"}, "maxItems": 64},
+        "invulnerableUntilTick": {"$ref": "#/$defs/tick"},
+        "userPaused": {"type": "boolean"}
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transactionId", "status", "triggerEntityInstanceId", "preTriggerScores", "recoveryTarget", "targetScores", "startedTick", "resolveTick", "invulnerableUntilTick", "cooldownUntilTick"],
+      "properties": {
+        "transactionId": {"$ref": "#/$defs/instanceId"},
+        "status": {"enum": ["offered", "accepted", "cooldown"]},
+        "triggerEntityInstanceId": {"$ref": "#/$defs/instanceId"},
+        "preTriggerScores": {"$ref": "#/$defs/scores"},
+        "recoveryTarget": {"type": "integer", "minimum": 1, "maximum": 100},
+        "targetScores": {"$ref": "#/$defs/scores"},
+        "startedTick": {"$ref": "#/$defs/tick"},
+        "resolveTick": {"$ref": "#/$defs/tick"},
+        "invulnerableUntilTick": {"$ref": "#/$defs/tick"},
+        "cooldownUntilTick": {"$ref": "#/$defs/tick"}
+      }
+    },
+    "resolutionRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selectedOptionId",
+        "appliedEffectIds",
+        "factResultIds",
+        "relationshipResultIds",
+        "scheduledConsequenceTransactionIds",
+        "resultTextInputIds",
+        "resolvedTick"
+      ],
+      "properties": {
+        "selectedOptionId": {"$ref": "#/$defs/catalogId"},
+        "appliedEffectIds": {"type": "array", "items": {"$ref": "#/$defs/instanceId"}, "maxItems": 64, "uniqueItems": true},
+        "factResultIds": {"type": "array", "items": {"$ref": "#/$defs/catalogId"}, "maxItems": 64, "uniqueItems": true},
+        "relationshipResultIds": {"type": "array", "items": {"$ref": "#/$defs/instanceId"}, "maxItems": 64, "uniqueItems": true},
+        "scheduledConsequenceTransactionIds": {"type": "array", "items": {"$ref": "#/$defs/instanceId"}, "maxItems": 64, "uniqueItems": true},
+        "resultTextInputIds": {"type": "array", "items": {"$ref": "#/$defs/catalogId"}, "maxItems": 64, "uniqueItems": true},
+        "resolvedTick": {"$ref": "#/$defs/tick"}
+      }
+    },
+    "encounter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transactionId", "encounterId", "kind", "phase", "optionIds", "selectedOptionId", "resolutionTransactionId", "presentationPhase"],
+      "properties": {
+        "transactionId": {"$ref": "#/$defs/instanceId"},
+        "encounterId": {"$ref": "#/$defs/catalogId"},
+        "kind": {"enum": ["caregiver", "friend", "mentor", "stranger", "institution", "self-reflection"]},
+        "phase": {"enum": ["presenting", "option-selected", "resolving", "resolved"]},
+        "optionIds": {"type": "array", "items": {"$ref": "#/$defs/catalogId"}, "minItems": 2, "maxItems": 4, "uniqueItems": true},
+        "selectedOptionId": {"$ref": "#/$defs/nullableCatalogId"},
+        "resolutionTransactionId": {"$ref": "#/$defs/nullableInstanceId"},
+        "presentationPhase": {"enum": ["prompt", "choices", "reaction", "summary"]}
+      }
+    },
+    "pendingConsequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transactionId", "consequenceId", "status", "causedByChoiceId", "dueStageId", "dueTick", "effectIds"],
+      "properties": {
+        "transactionId": {"$ref": "#/$defs/instanceId"},
+        "consequenceId": {"$ref": "#/$defs/catalogId"},
+        "status": {"const": "pending"},
+        "causedByChoiceId": {"$ref": "#/$defs/nullableCatalogId"},
+        "dueStageId": {"$ref": "#/$defs/catalogId"},
+        "dueTick": {"$ref": "#/$defs/tick"},
+        "effectIds": {"type": "array", "items": {"$ref": "#/$defs/instanceId"}, "maxItems": 64, "uniqueItems": true}
+      }
+    },
+    "resolvedConsequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transactionId", "consequenceId", "status", "causedByChoiceId", "resolution", "presentedTick"],
+      "properties": {
+        "transactionId": {"$ref": "#/$defs/instanceId"},
+        "consequenceId": {"$ref": "#/$defs/catalogId"},
+        "status": {"enum": ["resolved", "presented"]},
+        "causedByChoiceId": {"$ref": "#/$defs/nullableCatalogId"},
+        "resolution": {"$ref": "#/$defs/resolutionRecord"},
+        "presentedTick": {"oneOf": [{"$ref": "#/$defs/tick"}, {"type": "null"}]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "resolved"}}},
+          "then": {"properties": {"presentedTick": {"type": "null"}}},
+          "else": {"properties": {"presentedTick": {"$ref": "#/$defs/tick"}}}
+        }
+      ]
+    },
+    "completeConsequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transactionId", "consequenceId", "status", "causedByChoiceId", "resolution", "presentedTick", "terminalTick", "terminalReasonId", "supersededByTransactionId", "acknowledgmentId"],
+      "properties": {
+        "transactionId": {"$ref": "#/$defs/instanceId"},
+        "consequenceId": {"$ref": "#/$defs/catalogId"},
+        "status": {"const": "complete"},
+        "causedByChoiceId": {"$ref": "#/$defs/nullableCatalogId"},
+        "resolution": {"$ref": "#/$defs/resolutionRecord"},
+        "presentedTick": {"$ref": "#/$defs/tick"},
+        "terminalTick": {"$ref": "#/$defs/tick"},
+        "terminalReasonId": {"$ref": "#/$defs/catalogId"},
+        "supersededByTransactionId": {"type": "null"},
+        "acknowledgmentId": {"$ref": "#/$defs/nullableCatalogId"}
+      }
+    },
+    "expiredConsequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transactionId", "consequenceId", "status", "causedByChoiceId", "resolution", "terminalTick", "terminalReasonId", "supersededByTransactionId", "acknowledgmentId"],
+      "properties": {
+        "transactionId": {"$ref": "#/$defs/instanceId"},
+        "consequenceId": {"$ref": "#/$defs/catalogId"},
+        "status": {"const": "expired"},
+        "causedByChoiceId": {"$ref": "#/$defs/nullableCatalogId"},
+        "resolution": {"type": "null"},
+        "terminalTick": {"$ref": "#/$defs/tick"},
+        "terminalReasonId": {"$ref": "#/$defs/catalogId"},
+        "supersededByTransactionId": {"type": "null"},
+        "acknowledgmentId": {"$ref": "#/$defs/catalogId"}
+      }
+    },
+    "supersededConsequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transactionId", "consequenceId", "status", "causedByChoiceId", "resolution", "terminalTick", "terminalReasonId", "supersededByTransactionId", "acknowledgmentId"],
+      "properties": {
+        "transactionId": {"$ref": "#/$defs/instanceId"},
+        "consequenceId": {"$ref": "#/$defs/catalogId"},
+        "status": {"const": "superseded"},
+        "causedByChoiceId": {"$ref": "#/$defs/nullableCatalogId"},
+        "resolution": {"type": "null"},
+        "terminalTick": {"$ref": "#/$defs/tick"},
+        "terminalReasonId": {"$ref": "#/$defs/catalogId"},
+        "supersededByTransactionId": {"$ref": "#/$defs/instanceId"},
+        "acknowledgmentId": {"$ref": "#/$defs/catalogId"}
+      }
+    },
+    "consequenceState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pending", "resolved", "terminal"],
+      "properties": {
+        "pending": {"type": "array", "items": {"$ref": "#/$defs/pendingConsequence"}, "maxItems": 64},
+        "resolved": {"type": "array", "items": {"$ref": "#/$defs/resolvedConsequence"}, "maxItems": 64},
+        "terminal": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {"$ref": "#/$defs/completeConsequence"},
+              {"$ref": "#/$defs/expiredConsequence"},
+              {"$ref": "#/$defs/supersededConsequence"}
+            ]
+          },
+          "maxItems": 128
+        }
+      }
+    }
+  }
+}

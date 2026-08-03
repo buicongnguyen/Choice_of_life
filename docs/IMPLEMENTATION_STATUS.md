@@ -5,7 +5,7 @@ Active plan: [CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md](../CHOICE_OF_LIFE_IMPLEM
 | Phase | Status | Commit | Review evidence | Live verification |
 |---|---|---|---|---|
 | 0A — Plan, tooling, baselines | Complete | `3c97ecacc939894e7949228b46473a1c04855ffe` | [phase-0a.md](./reviews/phase-0a.md) | [run 30827359242](https://github.com/buicongnguyen/Choice_of_life/actions/runs/30827359242), exact SHA and primary-flow smoke passed |
-| 1 — Shell and deterministic core | Pending | — | — | — |
+| 1 — Shell and deterministic core | In progress — fixture lock review | — | [phase-1 contract](./phase-specs/phase-1.md) | — |
 | 2 — Runner laboratory | Pending | — | — | — |
 | 3 — Newborn | Pending | — | — | — |
 | 4 — Encounters and consequences | Pending | — | — | — |

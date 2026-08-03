@@ -1,0 +1,810 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://buicongnguyen.github.io/Choice_of_life/schemas/fixture-registry-v1.schema.json",
+  "title": "Choice of Life balance fixture registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "registryId",
+    "status",
+    "scoreOrder",
+    "seedSet",
+    "difficulties",
+    "pairingKeys",
+    "statistics",
+    "metrics",
+    "numericGoals",
+    "narrativeGoals",
+    "startingProfiles",
+    "defaultStartingProfileId",
+    "profileRules",
+    "horizons",
+    "canonicalPolicies",
+    "continuation",
+    "assertions",
+    "evaluationSuites",
+    "changePolicy"
+  ],
+  "properties": {
+    "$schema": {"const": "./fixture-registry-v1.schema.json"},
+    "schemaVersion": {"const": 1},
+    "registryId": {"const": "choice-of-life-balance-v1"},
+    "status": {"const": "locked"},
+    "scoreOrder": {"$ref": "#/$defs/scoreOrder"},
+    "seedSet": {"$ref": "#/$defs/seedSet"},
+    "difficulties": {
+      "type": "array",
+      "prefixItems": [
+        {"const": "story"},
+        {"const": "normal"},
+        {"const": "challenge"}
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "pairingKeys": {
+      "type": "array",
+      "prefixItems": [
+        {"const": "runSeed"},
+        {"const": "startingProfileId"},
+        {"const": "difficulty"}
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "statistics": {"$ref": "#/$defs/statistics"},
+    "metrics": {"$ref": "#/$defs/metrics"},
+    "numericGoals": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/numericGoal"},
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "narrativeGoals": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/narrativeGoal"},
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "startingProfiles": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/startingProfile"},
+      "minItems": 2
+    },
+    "defaultStartingProfileId": {"$ref": "#/$defs/id"},
+    "profileRules": {"$ref": "#/$defs/profileRules"},
+    "horizons": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/horizon"},
+      "minItems": 1
+    },
+    "canonicalPolicies": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/policy"},
+      "minItems": 1
+    },
+    "continuation": {"$ref": "#/$defs/continuation"},
+    "assertions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/assertion"},
+      "minItems": 1
+    },
+    "evaluationSuites": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/evaluationSuite"},
+      "minItems": 1
+    },
+    "changePolicy": {"$ref": "#/$defs/changePolicy"}
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-v[1-9][0-9]*$",
+      "maxLength": 64
+    },
+    "scoreOrder": {
+      "type": "array",
+      "prefixItems": [
+        {"const": "health"},
+        {"const": "happiness"},
+        {"const": "money"}
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "rational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["numerator", "denominator"],
+      "properties": {
+        "numerator": {"type": "integer", "minimum": 0},
+        "denominator": {"type": "integer", "minimum": 1}
+      }
+    },
+    "weights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["numerators", "denominator"],
+      "properties": {
+        "numerators": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 1},
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "denominator": {"type": "integer", "minimum": 1}
+      }
+    },
+    "seedSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "start",
+        "endInclusive",
+        "step",
+        "runSeedEncoding",
+        "auditEncoding",
+        "count",
+        "firstEncodedSeed",
+        "lastEncodedSeed",
+        "expandedByteLength",
+        "expandedSha256"
+      ],
+      "properties": {
+        "id": {"const": "balance-seeds-0-9999-v1"},
+        "kind": {"const": "inclusiveIntegerRange"},
+        "start": {"const": 0},
+        "endInclusive": {"const": 9999},
+        "step": {"const": 1},
+        "runSeedEncoding": {"const": "lowercase-hex-16-zero-padded"},
+        "auditEncoding": {"const": "utf8-lines-lf-no-final-lf"},
+        "count": {"const": 10000},
+        "firstEncodedSeed": {"const": "0000000000000000"},
+        "lastEncodedSeed": {"const": "000000000000270f"},
+        "expandedByteLength": {"const": 169999},
+        "expandedSha256": {
+          "const": "ef87ff82e9d189dbedc0e2bd7842bd3d0c31cc143539f3460e33efe80d063a97"
+        }
+      }
+    },
+    "statistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quantileMethod",
+        "aggregatePerDifficultyAndProfile",
+        "poolDifficultyOrProfileCells"
+      ],
+      "properties": {
+        "quantileMethod": {"const": "r7-linear-interpolation"},
+        "aggregatePerDifficultyAndProfile": {"const": true},
+        "poolDifficultyOrProfileCells": {"const": false}
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "normalizedScoreDistance",
+        "appliedDeltaMagnitude",
+        "attribution",
+        "decisionToRunnerDistanceRatioMin",
+        "decisionToRunnerDistanceRatioInclusive",
+        "boundaryActiveTimeMax",
+        "boundaryActiveTimeMaximumInclusive",
+        "choiceClampLossMax",
+        "choiceClampLossMaximumInclusive",
+        "choiceClampLossUnit",
+        "startingProfileMedianDistanceMax",
+        "startingProfileMedianDistanceMaximumInclusive",
+        "assistPerScorePointTolerance"
+      ],
+      "properties": {
+        "normalizedScoreDistance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "scoreOrder", "denominator", "range"],
+          "properties": {
+            "kind": {"const": "l1"},
+            "scoreOrder": {"$ref": "#/$defs/scoreOrder"},
+            "denominator": {"const": 300},
+            "range": {
+              "type": "array",
+              "prefixItems": [{"const": 0}, {"const": 1}],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        },
+        "appliedDeltaMagnitude": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "scoreOrder"],
+          "properties": {
+            "kind": {"const": "sum-absolute-post-clamp-deltas"},
+            "scoreOrder": {"$ref": "#/$defs/scoreOrder"}
+          }
+        },
+        "attribution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "runnerSource",
+            "decisionSources",
+            "decisionRequiresField",
+            "missingCauseReclassifiedAs",
+            "excludedSources",
+            "eligibleDenominatorSources",
+            "magnitudeBasis",
+            "calculationOrder",
+            "zeroDenominator",
+            "runnerMedianMin",
+            "runnerMedianMax",
+            "runnerBoundsInclusive",
+            "decisionMedianMin",
+            "decisionMinimumInclusive"
+          ],
+          "properties": {
+            "runnerSource": {"const": "runner"},
+            "decisionSources": {
+              "type": "array",
+              "prefixItems": [
+                {"const": "choice"},
+                {"const": "callback"},
+                {"const": "settlement"}
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "decisionRequiresField": {"const": "causedByChoiceId"},
+            "missingCauseReclassifiedAs": {"const": "system"},
+            "excludedSources": {
+              "type": "array",
+              "prefixItems": [{"const": "recovery"}],
+              "items": false,
+              "minItems": 1,
+              "maxItems": 1
+            },
+            "eligibleDenominatorSources": {
+              "type": "array",
+              "prefixItems": [
+                {"const": "runner"},
+                {"const": "choice"},
+                {"const": "callback"},
+                {"const": "settlement"},
+                {"const": "system"}
+              ],
+              "items": false,
+              "minItems": 5,
+              "maxItems": 5
+            },
+            "magnitudeBasis": {"const": "absolute-actual-post-clamp-delta"},
+            "calculationOrder": {"const": "per-run-ratio-then-r7-median-per-profile-difficulty-choice-policy-cell"},
+            "zeroDenominator": {"const": "fixture-failure"},
+            "runnerMedianMin": {"$ref": "#/$defs/rational"},
+            "runnerMedianMax": {"$ref": "#/$defs/rational"},
+            "runnerBoundsInclusive": {"const": true},
+            "decisionMedianMin": {"$ref": "#/$defs/rational"},
+            "decisionMinimumInclusive": {"const": true}
+          }
+        },
+        "decisionToRunnerDistanceRatioMin": {"$ref": "#/$defs/rational"},
+        "decisionToRunnerDistanceRatioInclusive": {"const": true},
+        "boundaryActiveTimeMax": {"$ref": "#/$defs/rational"},
+        "boundaryActiveTimeMaximumInclusive": {"const": false},
+        "choiceClampLossMax": {"$ref": "#/$defs/rational"},
+        "choiceClampLossMaximumInclusive": {"const": false},
+        "choiceClampLossUnit": {"const": "choice-with-any-requested-nonzero-score-component-whose-actual-delta-is-zero"},
+        "startingProfileMedianDistanceMax": {"$ref": "#/$defs/rational"},
+        "startingProfileMedianDistanceMaximumInclusive": {"const": true},
+        "assistPerScorePointTolerance": {"type": "integer", "minimum": 0}
+      }
+    },
+    "numericGoal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "weights"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "weights": {"$ref": "#/$defs/weights"}
+      }
+    },
+    "narrativeGoal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "qualifyingEvidenceQuantifier", "qualifyingEvidence"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "qualifyingEvidenceQuantifier": {"const": "any"},
+        "qualifyingEvidence": {
+          "type": "array",
+          "prefixItems": [
+            {"const": "uniqueTypedFact"},
+            {"const": "uniqueRoute"},
+            {"const": "namedCallback"},
+            {"const": "endingAcknowledgment"}
+          ],
+          "items": false,
+          "minItems": 4,
+          "maxItems": 4
+        }
+      }
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["health", "happiness", "money"],
+      "properties": {
+        "health": {"type": "integer", "minimum": 0, "maximum": 100},
+        "happiness": {"type": "integer", "minimum": 0, "maximum": 100},
+        "money": {"type": "integer", "minimum": 0, "maximum": 100}
+      }
+    },
+    "startingProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "scores", "mechanicalFacts", "description"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 80},
+        "scores": {"$ref": "#/$defs/scores"},
+        "mechanicalFacts": {"type": "array", "maxItems": 0},
+        "description": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "profileRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selectionIsNotMoralRanking",
+        "protectedTraitsMayNotSelectOrModifyProfile",
+        "profileMayNotBeDerivedFrom",
+        "forbiddenMechanicalDimensions",
+        "sameMinimumEndingAndRepairRouteCoverage",
+        "playerFacingFraming",
+        "profileDistanceComparison"
+      ],
+      "properties": {
+        "selectionIsNotMoralRanking": {"const": true},
+        "protectedTraitsMayNotSelectOrModifyProfile": {"const": true},
+        "profileMayNotBeDerivedFrom": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 8,
+          "uniqueItems": true
+        },
+        "forbiddenMechanicalDimensions": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 8,
+          "uniqueItems": true
+        },
+        "sameMinimumEndingAndRepairRouteCoverage": {"const": true},
+        "playerFacingFraming": {"const": "Temporary score emphasis only; never caregiver quality or family worth."},
+        "profileDistanceComparison": {"const": "all-pairs"}
+      }
+    },
+    "horizon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "start",
+        "end",
+        "provisional",
+        "mustRelockWhenCallbackTargetBecomesImplemented",
+        "contentLockParameters"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "start": {"type": "string", "minLength": 1, "maxLength": 80},
+        "end": {"type": "string", "minLength": 1, "maxLength": 100},
+        "provisional": {"type": "boolean"},
+        "mustRelockWhenCallbackTargetBecomesImplemented": {"type": "boolean"},
+        "contentLockParameters": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "domain", "role", "interpretation", "algorithm"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "domain": {"enum": ["runner", "choice"]},
+        "role": {"enum": ["neutral", "assist", "goal", "diagnosticUpper", "diagnosticLower"]},
+        "interpretation": {
+          "enum": [
+            "canonical-evaluation-policy",
+            "diagnostic-envelope-not-human-behavior",
+            "accessibility-equivalent"
+          ]
+        },
+        "algorithm": {
+          "oneOf": [
+            {"$ref": "#/$defs/runnerNeutralAlgorithm"},
+            {"$ref": "#/$defs/runnerExtremeAlgorithm"},
+            {"$ref": "#/$defs/semanticAssistAlgorithm"},
+            {"$ref": "#/$defs/automaticAssistAlgorithm"},
+            {"$ref": "#/$defs/numericChoiceAlgorithm"},
+            {"$ref": "#/$defs/narrativeChoiceAlgorithm"}
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"domain": {"const": "runner"}}},
+          "then": {
+            "properties": {
+              "algorithm": {
+                "oneOf": [
+                  {"$ref": "#/$defs/runnerNeutralAlgorithm"},
+                  {"$ref": "#/$defs/runnerExtremeAlgorithm"},
+                  {"$ref": "#/$defs/semanticAssistAlgorithm"},
+                  {"$ref": "#/$defs/automaticAssistAlgorithm"}
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "algorithm": {
+                "oneOf": [
+                  {"$ref": "#/$defs/numericChoiceAlgorithm"},
+                  {"$ref": "#/$defs/narrativeChoiceAlgorithm"}
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "lanePriority": {
+      "type": "array",
+      "prefixItems": [{"const": 1}, {"const": 0}, {"const": 2}],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true
+    },
+    "runnerNeutralAlgorithm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "utilityGoalId", "utilityBasis", "projectionHorizon", "selection", "nonnegativeThreshold", "tieBreak", "lanePriority"],
+      "properties": {
+        "kind": {"const": "runner-current-pattern-neutral-v1"},
+        "utilityGoalId": {"const": "balanced-v1"},
+        "utilityBasis": {"const": "weighted-actual-post-clamp-delta"},
+        "projectionHorizon": {"const": "current-telegraphed-pattern-until-safe-boundary"},
+        "selection": {"const": "stay-if-current-utility-nonnegative-else-rank-nonnegative-first-then-smallest-absolute-utility"},
+        "nonnegativeThreshold": {"$ref": "#/$defs/rational"},
+        "tieBreak": {
+          "type": "array",
+          "prefixItems": [{"const": "prefer-nonnegative-utility"}, {"const": "fewest-lane-moves"}, {"const": "lane-priority"}],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "lanePriority": {"$ref": "#/$defs/lanePriority"}
+      }
+    },
+    "runnerExtremeAlgorithm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "objective", "utilityGoalId", "utilityBasis", "projectionHorizon", "tieBreak", "lanePriority"],
+      "properties": {
+        "kind": {"const": "runner-current-pattern-extreme-v1"},
+        "objective": {"enum": ["maximize", "minimize"]},
+        "utilityGoalId": {"const": "balanced-v1"},
+        "utilityBasis": {"const": "weighted-actual-post-clamp-delta"},
+        "projectionHorizon": {"const": "current-telegraphed-pattern-until-safe-boundary"},
+        "tieBreak": {
+          "type": "array",
+          "prefixItems": [{"const": "fewest-lane-moves"}, {"const": "lane-priority"}],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "lanePriority": {"$ref": "#/$defs/lanePriority"}
+      }
+    },
+    "semanticAssistAlgorithm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "basePolicyId", "presentation", "sameDecisionWindows", "effectIdentityForSameLaneChoices", "preserveNarrativeFacts"],
+      "properties": {
+        "kind": {"const": "runner-semantic-assist-v1"},
+        "basePolicyId": {"const": "runner-manual-neutral-v1"},
+        "presentation": {"const": "untimed-semantic-choice"},
+        "sameDecisionWindows": {"const": true},
+        "effectIdentityForSameLaneChoices": {"const": true},
+        "preserveNarrativeFacts": {"const": true}
+      }
+    },
+    "automaticAssistAlgorithm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "basePolicyId", "replayKeys", "scoreTreatment", "narrativeTreatment", "perScorePointTolerance"],
+      "properties": {
+        "kind": {"const": "runner-automatic-matched-seed-replay-v1"},
+        "basePolicyId": {"const": "runner-manual-neutral-v1"},
+        "replayKeys": {
+          "type": "array",
+          "prefixItems": [{"const": "runSeed"}, {"const": "stageEntryStateHash"}, {"const": "startingProfileId"}, {"const": "difficulty"}, {"const": "contentVersion"}],
+          "items": false,
+          "minItems": 5,
+          "maxItems": 5
+        },
+        "scoreTreatment": {"const": "apply-exact-neutral-trace-actual-deltas"},
+        "narrativeTreatment": {"const": "apply-exact-neutral-trace-facts"},
+        "perScorePointTolerance": {"const": 3}
+      }
+    },
+    "numericChoiceAlgorithm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "goalId", "objective", "sampleValue", "aggregate", "horizonId", "runnerContinuationPolicyId", "choiceContinuationPolicyId", "seedKnowledge", "tieBreak"],
+      "properties": {
+        "kind": {"const": "choice-numeric-locked-population-v1"},
+        "goalId": {"$ref": "#/$defs/id"},
+        "objective": {"enum": ["maximize", "minimize"]},
+        "sampleValue": {"const": "terminal-weighted-score"},
+        "aggregate": {"const": "r7-median-per-content-context-profile-difficulty"},
+        "horizonId": {"const": "option-effect-v1"},
+        "runnerContinuationPolicyId": {"const": "runner-manual-neutral-v1"},
+        "choiceContinuationPolicyId": {"const": "choice-balanced-v1"},
+        "seedKnowledge": {"const": "does-not-branch-on-current-run-seed"},
+        "tieBreak": {
+          "type": "array",
+          "prefixItems": [{"const": "option-id-ascending"}],
+          "items": false,
+          "minItems": 1,
+          "maxItems": 1
+        }
+      }
+    },
+    "narrativeChoiceAlgorithm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "goalId", "evidenceMustBeContentLocked", "multipleQualifiers", "noQualifier", "secondaryPolicyId", "tieBreak"],
+      "properties": {
+        "kind": {"const": "choice-narrative-locked-evidence-v1"},
+        "goalId": {"$ref": "#/$defs/id"},
+        "evidenceMustBeContentLocked": {"const": true},
+        "multipleQualifiers": {"const": "maximize-balanced-among-qualifying-only"},
+        "noQualifier": {"const": "maximize-balanced-among-all-options"},
+        "secondaryPolicyId": {"const": "choice-balanced-v1"},
+        "tieBreak": {
+          "type": "array",
+          "prefixItems": [{"const": "option-id-ascending"}],
+          "items": false,
+          "minItems": 1,
+          "maxItems": 1
+        }
+      }
+    },
+    "continuation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runnerPolicyId",
+        "choicePolicyId",
+        "categoricalFactsAreNeverConvertedToScoreWeights"
+      ],
+      "properties": {
+        "runnerPolicyId": {"$ref": "#/$defs/id"},
+        "choicePolicyId": {"$ref": "#/$defs/id"},
+        "categoricalFactsAreNeverConvertedToScoreWeights": {"const": true}
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "sampleUnit",
+        "groupBy",
+        "reducer",
+        "comparator",
+        "lowerThresholdPath",
+        "upperThresholdPath",
+        "zeroDenominator"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "kind": {
+          "enum": [
+            "source-share-v1",
+            "paired-distance-ratio-v1",
+            "paired-profile-distance-v1",
+            "route-set-parity-v1",
+            "per-score-active-time-share-v1",
+            "whole-choice-clamp-loss-share-v1",
+            "matched-trace-identity-v1",
+            "matched-trace-per-score-distance-v1",
+            "matched-trace-narrative-set-identity-v1"
+          ]
+        },
+        "numeratorSources": {
+          "type": "array",
+          "items": {"enum": ["runner", "choice", "callback", "settlement", "system", "recovery"]},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "denominatorSources": {
+          "type": "array",
+          "items": {"enum": ["runner", "choice", "callback", "settlement", "system", "recovery"]},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "excludedSources": {
+          "type": "array",
+          "items": {"enum": ["runner", "choice", "callback", "settlement", "system", "recovery"]},
+          "uniqueItems": true
+        },
+        "magnitude": {"type": "string", "minLength": 1, "maxLength": 120},
+        "sampleUnit": {"type": "string", "minLength": 1, "maxLength": 120},
+        "groupBy": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 40},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "reducer": {"type": "string", "minLength": 1, "maxLength": 140},
+        "comparator": {"type": "string", "minLength": 1, "maxLength": 140},
+        "lowerThresholdPath": {
+          "oneOf": [
+            {"type": "string", "pattern": "^/metrics/"},
+            {"type": "null"}
+          ]
+        },
+        "upperThresholdPath": {
+          "oneOf": [
+            {"type": "string", "pattern": "^/metrics/"},
+            {"type": "null"}
+          ]
+        },
+        "zeroDenominator": {"type": "string", "minLength": 1, "maxLength": 120}
+      }
+    },
+    "counterfactualComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policyA", "policyB"],
+      "properties": {
+        "policyA": {"$ref": "#/$defs/id"},
+        "policyB": {"$ref": "#/$defs/id"},
+        "fixedRunnerPolicyId": {"$ref": "#/$defs/id"},
+        "fixedChoicePolicyId": {"$ref": "#/$defs/id"}
+      },
+      "oneOf": [
+        {"required": ["fixedRunnerPolicyId"]},
+        {"required": ["fixedChoicePolicyId"]}
+      ]
+    },
+    "evaluationSuite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "activation", "assertionIds", "seedSetId", "profiles", "difficulties", "horizonId"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "kind": {
+          "enum": [
+            "source-attribution-v1",
+            "paired-influence-ratio-v1",
+            "all-pairs-profile-parity-v1",
+            "score-saturation-and-clamp-loss-v1",
+            "matched-seed-assist-parity-v1"
+          ]
+        },
+        "activation": {"const": "when-content-lock-references-suite"},
+        "assertionIds": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/id"},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "seedSetId": {"$ref": "#/$defs/id"},
+        "profiles": {"const": "all"},
+        "difficulties": {"const": "all-separately"},
+        "horizonId": {"$ref": "#/$defs/id"},
+        "runnerPolicyId": {"$ref": "#/$defs/id"},
+        "choicePolicyId": {"$ref": "#/$defs/id"},
+        "choicePolicies": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/id"},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "ratioUnit": {"type": "string", "minLength": 1},
+        "eligibleDenominatorSources": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+        "excludedSources": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "aggregation": {"type": "string", "minLength": 1},
+        "zeroDenominator": {"type": "string", "minLength": 1},
+        "runnerShareGate": {"type": "string", "minLength": 1},
+        "decisionShareGate": {"type": "string", "minLength": 1},
+        "distanceMetric": {"const": "normalizedScoreDistance"},
+        "decisionComparison": {"$ref": "#/$defs/counterfactualComparison"},
+        "runnerComparison": {"$ref": "#/$defs/counterfactualComparison"},
+        "calculationOrder": {"type": "string", "minLength": 1},
+        "gate": {"type": "string", "minLength": 1},
+        "zeroHandling": {"type": "string", "minLength": 1},
+        "comparisonPairs": {"type": "string", "minLength": 1},
+        "distanceGate": {"type": "string", "minLength": 1},
+        "routeCoverageGate": {"type": "string", "minLength": 1},
+        "boundaryShareNumerator": {"type": "string", "minLength": 1},
+        "boundaryShareDenominator": {"type": "string", "minLength": 1},
+        "boundaryAggregation": {"type": "string", "minLength": 1},
+        "boundaryGate": {"type": "string", "minLength": 1},
+        "clampChoiceNumerator": {"type": "string", "minLength": 1},
+        "clampChoiceDenominator": {"type": "string", "minLength": 1},
+        "clampComponentRate": {"type": "string", "minLength": 1},
+        "clampAggregation": {"type": "string", "minLength": 1},
+        "clampGate": {"type": "string", "minLength": 1},
+        "manualPolicyId": {"$ref": "#/$defs/id"},
+        "semanticAssistPolicyId": {"$ref": "#/$defs/id"},
+        "automaticAssistPolicyId": {"$ref": "#/$defs/id"},
+        "semanticComparison": {"type": "string", "minLength": 1},
+        "automaticComparison": {"type": "string", "minLength": 1},
+        "scoreGate": {"type": "string", "minLength": 1},
+        "narrativeGate": {"type": "string", "minLength": 1}
+      }
+    },
+    "changePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registryV1IsByteImmutableAfterLock",
+        "registrySchemaV1IsByteImmutableAfterLock",
+        "phaseContractAndSaveSchemasAreByteImmutableAfterLock",
+        "contentLockSchemaV1IsByteImmutableAfterLock",
+        "maximalSaveFixtureV1IsByteImmutableAfterLock",
+        "saveFixtureCorpusV1IsByteImmutableAfterLock",
+        "contentLockInstancesAreByteImmutableAfterLock",
+        "phaseLockManifestV1IsByteImmutableAfterLock",
+        "globalSemanticChangeRequiresNewRegistryVersion",
+        "contentLocksDirectory",
+        "contentLockCommitMustBeDocsOnly",
+        "contentLockMustPrecedeEffectOrBalanceTuning",
+        "phaseReviewMustRecordAllLockFileSha256Values",
+        "changeRequiresIndependentLogicReview",
+        "changeRequiresWrittenDesignReason",
+        "observedFailureAloneIsNotAValidReason",
+        "supersedingVersionMustRerunAllPriorLocks"
+      ],
+      "properties": {
+        "registryV1IsByteImmutableAfterLock": {"const": true},
+        "registrySchemaV1IsByteImmutableAfterLock": {"const": true},
+        "phaseContractAndSaveSchemasAreByteImmutableAfterLock": {"const": true},
+        "contentLockSchemaV1IsByteImmutableAfterLock": {"const": true},
+        "maximalSaveFixtureV1IsByteImmutableAfterLock": {"const": true},
+        "saveFixtureCorpusV1IsByteImmutableAfterLock": {"const": true},
+        "contentLockInstancesAreByteImmutableAfterLock": {"const": true},
+        "phaseLockManifestV1IsByteImmutableAfterLock": {"const": true},
+        "globalSemanticChangeRequiresNewRegistryVersion": {"const": true},
+        "contentLocksDirectory": {"const": "docs/balance/locks"},
+        "contentLockCommitMustBeDocsOnly": {"const": true},
+        "contentLockMustPrecedeEffectOrBalanceTuning": {"const": true},
+        "phaseReviewMustRecordAllLockFileSha256Values": {"const": true},
+        "changeRequiresIndependentLogicReview": {"const": true},
+        "changeRequiresWrittenDesignReason": {"const": true},
+        "observedFailureAloneIsNotAValidReason": {"const": true},
+        "supersedingVersionMustRerunAllPriorLocks": {"const": true}
+      }
+    }
+  }
+}

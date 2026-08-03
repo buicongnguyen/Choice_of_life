@@ -1,0 +1,277 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://buicongnguyen.github.io/Choice_of_life/schemas/content-lock-v1.schema.json",
+  "title": "Choice of Life content fixture lock v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "lockId",
+    "status",
+    "registry",
+    "commitProtocol",
+    "content",
+    "horizon",
+    "evaluation",
+    "expectedDirectionalResults",
+    "supersession",
+    "review"
+  ],
+  "properties": {
+    "$schema": {"const": "../content-lock-v1.schema.json"},
+    "schemaVersion": {"const": 1},
+    "lockId": {"$ref": "#/$defs/id"},
+    "status": {"const": "locked"},
+    "registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["registryId", "registrySha256", "registrySchemaSha256"],
+      "properties": {
+        "registryId": {"const": "choice-of-life-balance-v1"},
+        "registrySha256": {"$ref": "#/$defs/sha256"},
+        "registrySchemaSha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "commitProtocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "docsOnly",
+        "precedesContentEffectsAndTuning",
+        "lockCommitRecordedInPhaseReview",
+        "lockedInstanceIsByteImmutable"
+      ],
+      "properties": {
+        "docsOnly": {"const": true},
+        "precedesContentEffectsAndTuning": {"const": true},
+        "lockCommitRecordedInPhaseReview": {"const": true},
+        "lockedInstanceIsByteImmutable": {"const": true}
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contentVersion",
+        "phaseId",
+        "stageIds",
+        "contextIds",
+        "patternIds",
+        "choiceIds",
+        "optionIds",
+        "callbackIds",
+        "careerOfferIds",
+        "evidenceIds",
+        "comparatorIds"
+      ],
+      "properties": {
+        "contentVersion": {"$ref": "#/$defs/id"},
+        "phaseId": {"type": "string", "pattern": "^phase-(?:[1-9]|1[01])$"},
+        "stageIds": {"$ref": "#/$defs/nonEmptyIdArray"},
+        "contextIds": {"$ref": "#/$defs/nonEmptyIdArray"},
+        "patternIds": {"$ref": "#/$defs/idArray"},
+        "choiceIds": {"$ref": "#/$defs/idArray"},
+        "optionIds": {"$ref": "#/$defs/idArray"},
+        "callbackIds": {"$ref": "#/$defs/idArray"},
+        "careerOfferIds": {"$ref": "#/$defs/idArray"},
+        "evidenceIds": {"$ref": "#/$defs/idArray"},
+        "comparatorIds": {"$ref": "#/$defs/idArray"}
+      }
+    },
+    "horizon": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["horizonId", "stageId"],
+          "properties": {
+            "horizonId": {"const": "stage-settlement-v1"},
+            "stageId": {"$ref": "#/$defs/id"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["horizonId", "startStageId", "endStageId", "includedCallbackIds"],
+          "properties": {
+            "horizonId": {"const": "playable-slice-v1"},
+            "startStageId": {"$ref": "#/$defs/id"},
+            "endStageId": {"$ref": "#/$defs/id"},
+            "includedCallbackIds": {"$ref": "#/$defs/idArray"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["horizonId", "startStageId", "endStageId", "includedCallbackIds", "optionIds"],
+          "properties": {
+            "horizonId": {"const": "option-effect-v1"},
+            "startStageId": {"$ref": "#/$defs/id"},
+            "endStageId": {"$ref": "#/$defs/id"},
+            "includedCallbackIds": {"$ref": "#/$defs/idArray"},
+            "optionIds": {"$ref": "#/$defs/nonEmptyIdArray"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["horizonId", "includedCallbackIds", "careerOfferIds"],
+          "properties": {
+            "horizonId": {"const": "phase6-career-ending-v1"},
+            "includedCallbackIds": {"$ref": "#/$defs/idArray"},
+            "careerOfferIds": {"$ref": "#/$defs/nonEmptyIdArray"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["horizonId", "includedCallbackIds"],
+          "properties": {
+            "horizonId": {"const": "complete-life-v1"},
+            "includedCallbackIds": {"$ref": "#/$defs/idArray"}
+          }
+        }
+      ]
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "suiteIds",
+        "assertionIds",
+        "runnerPolicyIds",
+        "choicePolicyIds",
+        "comparatorIds",
+        "narrativeGoalMappings",
+        "contentThresholds"
+      ],
+      "properties": {
+        "suiteIds": {"$ref": "#/$defs/nonEmptyIdArray"},
+        "assertionIds": {"$ref": "#/$defs/nonEmptyIdArray"},
+        "runnerPolicyIds": {"$ref": "#/$defs/nonEmptyIdArray"},
+        "choicePolicyIds": {"$ref": "#/$defs/nonEmptyIdArray"},
+        "comparatorIds": {"$ref": "#/$defs/idArray"},
+        "narrativeGoalMappings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["optionId", "goalIds", "qualifyingEvidenceIds"],
+            "properties": {
+              "optionId": {"$ref": "#/$defs/id"},
+              "goalIds": {"$ref": "#/$defs/nonEmptyIdArray"},
+              "qualifyingEvidenceIds": {"$ref": "#/$defs/nonEmptyIdArray"}
+            }
+          }
+        },
+        "contentThresholds": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "assertionId", "comparator", "value"],
+            "properties": {
+              "id": {"$ref": "#/$defs/id"},
+              "assertionId": {"$ref": "#/$defs/id"},
+              "comparator": {"enum": ["<", "<=", "=", ">=", ">"]},
+              "value": {"$ref": "#/$defs/rational"}
+            }
+          }
+        }
+      }
+    },
+    "expectedDirectionalResults": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "contextId",
+          "policyAId",
+          "policyBId",
+          "assertionId",
+          "comparator"
+        ],
+        "properties": {
+          "id": {"$ref": "#/$defs/id"},
+          "contextId": {"$ref": "#/$defs/id"},
+          "policyAId": {"$ref": "#/$defs/id"},
+          "policyBId": {"$ref": "#/$defs/id"},
+          "assertionId": {"$ref": "#/$defs/id"},
+          "comparator": {"enum": ["<", "<=", "=", ">=", ">", "not-equal"]}
+        }
+      }
+    },
+    "supersession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supersedesLockId", "reason", "newlyRealizedCallbackIds"],
+      "properties": {
+        "supersedesLockId": {
+          "oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]
+        },
+        "reason": {
+          "oneOf": [
+            {"type": "string", "minLength": 20, "maxLength": 512},
+            {"type": "null"}
+          ]
+        },
+        "newlyRealizedCallbackIds": {"$ref": "#/$defs/idArray"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"supersedesLockId": {"type": "null"}}},
+          "then": {"properties": {"reason": {"type": "null"}}},
+          "else": {"properties": {"reason": {"type": "string"}}}
+        }
+      ]
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "designReason",
+        "observedFailureIsNotSoleReason",
+        "independentLogicReviewRequired",
+        "inclusivityReviewRequired"
+      ],
+      "properties": {
+        "designReason": {"type": "string", "minLength": 20, "maxLength": 1000},
+        "observedFailureIsNotSoleReason": {"const": true},
+        "independentLogicReviewRequired": {"const": true},
+        "inclusivityReviewRequired": {"const": true}
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-v[1-9][0-9]*$",
+      "maxLength": 64
+    },
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "idArray": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/id"},
+      "uniqueItems": true
+    },
+    "nonEmptyIdArray": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/id"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "rational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["numerator", "denominator"],
+      "properties": {
+        "numerator": {"type": "integer", "minimum": 0},
+        "denominator": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

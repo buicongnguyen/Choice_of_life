@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "manifestId": "phase-1-preregistration-lock-v1",
+  "status": "locked",
+  "hashAlgorithm": "sha256",
+  "bytePolicy": "Repository-relative file bytes with LF enforced by docs/.gitattributes",
+  "files": [
+    {
+      "path": "docs/.gitattributes",
+      "sha256": "cfec6110c894294e2070e5cb16c6f259cfac729680f945bf314a813fa17c95b1"
+    },
+    {
+      "path": "docs/phase-specs/phase-1.md",
+      "sha256": "5d16d07647e14198ea61532ce042aa9e84e0b1876b0a7c565e88b151e5d4e2a7"
+    },
+    {
+      "path": "docs/balance/fixture-registry-v1.json",
+      "sha256": "103bab03ba62e1619f9e745164135e067d41563f87090222cd5cc65e89454af5"
+    },
+    {
+      "path": "docs/balance/fixture-registry-v1.schema.json",
+      "sha256": "77596ffc1367560dd0a01b6071c319021bccac84a52d3d7c8e86b9f39bc30d0e"
+    },
+    {
+      "path": "docs/balance/content-lock-v1.schema.json",
+      "sha256": "2ed710682d949237c4ec8599cf4d9bf69a7cc0ee887a8c3559b1d32cdd0de5dc"
+    },
+    {
+      "path": "docs/save/run-state-v1.schema.json",
+      "sha256": "f1d951942df912d219749970858e7b71f1a96837b7adbe801c8df3829cfdb346"
+    },
+    {
+      "path": "docs/save/run-state-v1-maximal.fixture.json",
+      "sha256": "0b3d40e3af2aa2d2dae600d4907524a5346fa7509f973780d927330bccfbe4ec"
+    },
+    {
+      "path": "docs/save/run-state-v1-fixture-corpus.json",
+      "sha256": "8cf425f7c99f8aba5e381d2ac6d38a2c5908a356f02d96c3d2231670a16c602a"
+    }
+  ]
+}

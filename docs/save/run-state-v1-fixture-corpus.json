@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "corpusId": "run-state-v1-branch-corpus-v1",
+  "status": "locked",
+  "baseFixture": "run-state-v1-maximal.fixture.json",
+  "constructionRule": "Each implementation fixture is built from typed constructors, encoded, decoded with the contract-fixture catalog, and accepted before it can satisfy coverage.",
+  "pointerPatternGrammar": {
+    "base": "RFC6901 JSON Pointer with the extension below",
+    "arrayWildcardSegment": "A segment equal to * expands to every present array index at that location; it never names a literal object key.",
+    "escaping": "RFC6901 ~0 and ~1 escaping applies before wildcard expansion.",
+    "emptyExpansion": "A required pattern that expands to zero locations fails coverage.",
+    "coverageUnit": "Every expanded concrete pointer and every required branch value must be witnessed by a valid decoded corpus fixture."
+  },
+  "requiredBranchesByPointerPattern": {
+    "/runStatus": ["setup", "active", "completed"],
+    "/stage/phase": ["shell", "active", "settling", "complete"],
+    "/stage/settlement": ["null", "populated"],
+    "/stage/settlement/status": ["pending", "applied", "cancelled"],
+    "/stage/settlement/completedTick": ["null", "tick"],
+    "/runner": ["null", "populated"],
+    "/runner/motion/kind": ["idle", "moving"],
+    "/runner/inputBuffer": ["null", "up", "down"],
+    "/recovery": ["null", "populated"],
+    "/recovery/status": ["offered", "accepted", "cooldown"],
+    "/encounter": ["null", "populated"],
+    "/encounter/phase": ["presenting", "option-selected", "resolving", "resolved"],
+    "/encounter/selectedOptionId": ["null", "catalog-id"],
+    "/encounter/resolutionTransactionId": ["null", "instance-id"],
+    "/effectLedger/recent/*/causedByChoiceId": ["null", "catalog-id"],
+    "/effectLedger/recent/*/transactionId": ["null", "instance-id"],
+    "/storyState/facts/*/originChoiceId": ["null", "catalog-id"],
+    "/storyState/memories/*/originChoiceId": ["null", "catalog-id"],
+    "/storyState/conditions/*/expiresTick": ["null", "tick"],
+    "/storyState/conditions/*/originChoiceId": ["null", "catalog-id"],
+    "/consequences/pending/*/status": ["pending"],
+    "/consequences/resolved/*/status": ["resolved", "presented"],
+    "/consequences/resolved/*/presentedTick": ["null", "tick"],
+    "/consequences/terminal/*/status": ["complete", "expired", "superseded"],
+    "/consequences/terminal/*/causedByChoiceId": ["null", "catalog-id"],
+    "/consequences/terminal/*/resolution": ["null", "populated"],
+    "/consequences/terminal/*/supersededByTransactionId": ["null", "instance-id"],
+    "/consequences/terminal/*/acknowledgmentId": ["null", "catalog-id"]
+  },
+  "requiredValidStatusPairs": [
+    "setup: shell",
+    "active: active",
+    "active: settling",
+    "completed: complete"
+  ],
+  "requiredInvalidStatusPairs": [
+    "setup: active",
+    "setup: complete",
+    "active: shell",
+    "completed: active",
+    "completed: settling"
+  ],
+  "requiredTransactionCombinations": {
+    "valid": [
+      "active stage + null recovery + encounter",
+      "active stage + resolved cooldown recovery + encounter",
+      "active stage + offered or accepted recovery + null encounter",
+      "settling stage + null recovery + null encounter"
+    ],
+    "invalid": [
+      "active stage + offered recovery + encounter",
+      "active stage + accepted recovery + encounter",
+      "settling stage + any recovery",
+      "settling stage + any encounter"
+    ]
+  },
+  "hashSensitivity": {
+    "mutantMustDecodeBeforeHash": true,
+    "canonicalProjectionContainsEveryNonExcludedPrimitivePathAndValue": true,
+    "independentlyMutableLeafRequiresValidAlternative": true,
+    "correlatedLeafGroupsUseTypedValidBuilders": true,
+    "immutableConstantsUseKnownAnswerOrRejectionTests": true,
+    "excludedCosmeticLeavesMustNotChangeHash": true,
+    "unvisitedBranchOrEligibleLeafFails": true
+  },
+  "correlatedHashMutationGroups": [
+    ["/startingProfileId", "/scores", "/effectLedger/totalsBySource"],
+    ["/effectLedger/recent/*/requestedDelta", "/effectLedger/recent/*/before", "/effectLedger/recent/*/after", "/effectLedger/recent/*/actualDelta", "/effectLedger/totalsBySource"],
+    ["/runner/motion/currentLane", "/runner/motion/sourceLane", "/runner/motion/targetLane", "/runner/motion/elapsedTicks"],
+    ["/recovery/preTriggerScores", "/recovery/recoveryTarget", "/recovery/targetScores", "/scores", "/effectLedger"],
+    ["/encounter/transactionId", "/encounter/resolutionTransactionId", "/consequences/resolved", "/effectLedger/recent/*/transactionId"],
+    ["/consequences/terminal/*/status", "/consequences/terminal/*/resolution", "/consequences/terminal/*/supersededByTransactionId", "/consequences/terminal/*/acknowledgmentId"]
+  ],
+  "semanticInvariantIds": [
+    "run-stage-matrix-v1",
+    "motion-adjacent-lane-v1",
+    "spawn-open-pattern-resolution-v1",
+    "ledger-reconciliation-v1",
+    "effect-arithmetic-v1",
+    "recovery-tick-order-v1",
+    "recovery-depletion-and-restoration-v1",
+    "recovery-before-encounter-v1",
+    "settlement-exclusive-v1",
+    "invulnerability-equality-v1",
+    "settlement-tick-order-v1",
+    "encounter-atomic-resolution-v1",
+    "consequence-status-transition-v1",
+    "consequence-disjoint-id-v1",
+    "consequence-acyclic-graph-v1",
+    "choice-supersession-acknowledgment-v1",
+    "catalog-reference-v1"
+  ]
+}

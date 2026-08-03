@@ -1,0 +1,7 @@
+# Locked registries are hashed byte-for-byte; keep their checkout bytes stable.
+.gitattributes text eol=lf
+balance/*.json text eol=lf
+balance/**/*.json text eol=lf
+save/*.json text eol=lf
+phase-specs/*.md text eol=lf
+phase-specs/*.json text eol=lf

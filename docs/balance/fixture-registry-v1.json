@@ -1,0 +1,690 @@
+{
+  "$schema": "./fixture-registry-v1.schema.json",
+  "schemaVersion": 1,
+  "registryId": "choice-of-life-balance-v1",
+  "status": "locked",
+  "scoreOrder": ["health", "happiness", "money"],
+  "seedSet": {
+    "id": "balance-seeds-0-9999-v1",
+    "kind": "inclusiveIntegerRange",
+    "start": 0,
+    "endInclusive": 9999,
+    "step": 1,
+    "runSeedEncoding": "lowercase-hex-16-zero-padded",
+    "auditEncoding": "utf8-lines-lf-no-final-lf",
+    "count": 10000,
+    "firstEncodedSeed": "0000000000000000",
+    "lastEncodedSeed": "000000000000270f",
+    "expandedByteLength": 169999,
+    "expandedSha256": "ef87ff82e9d189dbedc0e2bd7842bd3d0c31cc143539f3460e33efe80d063a97"
+  },
+  "difficulties": ["story", "normal", "challenge"],
+  "pairingKeys": ["runSeed", "startingProfileId", "difficulty"],
+  "statistics": {
+    "quantileMethod": "r7-linear-interpolation",
+    "aggregatePerDifficultyAndProfile": true,
+    "poolDifficultyOrProfileCells": false
+  },
+  "metrics": {
+    "normalizedScoreDistance": {
+      "kind": "l1",
+      "scoreOrder": ["health", "happiness", "money"],
+      "denominator": 300,
+      "range": [0, 1]
+    },
+    "appliedDeltaMagnitude": {
+      "kind": "sum-absolute-post-clamp-deltas",
+      "scoreOrder": ["health", "happiness", "money"]
+    },
+    "attribution": {
+      "runnerSource": "runner",
+      "decisionSources": ["choice", "callback", "settlement"],
+      "decisionRequiresField": "causedByChoiceId",
+      "missingCauseReclassifiedAs": "system",
+      "excludedSources": ["recovery"],
+      "eligibleDenominatorSources": ["runner", "choice", "callback", "settlement", "system"],
+      "magnitudeBasis": "absolute-actual-post-clamp-delta",
+      "calculationOrder": "per-run-ratio-then-r7-median-per-profile-difficulty-choice-policy-cell",
+      "zeroDenominator": "fixture-failure",
+      "runnerMedianMin": {"numerator": 1, "denominator": 4},
+      "runnerMedianMax": {"numerator": 7, "denominator": 20},
+      "runnerBoundsInclusive": true,
+      "decisionMedianMin": {"numerator": 13, "denominator": 20},
+      "decisionMinimumInclusive": true
+    },
+    "decisionToRunnerDistanceRatioMin": {"numerator": 2, "denominator": 1},
+    "decisionToRunnerDistanceRatioInclusive": true,
+    "boundaryActiveTimeMax": {"numerator": 1, "denominator": 10},
+    "boundaryActiveTimeMaximumInclusive": false,
+    "choiceClampLossMax": {"numerator": 1, "denominator": 20},
+    "choiceClampLossMaximumInclusive": false,
+    "choiceClampLossUnit": "choice-with-any-requested-nonzero-score-component-whose-actual-delta-is-zero",
+    "startingProfileMedianDistanceMax": {"numerator": 2, "denominator": 25},
+    "startingProfileMedianDistanceMaximumInclusive": true,
+    "assistPerScorePointTolerance": 3
+  },
+  "numericGoals": [
+    {
+      "id": "health-first-v1",
+      "weights": {"numerators": [3, 1, 1], "denominator": 5}
+    },
+    {
+      "id": "happiness-first-v1",
+      "weights": {"numerators": [1, 3, 1], "denominator": 5}
+    },
+    {
+      "id": "security-first-v1",
+      "weights": {"numerators": [1, 1, 3], "denominator": 5}
+    },
+    {
+      "id": "balanced-v1",
+      "weights": {"numerators": [1, 1, 1], "denominator": 3}
+    }
+  ],
+  "narrativeGoals": [
+    {
+      "id": "learning-v1",
+      "qualifyingEvidenceQuantifier": "any",
+      "qualifyingEvidence": ["uniqueTypedFact", "uniqueRoute", "namedCallback", "endingAcknowledgment"]
+    },
+    {
+      "id": "care-v1",
+      "qualifyingEvidenceQuantifier": "any",
+      "qualifyingEvidence": ["uniqueTypedFact", "uniqueRoute", "namedCallback", "endingAcknowledgment"]
+    },
+    {
+      "id": "community-v1",
+      "qualifyingEvidenceQuantifier": "any",
+      "qualifyingEvidence": ["uniqueTypedFact", "uniqueRoute", "namedCallback", "endingAcknowledgment"]
+    },
+    {
+      "id": "autonomy-v1",
+      "qualifyingEvidenceQuantifier": "any",
+      "qualifyingEvidence": ["uniqueTypedFact", "uniqueRoute", "namedCallback", "endingAcknowledgment"]
+    }
+  ],
+  "startingProfiles": [
+    {
+      "id": "steady-mix-v1",
+      "label": "Steady mix",
+      "scores": {"health": 65, "happiness": 60, "money": 35},
+      "mechanicalFacts": [],
+      "description": "A broadly balanced starting context."
+    },
+    {
+      "id": "physical-head-start-v1",
+      "label": "Physical head start",
+      "scores": {"health": 69, "happiness": 57, "money": 34},
+      "mechanicalFacts": [],
+      "description": "Physical wellbeing starts a little higher; this is a temporary score emphasis, not a judgment about caregivers or family worth."
+    },
+    {
+      "id": "emotional-head-start-v1",
+      "label": "Emotional head start",
+      "scores": {"health": 63, "happiness": 66, "money": 31},
+      "mechanicalFacts": [],
+      "description": "Happiness starts a little higher; this is a temporary score emphasis, not a judgment about caregivers or family worth."
+    },
+    {
+      "id": "resource-head-start-v1",
+      "label": "Resource head start",
+      "scores": {"health": 61, "happiness": 57, "money": 42},
+      "mechanicalFacts": [],
+      "description": "Financial security starts a little higher; this is a temporary score emphasis, not a judgment about caregivers or family worth."
+    }
+  ],
+  "defaultStartingProfileId": "steady-mix-v1",
+  "profileRules": {
+    "selectionIsNotMoralRanking": true,
+    "protectedTraitsMayNotSelectOrModifyProfile": true,
+    "profileMayNotBeDerivedFrom": [
+      "caregiverCount",
+      "caregiverGender",
+      "caregiverJob",
+      "housing",
+      "geography",
+      "immigrationStatus",
+      "appearance",
+      "heritage"
+    ],
+    "forbiddenMechanicalDimensions": [
+      "race",
+      "ethnicity",
+      "nationality",
+      "gender",
+      "sexualOrientation",
+      "disability",
+      "religion",
+      "familyStructure"
+    ],
+    "sameMinimumEndingAndRepairRouteCoverage": true,
+    "playerFacingFraming": "Temporary score emphasis only; never caregiver quality or family worth.",
+    "profileDistanceComparison": "all-pairs"
+  },
+  "horizons": [
+    {
+      "id": "stage-settlement-v1",
+      "start": "stageEntry",
+      "end": "stageSettlement",
+      "provisional": false,
+      "mustRelockWhenCallbackTargetBecomesImplemented": false,
+      "contentLockParameters": ["contentVersion", "stageId"]
+    },
+    {
+      "id": "playable-slice-v1",
+      "start": "beforeStartingScoresApplied",
+      "end": "contentLockEndStageSettlementAndIncludedCallbacks",
+      "provisional": true,
+      "mustRelockWhenCallbackTargetBecomesImplemented": true,
+      "contentLockParameters": ["contentVersion", "startStageId", "endStageId", "includedCallbackIds"]
+    },
+    {
+      "id": "option-effect-v1",
+      "start": "immediatelyBeforeSelectedOption",
+      "end": "contentLockTerminalStageSettlementAndIncludedCallbacks",
+      "provisional": true,
+      "mustRelockWhenCallbackTargetBecomesImplemented": true,
+      "contentLockParameters": ["contentVersion", "startStageId", "endStageId", "includedCallbackIds", "optionIds"]
+    },
+    {
+      "id": "phase6-career-ending-v1",
+      "start": "careerOfferBeforeSelection",
+      "end": "phase6ProvisionalEnding",
+      "provisional": true,
+      "mustRelockWhenCallbackTargetBecomesImplemented": true,
+      "contentLockParameters": ["contentVersion", "includedCallbackIds", "careerOfferIds"]
+    },
+    {
+      "id": "complete-life-v1",
+      "start": "newbornRunStart",
+      "end": "finalBiographyAndEnding",
+      "provisional": false,
+      "mustRelockWhenCallbackTargetBecomesImplemented": false,
+      "contentLockParameters": ["contentVersion", "includedCallbackIds"]
+    }
+  ],
+  "canonicalPolicies": [
+    {
+      "id": "runner-manual-neutral-v1",
+      "domain": "runner",
+      "role": "neutral",
+      "interpretation": "canonical-evaluation-policy",
+      "algorithm": {
+        "kind": "runner-current-pattern-neutral-v1",
+        "utilityGoalId": "balanced-v1",
+        "utilityBasis": "weighted-actual-post-clamp-delta",
+        "projectionHorizon": "current-telegraphed-pattern-until-safe-boundary",
+        "selection": "stay-if-current-utility-nonnegative-else-rank-nonnegative-first-then-smallest-absolute-utility",
+        "nonnegativeThreshold": {"numerator": 0, "denominator": 1},
+        "tieBreak": ["prefer-nonnegative-utility", "fewest-lane-moves", "lane-priority"],
+        "lanePriority": [1, 0, 2]
+      }
+    },
+    {
+      "id": "runner-diagnostic-max-v1",
+      "domain": "runner",
+      "role": "diagnosticUpper",
+      "interpretation": "diagnostic-envelope-not-human-behavior",
+      "algorithm": {
+        "kind": "runner-current-pattern-extreme-v1",
+        "objective": "maximize",
+        "utilityGoalId": "balanced-v1",
+        "utilityBasis": "weighted-actual-post-clamp-delta",
+        "projectionHorizon": "current-telegraphed-pattern-until-safe-boundary",
+        "tieBreak": ["fewest-lane-moves", "lane-priority"],
+        "lanePriority": [1, 0, 2]
+      }
+    },
+    {
+      "id": "runner-diagnostic-min-v1",
+      "domain": "runner",
+      "role": "diagnosticLower",
+      "interpretation": "diagnostic-envelope-not-human-behavior",
+      "algorithm": {
+        "kind": "runner-current-pattern-extreme-v1",
+        "objective": "minimize",
+        "utilityGoalId": "balanced-v1",
+        "utilityBasis": "weighted-actual-post-clamp-delta",
+        "projectionHorizon": "current-telegraphed-pattern-until-safe-boundary",
+        "tieBreak": ["fewest-lane-moves", "lane-priority"],
+        "lanePriority": [1, 0, 2]
+      }
+    },
+    {
+      "id": "runner-semantic-assist-neutral-v1",
+      "domain": "runner",
+      "role": "assist",
+      "interpretation": "accessibility-equivalent",
+      "algorithm": {
+        "kind": "runner-semantic-assist-v1",
+        "basePolicyId": "runner-manual-neutral-v1",
+        "presentation": "untimed-semantic-choice",
+        "sameDecisionWindows": true,
+        "effectIdentityForSameLaneChoices": true,
+        "preserveNarrativeFacts": true
+      }
+    },
+    {
+      "id": "runner-automatic-assist-neutral-v1",
+      "domain": "runner",
+      "role": "assist",
+      "interpretation": "accessibility-equivalent",
+      "algorithm": {
+        "kind": "runner-automatic-matched-seed-replay-v1",
+        "basePolicyId": "runner-manual-neutral-v1",
+        "replayKeys": ["runSeed", "stageEntryStateHash", "startingProfileId", "difficulty", "contentVersion"],
+        "scoreTreatment": "apply-exact-neutral-trace-actual-deltas",
+        "narrativeTreatment": "apply-exact-neutral-trace-facts",
+        "perScorePointTolerance": 3
+      }
+    },
+    {
+      "id": "choice-health-first-v1",
+      "domain": "choice",
+      "role": "goal",
+      "interpretation": "canonical-evaluation-policy",
+      "algorithm": {
+        "kind": "choice-numeric-locked-population-v1",
+        "goalId": "health-first-v1",
+        "objective": "maximize",
+        "sampleValue": "terminal-weighted-score",
+        "aggregate": "r7-median-per-content-context-profile-difficulty",
+        "horizonId": "option-effect-v1",
+        "runnerContinuationPolicyId": "runner-manual-neutral-v1",
+        "choiceContinuationPolicyId": "choice-balanced-v1",
+        "seedKnowledge": "does-not-branch-on-current-run-seed",
+        "tieBreak": ["option-id-ascending"]
+      }
+    },
+    {
+      "id": "choice-happiness-first-v1",
+      "domain": "choice",
+      "role": "goal",
+      "interpretation": "canonical-evaluation-policy",
+      "algorithm": {
+        "kind": "choice-numeric-locked-population-v1",
+        "goalId": "happiness-first-v1",
+        "objective": "maximize",
+        "sampleValue": "terminal-weighted-score",
+        "aggregate": "r7-median-per-content-context-profile-difficulty",
+        "horizonId": "option-effect-v1",
+        "runnerContinuationPolicyId": "runner-manual-neutral-v1",
+        "choiceContinuationPolicyId": "choice-balanced-v1",
+        "seedKnowledge": "does-not-branch-on-current-run-seed",
+        "tieBreak": ["option-id-ascending"]
+      }
+    },
+    {
+      "id": "choice-security-first-v1",
+      "domain": "choice",
+      "role": "goal",
+      "interpretation": "canonical-evaluation-policy",
+      "algorithm": {
+        "kind": "choice-numeric-locked-population-v1",
+        "goalId": "security-first-v1",
+        "objective": "maximize",
+        "sampleValue": "terminal-weighted-score",
+        "aggregate": "r7-median-per-content-context-profile-difficulty",
+        "horizonId": "option-effect-v1",
+        "runnerContinuationPolicyId": "runner-manual-neutral-v1",
+        "choiceContinuationPolicyId": "choice-balanced-v1",
+        "seedKnowledge": "does-not-branch-on-current-run-seed",
+        "tieBreak": ["option-id-ascending"]
+      }
+    },
+    {
+      "id": "choice-balanced-v1",
+      "domain": "choice",
+      "role": "goal",
+      "interpretation": "canonical-evaluation-policy",
+      "algorithm": {
+        "kind": "choice-numeric-locked-population-v1",
+        "goalId": "balanced-v1",
+        "objective": "maximize",
+        "sampleValue": "terminal-weighted-score",
+        "aggregate": "r7-median-per-content-context-profile-difficulty",
+        "horizonId": "option-effect-v1",
+        "runnerContinuationPolicyId": "runner-manual-neutral-v1",
+        "choiceContinuationPolicyId": "choice-balanced-v1",
+        "seedKnowledge": "does-not-branch-on-current-run-seed",
+        "tieBreak": ["option-id-ascending"]
+      }
+    },
+    {
+      "id": "choice-learning-v1",
+      "domain": "choice",
+      "role": "goal",
+      "interpretation": "canonical-evaluation-policy",
+      "algorithm": {
+        "kind": "choice-narrative-locked-evidence-v1",
+        "goalId": "learning-v1",
+        "evidenceMustBeContentLocked": true,
+        "multipleQualifiers": "maximize-balanced-among-qualifying-only",
+        "noQualifier": "maximize-balanced-among-all-options",
+        "secondaryPolicyId": "choice-balanced-v1",
+        "tieBreak": ["option-id-ascending"]
+      }
+    },
+    {
+      "id": "choice-care-v1",
+      "domain": "choice",
+      "role": "goal",
+      "interpretation": "canonical-evaluation-policy",
+      "algorithm": {
+        "kind": "choice-narrative-locked-evidence-v1",
+        "goalId": "care-v1",
+        "evidenceMustBeContentLocked": true,
+        "multipleQualifiers": "maximize-balanced-among-qualifying-only",
+        "noQualifier": "maximize-balanced-among-all-options",
+        "secondaryPolicyId": "choice-balanced-v1",
+        "tieBreak": ["option-id-ascending"]
+      }
+    },
+    {
+      "id": "choice-community-v1",
+      "domain": "choice",
+      "role": "goal",
+      "interpretation": "canonical-evaluation-policy",
+      "algorithm": {
+        "kind": "choice-narrative-locked-evidence-v1",
+        "goalId": "community-v1",
+        "evidenceMustBeContentLocked": true,
+        "multipleQualifiers": "maximize-balanced-among-qualifying-only",
+        "noQualifier": "maximize-balanced-among-all-options",
+        "secondaryPolicyId": "choice-balanced-v1",
+        "tieBreak": ["option-id-ascending"]
+      }
+    },
+    {
+      "id": "choice-autonomy-v1",
+      "domain": "choice",
+      "role": "goal",
+      "interpretation": "canonical-evaluation-policy",
+      "algorithm": {
+        "kind": "choice-narrative-locked-evidence-v1",
+        "goalId": "autonomy-v1",
+        "evidenceMustBeContentLocked": true,
+        "multipleQualifiers": "maximize-balanced-among-qualifying-only",
+        "noQualifier": "maximize-balanced-among-all-options",
+        "secondaryPolicyId": "choice-balanced-v1",
+        "tieBreak": ["option-id-ascending"]
+      }
+    },
+    {
+      "id": "choice-diagnostic-balanced-min-v1",
+      "domain": "choice",
+      "role": "diagnosticLower",
+      "interpretation": "diagnostic-envelope-not-human-behavior",
+      "algorithm": {
+        "kind": "choice-numeric-locked-population-v1",
+        "goalId": "balanced-v1",
+        "objective": "minimize",
+        "sampleValue": "terminal-weighted-score",
+        "aggregate": "r7-median-per-content-context-profile-difficulty",
+        "horizonId": "option-effect-v1",
+        "runnerContinuationPolicyId": "runner-manual-neutral-v1",
+        "choiceContinuationPolicyId": "choice-balanced-v1",
+        "seedKnowledge": "does-not-branch-on-current-run-seed",
+        "tieBreak": ["option-id-ascending"]
+      }
+    }
+  ],
+  "continuation": {
+    "runnerPolicyId": "runner-manual-neutral-v1",
+    "choicePolicyId": "choice-balanced-v1",
+    "categoricalFactsAreNeverConvertedToScoreWeights": true
+  },
+  "assertions": [
+    {
+      "id": "runner-share-bounds-v1",
+      "kind": "source-share-v1",
+      "numeratorSources": ["runner"],
+      "denominatorSources": ["runner", "choice", "callback", "settlement", "system"],
+      "excludedSources": ["recovery"],
+      "magnitude": "absolute-actual-post-clamp-delta",
+      "sampleUnit": "one-complete-paired-run",
+      "groupBy": ["startingProfileId", "difficulty", "choicePolicyId"],
+      "reducer": "r7-median-of-per-run-ratios",
+      "comparator": "inclusive-range",
+      "lowerThresholdPath": "/metrics/attribution/runnerMedianMin",
+      "upperThresholdPath": "/metrics/attribution/runnerMedianMax",
+      "zeroDenominator": "fail-active-fixture"
+    },
+    {
+      "id": "decision-share-minimum-v1",
+      "kind": "source-share-v1",
+      "numeratorSources": ["choice", "callback", "settlement"],
+      "denominatorSources": ["runner", "choice", "callback", "settlement", "system"],
+      "excludedSources": ["recovery"],
+      "magnitude": "absolute-actual-post-clamp-delta-with-valid-choice-cause-for-callback-and-settlement",
+      "sampleUnit": "one-complete-paired-run",
+      "groupBy": ["startingProfileId", "difficulty", "choicePolicyId"],
+      "reducer": "r7-median-of-per-run-ratios",
+      "comparator": "greater-than-or-equal",
+      "lowerThresholdPath": "/metrics/attribution/decisionMedianMin",
+      "upperThresholdPath": null,
+      "zeroDenominator": "fail-active-fixture"
+    },
+    {
+      "id": "decision-influence-ratio-v1",
+      "kind": "paired-distance-ratio-v1",
+      "sampleUnit": "matched-seed-counterfactual-pair",
+      "groupBy": ["startingProfileId", "difficulty"],
+      "reducer": "r7-median-of-paired-normalized-score-distances",
+      "comparator": "decision-greater-than-or-equal-multiple-of-runner",
+      "lowerThresholdPath": "/metrics/decisionToRunnerDistanceRatioMin",
+      "upperThresholdPath": null,
+      "zeroDenominator": "runner-zero-decision-positive-passes-as-infinite-both-zero-fails"
+    },
+    {
+      "id": "profile-distance-parity-v1",
+      "kind": "paired-profile-distance-v1",
+      "sampleUnit": "matched-seed-unordered-profile-pair",
+      "groupBy": ["profilePair", "difficulty"],
+      "reducer": "r7-median-of-paired-normalized-score-distances",
+      "comparator": "less-than-or-equal",
+      "lowerThresholdPath": null,
+      "upperThresholdPath": "/metrics/startingProfileMedianDistanceMax",
+      "zeroDenominator": "not-applicable"
+    },
+    {
+      "id": "profile-route-coverage-parity-v1",
+      "kind": "route-set-parity-v1",
+      "sampleUnit": "complete-profile-cell",
+      "groupBy": ["startingProfileId", "difficulty"],
+      "reducer": "minimum-ending-and-repair-route-count",
+      "comparator": "equal-across-all-profiles",
+      "lowerThresholdPath": null,
+      "upperThresholdPath": null,
+      "zeroDenominator": "empty-route-set-fails"
+    },
+    {
+      "id": "score-boundary-time-v1",
+      "kind": "per-score-active-time-share-v1",
+      "sampleUnit": "one-complete-paired-run-per-score",
+      "groupBy": ["startingProfileId", "difficulty", "scoreId"],
+      "reducer": "r7-median-of-per-run-active-tick-ratios",
+      "comparator": "strictly-less-than",
+      "lowerThresholdPath": null,
+      "upperThresholdPath": "/metrics/boundaryActiveTimeMax",
+      "zeroDenominator": "fail-active-fixture"
+    },
+    {
+      "id": "choice-clamp-loss-v1",
+      "kind": "whole-choice-clamp-loss-share-v1",
+      "sampleUnit": "choice-with-any-requested-nonzero-score-component",
+      "groupBy": ["startingProfileId", "difficulty"],
+      "reducer": "affected-choices-divided-by-choices-with-any-requested-nonzero-component",
+      "comparator": "strictly-less-than",
+      "lowerThresholdPath": null,
+      "upperThresholdPath": "/metrics/choiceClampLossMax",
+      "zeroDenominator": "fail-active-fixture"
+    },
+    {
+      "id": "semantic-assist-effect-identity-v1",
+      "kind": "matched-trace-identity-v1",
+      "sampleUnit": "matched-seed-stage-entry-and-lane-choice-trace",
+      "groupBy": ["startingProfileId", "difficulty", "runSeed"],
+      "reducer": "none-every-pair-must-pass",
+      "comparator": "exactly-equal",
+      "lowerThresholdPath": null,
+      "upperThresholdPath": null,
+      "zeroDenominator": "not-applicable"
+    },
+    {
+      "id": "automatic-assist-score-parity-v1",
+      "kind": "matched-trace-per-score-distance-v1",
+      "sampleUnit": "matched-seed-and-stage-entry-neutral-trace",
+      "groupBy": ["startingProfileId", "difficulty", "runSeed", "scoreId"],
+      "reducer": "none-every-pair-must-pass",
+      "comparator": "absolute-difference-less-than-or-equal",
+      "lowerThresholdPath": null,
+      "upperThresholdPath": "/metrics/assistPerScorePointTolerance",
+      "zeroDenominator": "not-applicable"
+    },
+    {
+      "id": "assist-narrative-parity-v1",
+      "kind": "matched-trace-narrative-set-identity-v1",
+      "sampleUnit": "matched-seed-and-stage-entry-neutral-trace",
+      "groupBy": ["startingProfileId", "difficulty", "runSeed"],
+      "reducer": "none-every-pair-must-pass",
+      "comparator": "exactly-equal-fact-condition-callback-and-route-eligibility-sets",
+      "lowerThresholdPath": null,
+      "upperThresholdPath": null,
+      "zeroDenominator": "not-applicable"
+    }
+  ],
+  "evaluationSuites": [
+    {
+      "id": "attribution-v1",
+      "kind": "source-attribution-v1",
+      "activation": "when-content-lock-references-suite",
+      "assertionIds": ["runner-share-bounds-v1", "decision-share-minimum-v1"],
+      "seedSetId": "balance-seeds-0-9999-v1",
+      "profiles": "all",
+      "difficulties": "all-separately",
+      "runnerPolicyId": "runner-manual-neutral-v1",
+      "choicePolicies": [
+        "choice-health-first-v1",
+        "choice-happiness-first-v1",
+        "choice-security-first-v1",
+        "choice-balanced-v1",
+        "choice-learning-v1",
+        "choice-care-v1",
+        "choice-community-v1",
+        "choice-autonomy-v1"
+      ],
+      "horizonId": "playable-slice-v1",
+      "ratioUnit": "per-run-absolute-actual-post-clamp-delta",
+      "eligibleDenominatorSources": ["runner", "choice", "callback", "settlement", "system"],
+      "excludedSources": ["recovery"],
+      "aggregation": "r7-median-per-profile-difficulty-choice-policy-cell",
+      "zeroDenominator": "fixture-failure",
+      "runnerShareGate": "inclusive-between-runnerMedianMin-and-runnerMedianMax",
+      "decisionShareGate": "greater-than-or-equal-decisionMedianMin"
+    },
+    {
+      "id": "influence-ratio-v1",
+      "kind": "paired-influence-ratio-v1",
+      "activation": "when-content-lock-references-suite",
+      "assertionIds": ["decision-influence-ratio-v1"],
+      "seedSetId": "balance-seeds-0-9999-v1",
+      "profiles": "all",
+      "difficulties": "all-separately",
+      "horizonId": "playable-slice-v1",
+      "distanceMetric": "normalizedScoreDistance",
+      "decisionComparison": {
+        "policyA": "choice-balanced-v1",
+        "policyB": "choice-diagnostic-balanced-min-v1",
+        "fixedRunnerPolicyId": "runner-manual-neutral-v1"
+      },
+      "runnerComparison": {
+        "policyA": "runner-diagnostic-max-v1",
+        "policyB": "runner-diagnostic-min-v1",
+        "fixedChoicePolicyId": "choice-balanced-v1"
+      },
+      "calculationOrder": "paired-distance-per-seed-then-r7-median-per-profile-difficulty-cell",
+      "gate": "median-decision-distance-greater-than-or-equal-to-two-times-median-runner-distance",
+      "zeroHandling": "runner-zero-decision-positive-passes-as-infinite-both-zero-fails"
+    },
+    {
+      "id": "profile-parity-v1",
+      "kind": "all-pairs-profile-parity-v1",
+      "activation": "when-content-lock-references-suite",
+      "assertionIds": ["profile-distance-parity-v1", "profile-route-coverage-parity-v1"],
+      "seedSetId": "balance-seeds-0-9999-v1",
+      "profiles": "all",
+      "difficulties": "all-separately",
+      "runnerPolicyId": "runner-manual-neutral-v1",
+      "choicePolicyId": "choice-balanced-v1",
+      "horizonId": "playable-slice-v1",
+      "distanceMetric": "normalizedScoreDistance",
+      "comparisonPairs": "every-unordered-profile-pair",
+      "calculationOrder": "paired-distance-per-seed-then-r7-median-per-profile-pair-difficulty-cell",
+      "distanceGate": "less-than-or-equal-startingProfileMedianDistanceMax",
+      "routeCoverageGate": "equal-minimum-ending-and-repair-route-coverage"
+    },
+    {
+      "id": "saturation-v1",
+      "kind": "score-saturation-and-clamp-loss-v1",
+      "activation": "when-content-lock-references-suite",
+      "assertionIds": ["score-boundary-time-v1", "choice-clamp-loss-v1"],
+      "seedSetId": "balance-seeds-0-9999-v1",
+      "profiles": "all",
+      "difficulties": "all-separately",
+      "runnerPolicyId": "runner-manual-neutral-v1",
+      "choicePolicyId": "choice-balanced-v1",
+      "horizonId": "playable-slice-v1",
+      "boundaryShareNumerator": "active-logical-ticks-where-the-evaluated-score-equals-zero-or-one-hundred",
+      "boundaryShareDenominator": "playable-active-logical-ticks-excluding-pause-dialog-and-loading",
+      "boundaryAggregation": "per-run-per-score-ratio-then-r7-median-per-profile-difficulty-score-cell",
+      "boundaryGate": "strictly-less-than-boundaryActiveTimeMax",
+      "clampChoiceNumerator": "choices-with-any-requested-nonzero-score-component-whose-actual-delta-is-zero",
+      "clampChoiceDenominator": "choices-with-any-requested-nonzero-score-component",
+      "clampComponentRate": "supplemental-report-only",
+      "clampAggregation": "sum-counts-per-profile-difficulty-cell-then-divide",
+      "clampGate": "strictly-less-than-choiceClampLossMax",
+      "zeroDenominator": "fixture-failure"
+    },
+    {
+      "id": "assist-parity-v1",
+      "kind": "matched-seed-assist-parity-v1",
+      "activation": "when-content-lock-references-suite",
+      "assertionIds": [
+        "semantic-assist-effect-identity-v1",
+        "automatic-assist-score-parity-v1",
+        "assist-narrative-parity-v1"
+      ],
+      "seedSetId": "balance-seeds-0-9999-v1",
+      "profiles": "all",
+      "difficulties": "all-separately",
+      "horizonId": "playable-slice-v1",
+      "manualPolicyId": "runner-manual-neutral-v1",
+      "semanticAssistPolicyId": "runner-semantic-assist-neutral-v1",
+      "automaticAssistPolicyId": "runner-automatic-assist-neutral-v1",
+      "semanticComparison": "effect-identical-when-given-the-same-lane-choices",
+      "automaticComparison": "same-seed-and-stage-entry-neutral-trace",
+      "scoreGate": "absolute-paired-difference-at-most-assistPerScorePointTolerance-for-every-score-and-run",
+      "narrativeGate": "identical-fact-condition-callback-and-route-eligibility-sets"
+    }
+  ],
+  "changePolicy": {
+    "registryV1IsByteImmutableAfterLock": true,
+    "registrySchemaV1IsByteImmutableAfterLock": true,
+    "phaseContractAndSaveSchemasAreByteImmutableAfterLock": true,
+    "contentLockSchemaV1IsByteImmutableAfterLock": true,
+    "maximalSaveFixtureV1IsByteImmutableAfterLock": true,
+    "saveFixtureCorpusV1IsByteImmutableAfterLock": true,
+    "contentLockInstancesAreByteImmutableAfterLock": true,
+    "phaseLockManifestV1IsByteImmutableAfterLock": true,
+    "globalSemanticChangeRequiresNewRegistryVersion": true,
+    "contentLocksDirectory": "docs/balance/locks",
+    "contentLockCommitMustBeDocsOnly": true,
+    "contentLockMustPrecedeEffectOrBalanceTuning": true,
+    "phaseReviewMustRecordAllLockFileSha256Values": true,
+    "changeRequiresIndependentLogicReview": true,
+    "changeRequiresWrittenDesignReason": true,
+    "observedFailureAloneIsNotAValidReason": true,
+    "supersedingVersionMustRerunAllPriorLocks": true
+  }
+}
