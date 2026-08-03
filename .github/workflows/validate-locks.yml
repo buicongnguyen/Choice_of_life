@@ -1,0 +1,61 @@
+name: Validate Choice of Life fixture locks
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - ".github/workflows/validate-locks.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/fixture-lock.mjs"
+      - "scripts/fixture-lock.test.mjs"
+      - "scripts/validate-fixture-locks.mjs"
+      - "scripts/validate-fixture-preregistration.mjs"
+      - "scripts/validate-committed-fixture-preregistration.mjs"
+  pull_request:
+    paths:
+      - "docs/**"
+      - ".github/workflows/validate-locks.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/fixture-lock.mjs"
+      - "scripts/fixture-lock.test.mjs"
+      - "scripts/validate-fixture-locks.mjs"
+      - "scripts/validate-fixture-preregistration.mjs"
+      - "scripts/validate-committed-fixture-preregistration.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-locks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full immutable history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate committed preregistration structure and immutable history
+        run: npm run fixtures:validate-preregistration
+        env:
+          CHOICE_LOCK_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+
+      - name: Type-check fixture tooling consumers
+        run: npm run check
+
+      - name: Run regression tests
+        run: npm test
+        env:
+          CHOICE_FIXTURE_TEST_PREREG_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}

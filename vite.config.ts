@@ -5,11 +5,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   base: "./",
   build: {
-    rollupOptions: {
-      input: {
-        main: "index.html",
-        avatarPreview: "avatar-preview.html",
-      },
-    },
+    emptyOutDir: true,
+    manifest: true,
   },
 });
