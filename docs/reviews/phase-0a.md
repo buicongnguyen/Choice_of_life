@@ -97,10 +97,10 @@
 
 ## Deployment
 
-- Commit: pending implementation commit
-- Workflow run: pending
-- `/release.json`: pending exact-SHA verification
-- Live smoke result: pending
+- Commit: `3c97ecacc939894e7949228b46473a1c04855ffe`
+- Workflow run: [30827359242](https://github.com/buicongnguyen/Choice_of_life/actions/runs/30827359242) — completed successfully for the exact implementation SHA
+- `/release.json`: HTTP 200 with commit `3c97ecacc939894e7949228b46473a1c04855ffe`, version `0.1.0`, and repository `buicongnguyen/Choice_of_life`
+- Live smoke result: title and new-life character setup rendered; the main hashed JavaScript and CSS loaded; four visible character images completed with nonzero intrinsic dimensions; browser console had no warnings or errors
 
 Deployment fields may be pending in the implementation commit. They are closed
 by one `docs/**`-only evidence commit after production verification. The Pages
