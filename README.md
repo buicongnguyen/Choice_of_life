@@ -14,7 +14,8 @@ This first public release is a planning scaffold and technical reference build. 
 
 - Live site: https://buicongnguyen.github.io/Choice_of_life/
 - Repository: https://github.com/buicongnguyen/Choice_of_life
-- Reviewed implementation plan: [CHOICE_OF_LIFE_PLAN.md](./CHOICE_OF_LIFE_PLAN.md)
+- Active implementation plan: [CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md](./CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md)
+- Stage/content design reference: [CHOICE_OF_LIFE_PLAN.md](./CHOICE_OF_LIFE_PLAN.md)
 - Design summary: [DESIGN.md](./DESIGN.md)
 
 ## Repository isolation
@@ -31,24 +32,26 @@ Requirements: Node.js 22 and npm.
 
 ```bash
 npm ci
-npm run check
-npm test
-npm run build
+npm run release:stamp
+npm run verify
 npm run dev
 ```
 
-The production build is written to `dist/`. Vite uses a relative asset base so the site works under the GitHub Pages project path.
+`npm run verify` runs the type check, full tests, production build, built-release verification, and current bundle budgets. The production build is written to `dist/`. Vite uses a relative asset base so the site works under the GitHub Pages project path.
 
-## Planned first playable slice
+## Planned implementation sequence
 
-The first implementation milestone will prove the complete loop with four non-adjacent life stages:
+The active v2 plan builds the game through independently reviewed releases:
 
-1. Newborn: nursery runner, safe items and hazards, meeting Mom, first decision.
-2. High School: exam preparation with meaningful score trade-offs.
-3. Education or Training: university, vocational, and immediate-work routes.
-4. First Career: qualified job offers and delayed career pressure, including a high-income/high-stress doctor route.
+1. isolated application shell and deterministic three-score domain;
+2. three-lane runner laboratory and reachability validator;
+3. playable Newborn stage;
+4. Mom encounter and idempotent consequences;
+5. High School and Education/Training demo slice;
+6. First Career and a provisional ending;
+7. continuous childhood, adult, later-life, accessibility, art, and release phases.
 
-This vertical slice must demonstrate deterministic safe spawning, fixed-size lane movement, an accessible choice tray that never covers the character, save/resume, and a consequence that returns in a later stage before the remaining stages are produced.
+Each release must pass code review, logic review, automated verification, an SSH push, exact-SHA Pages deployment, and live smoke testing before the next phase starts.
 
 ## Publishing
 

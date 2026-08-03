@@ -1,8 +1,8 @@
 # Choice of Life — reviewed game and execution plan
 
-Status: approved design baseline for the new repository
+Status: retained stage/content design; execution superseded by [CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md](./CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md)
 
-Current milestone: Phase 0, independent planning scaffold
+Historical execution sections begin at section 14 and are superseded by the active v2 plan. Stage/content sections remain references only where v2 does not override them.
 
 Target repository: `buicongnguyen/Choice_of_life`
 
@@ -430,7 +430,7 @@ Difficulty modes:
 
 Speed changes difficulty, not the number of story choices or total meaningful rewards.
 
-## 14. Technical architecture
+## 14. Historical technical architecture (superseded by v2)
 
 Do not add the runner directly to the inherited large engine module. Build a new isolated feature area and migrate reusable pieces deliberately.
 
@@ -491,7 +491,7 @@ Replace rather than adapt deeply:
 - old active-save schema;
 - monolithic event and career flow.
 
-## 15. Implementation phases
+## 15. Historical implementation phases (superseded by v2)
 
 ### Phase 0 — Independent repository and honest scaffold
 
@@ -632,7 +632,7 @@ Acceptance:
 - direct asset requests work under `/Choice_of_life/`;
 - the GitHub Pages deployment corresponds to the exact pushed commit.
 
-## 16. Test strategy
+## 16. Historical test strategy (superseded by v2)
 
 Unit tests:
 
@@ -668,7 +668,7 @@ Automated browser checks:
 - tab hide/show pause;
 - refresh during runner and immediately after a choice.
 
-## 17. Accessibility requirements
+## 17. Historical accessibility requirements (superseded by v2)
 
 - minimum 44 CSS-pixel touch targets;
 - no timed dialog by default;
@@ -682,7 +682,7 @@ Automated browser checks:
 - Story mode with longer warning distance;
 - clear pause control and automatic pause on focus loss.
 
-## 18. Balance and content rules
+## 18. Historical balance and content rules (superseded by v2)
 
 - No career may dominate all three scores over a complete life.
 - Higher income normally introduces education cost, time pressure, health risk, or reduced autonomy.
@@ -694,7 +694,7 @@ Automated browser checks:
 - NPC diversity changes names, art, context, and lived details—not the worth of outcomes.
 - Friends shown together at school use the same age stage, even when their heritage, hairstyle, clothes, or body details differ.
 
-## 19. Risks and mitigations
+## 19. Historical risks and mitigations (superseded by v2)
 
 | Risk | Mitigation |
 |---|---|
@@ -709,7 +709,7 @@ Automated browser checks:
 | Reload duplicates a consequence | Mark callbacks fired and persist before presentation. |
 | GitHub Pages collides with v5 storage | Use only `choice-of-life-v1-*` keys and a separate project path. |
 
-## 20. Commit and deployment discipline
+## 20. Historical commit and deployment discipline (superseded by v2)
 
 Each phase should end with:
 
@@ -726,7 +726,7 @@ Each phase should end with:
 
 The deployment transport is intentionally split: Git pushes use SSH, while GitHub Actions builds and publishes the Pages artifact using GitHub’s Pages deployment service.
 
-## 21. Definition of a finished first version
+## 21. Historical definition of finished first version (superseded by v2)
 
 Choice of Life v1 is ready when:
 

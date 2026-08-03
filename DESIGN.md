@@ -1,6 +1,6 @@
 # Choice of Life — design summary
 
-The detailed, implementation-ready specification is in [CHOICE_OF_LIFE_PLAN.md](./CHOICE_OF_LIFE_PLAN.md). This document records the reviewed product decisions that should remain stable while implementation details evolve.
+The active execution specification is [CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md](./CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md). The original [CHOICE_OF_LIFE_PLAN.md](./CHOICE_OF_LIFE_PLAN.md) is retained only as the detailed stage/content bible where v2 does not override it. This document records the product decisions that should remain stable while implementation details evolve.
 
 ## Product promise
 

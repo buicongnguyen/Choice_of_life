@@ -4,10 +4,19 @@
   "private": true,
   "type": "module",
   "description": "Choice of Life — a three-score side-scrolling life runner where every decision shapes the future.",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/buicongnguyen/Choice_of_life.git",
+    "full_name": "buicongnguyen/Choice_of_life"
+  },
   "scripts": {
     "dev": "vite",
     "generate:training": "node scripts/generate-training-questions.mjs",
+    "release:stamp": "node scripts/write-release.mjs",
+    "release:verify": "node scripts/check-release.mjs",
     "build": "tsc && vite build",
+    "budget": "node scripts/check-bundle-budget.mjs",
+    "verify": "npm run check && npm test && npm run build && npm run release:verify && npm run budget",
     "preview": "vite preview",
     "check": "tsc --noEmit",
     "test": "vitest run",
