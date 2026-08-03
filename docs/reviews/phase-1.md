@@ -73,10 +73,10 @@
 
 ## Deployment
 
-- Commit: Pending implementation commit.
-- Workflow run: Pending.
-- `/release.json`: Pending exact-SHA verification.
-- Live smoke result: Pending.
+- Commit: `792e052aaea6abd99eb9707ed434d66e15055dfd`.
+- Workflow run: [Deploy Choice of Life to GitHub Pages — 30851183545](https://github.com/buicongnguyen/Choice_of_life/actions/runs/30851183545) and [Validate Choice of Life fixture locks — 30851183625](https://github.com/buicongnguyen/Choice_of_life/actions/runs/30851183625), both successful for the exact implementation SHA.
+- `/release.json`: Verified `commit` = `792e052aaea6abd99eb9707ed434d66e15055dfd`, `version` = `0.2.0`, and `repository` = `buicongnguyen/Choice_of_life` from the public Pages origin.
+- Live smoke result: Passed at `https://buicongnguyen.github.io/Choice_of_life/?release=792e052`; title → setup → create/save → return → resume completed, the expected three-resource preview remained intact, JavaScript and CSS loaded from the release build, and no visible error or horizontal overflow was detected.
 
 Deployment fields may be pending in the implementation commit. They are closed
 by one `docs/**`-only evidence commit after production verification. The Pages
@@ -90,5 +90,6 @@ evidence-only allowlist in the preregistered phase contract.
 
 ## Decision
 
-Approved for deployment. Final Phase 1 closure is pending an exact-SHA GitHub
-Pages deployment and live smoke test.
+Approved and complete. The preregistered Phase 1 contract, independent reviews,
+full verification gate, exact-SHA deployment, and public live smoke test all
+passed.
