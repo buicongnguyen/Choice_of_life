@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "manifestId": "phase-2-preregistration-lock-v1",
+  "phaseId": "phase-2",
+  "status": "locked",
+  "hashAlgorithm": "sha256",
+  "bytePolicy": "Repository-relative file bytes with LF enforced by docs/.gitattributes",
+  "files": [
+    {
+      "path": "docs/phase-specs/phase-2.md",
+      "sha256": "b9f5b218a53f9b19f9d68d1e75236bae37655fc5f62357815b2abf6b09f61e69"
+    },
+    {
+      "path": "docs/balance/locks/runner-laboratory-content-lock-v1.json",
+      "sha256": "6d422654beba9ec779f921abf1b8be01eaf89d8c6856936a6c014e903ab6326d"
+    },
+    {
+      "path": "docs/balance/runner-fixture-v1.schema.json",
+      "sha256": "1c23f8483d799c42ee3e0ee02431bedd03bb4feb89c44f1af3ddff2783a92ef1"
+    },
+    {
+      "path": "docs/balance/runner-fixtures/runner-laboratory-fixture-v1.json",
+      "sha256": "97504556d5b90fbf2f084f21c6c8905db7f88f5399bc545df6dca6e21ea93414"
+    }
+  ]
+}

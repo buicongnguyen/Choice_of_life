@@ -1,0 +1,139 @@
+{
+  "$schema": "../content-lock-v1.schema.json",
+  "schemaVersion": 1,
+  "lockId": "runner-laboratory-content-lock-v1",
+  "status": "locked",
+  "registry": {
+    "registryId": "choice-of-life-balance-v1",
+    "registrySha256": "103bab03ba62e1619f9e745164135e067d41563f87090222cd5cc65e89454af5",
+    "registrySchemaSha256": "77596ffc1367560dd0a01b6071c319021bccac84a52d3d7c8e86b9f39bc30d0e"
+  },
+  "commitProtocol": {
+    "docsOnly": true,
+    "precedesContentEffectsAndTuning": true,
+    "lockCommitRecordedInPhaseReview": true,
+    "lockedInstanceIsByteImmutable": true
+  },
+  "content": {
+    "contentVersion": "phase-1-v1",
+    "phaseId": "phase-2",
+    "stageIds": [
+      "runner-lab-v1"
+    ],
+    "contextIds": [
+      "runner-laboratory-slice-v1"
+    ],
+    "patternIds": [
+      "runner-lab-benefit-fork-v1",
+      "runner-lab-risk-reward-v1",
+      "runner-lab-avoid-only-v1",
+      "runner-lab-quiet-window-v1"
+    ],
+    "choiceIds": [],
+    "optionIds": [],
+    "callbackIds": [],
+    "careerOfferIds": [],
+    "evidenceIds": [
+      "evidence-runner-reachability-v1",
+      "evidence-runner-replay-v1",
+      "evidence-runner-assist-v1",
+      "evidence-runner-accessibility-v1",
+      "evidence-runner-completion-fact-v1",
+      "evidence-runner-completion-memory-v1",
+      "evidence-runner-appearance-invariance-v1"
+    ],
+    "comparatorIds": []
+  },
+  "horizon": {
+    "horizonId": "playable-slice-v1",
+    "startStageId": "runner-lab-v1",
+    "endStageId": "runner-lab-v1",
+    "includedCallbackIds": []
+  },
+  "evaluation": {
+    "suiteIds": [
+      "assist-parity-v1"
+    ],
+    "assertionIds": [
+      "semantic-assist-effect-identity-v1",
+      "automatic-assist-score-parity-v1",
+      "assist-narrative-parity-v1"
+    ],
+    "runnerPolicyIds": [
+      "runner-manual-neutral-v1",
+      "runner-semantic-assist-neutral-v1",
+      "runner-automatic-assist-neutral-v1"
+    ],
+    "choicePolicyIds": [
+      "choice-balanced-v1"
+    ],
+    "comparatorIds": [],
+    "narrativeGoalMappings": [],
+    "contentThresholds": [
+      {
+        "id": "runner-lab-semantic-effect-distance-max-v1",
+        "assertionId": "semantic-assist-effect-identity-v1",
+        "comparator": "=",
+        "value": {
+          "numerator": 0,
+          "denominator": 1
+        }
+      },
+      {
+        "id": "runner-lab-automatic-score-distance-max-v1",
+        "assertionId": "automatic-assist-score-parity-v1",
+        "comparator": "<=",
+        "value": {
+          "numerator": 3,
+          "denominator": 1
+        }
+      },
+      {
+        "id": "runner-lab-narrative-mismatch-max-v1",
+        "assertionId": "assist-narrative-parity-v1",
+        "comparator": "=",
+        "value": {
+          "numerator": 0,
+          "denominator": 1
+        }
+      }
+    ]
+  },
+  "expectedDirectionalResults": [
+    {
+      "id": "runner-lab-semantic-manual-identity-v1",
+      "contextId": "runner-laboratory-slice-v1",
+      "policyAId": "runner-manual-neutral-v1",
+      "policyBId": "runner-semantic-assist-neutral-v1",
+      "assertionId": "semantic-assist-effect-identity-v1",
+      "comparator": "="
+    },
+    {
+      "id": "runner-lab-automatic-manual-score-parity-v1",
+      "contextId": "runner-laboratory-slice-v1",
+      "policyAId": "runner-manual-neutral-v1",
+      "policyBId": "runner-automatic-assist-neutral-v1",
+      "assertionId": "automatic-assist-score-parity-v1",
+      "comparator": "<="
+    },
+    {
+      "id": "runner-lab-automatic-manual-narrative-identity-v1",
+      "contextId": "runner-laboratory-slice-v1",
+      "policyAId": "runner-manual-neutral-v1",
+      "policyBId": "runner-automatic-assist-neutral-v1",
+      "assertionId": "assist-narrative-parity-v1",
+      "comparator": "="
+    }
+  ],
+  "supersession": {
+    "supersedesLockId": null,
+    "reason": null,
+    "newlyRealizedCallbackIds": []
+  },
+  "review": {
+    "designReason": "Lock the complete runner-laboratory population, pattern identities, Assist comparators, and thresholds before any production pattern effects or balance constants exist. This gives Phase 2 an accessibility-equivalence gate without activating later choice-attribution suites that the laboratory cannot honestly satisfy.",
+    "observedFailureIsNotSoleReason": true,
+    "independentLogicReviewRequired": true,
+    "inclusivityReviewRequired": true
+  }
+}
