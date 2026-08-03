@@ -16,8 +16,13 @@ import {
   validateFixtureLocks,
   validateFixturePreregistration,
   validateRegistryObject,
+  validateRunnerEvidence,
+  validateRunnerFixture,
+  verifyAdditiveLockManifests,
   verifyCorrectionLockManifest,
+  verifyGitAdditiveManifestBundles,
   verifyGitLockedPaths,
+  verifyHistoricalAdditiveManifestPaths,
   verifyHistoricalContentLockPaths,
   verifyLockManifest,
   verifyLockManifestChain,
@@ -48,6 +53,13 @@ async function copyDocsWithoutContentLocks(root) {
   await cp(new URL("../docs", import.meta.url), path.join(root, "docs"), { recursive: true });
   await rm(path.join(root, "docs", "balance", "locks"), { recursive: true, force: true });
   await rm(path.join(root, "docs", "balance", "evaluation-results"), { recursive: true, force: true });
+  await rm(path.join(root, "docs", "balance", "runner-evaluation-results"), { recursive: true, force: true });
+  await rm(path.join(root, "docs", "balance", "runner-fixtures"), { recursive: true, force: true });
+  await rm(path.join(root, "docs", "balance", "runner-fixture-v1.schema.json"), { force: true });
+  for (let phase = 2; phase <= 11; phase += 1) {
+    await rm(path.join(root, "docs", "phase-specs", `phase-${phase}.md`), { force: true });
+    await rm(path.join(root, "docs", "phase-specs", `phase-${phase}-lock-manifest.json`), { force: true });
+  }
 }
 
 function sha256(bytes) {
@@ -128,6 +140,769 @@ function validContentLock() {
   };
 }
 
+function phase2ContentLock() {
+  const lock = validContentLock();
+  lock.lockId = "runner-laboratory-content-lock-v1";
+  lock.content = {
+    contentVersion: "phase-1-v1",
+    phaseId: "phase-2",
+    stageIds: ["runner-lab-v1"],
+    contextIds: ["runner-laboratory-slice-v1"],
+    patternIds: [
+      "runner-lab-benefit-fork-v1",
+      "runner-lab-risk-reward-v1",
+      "runner-lab-avoid-only-v1",
+      "runner-lab-quiet-window-v1",
+    ],
+    choiceIds: [],
+    optionIds: [],
+    callbackIds: [],
+    careerOfferIds: [],
+    evidenceIds: [
+      "evidence-runner-reachability-v1",
+      "evidence-runner-replay-v1",
+      "evidence-runner-assist-v1",
+    ],
+    comparatorIds: [],
+  };
+  lock.evaluation = {
+    suiteIds: ["assist-parity-v1"],
+    assertionIds: [
+      "semantic-assist-effect-identity-v1",
+      "automatic-assist-score-parity-v1",
+      "assist-narrative-parity-v1",
+    ],
+    runnerPolicyIds: [
+      "runner-manual-neutral-v1",
+      "runner-semantic-assist-neutral-v1",
+      "runner-automatic-assist-neutral-v1",
+    ],
+    choicePolicyIds: ["choice-balanced-v1"],
+    comparatorIds: [],
+    narrativeGoalMappings: [],
+    contentThresholds: [
+      {
+        id: "runner-lab-semantic-effect-distance-max-v1",
+        assertionId: "semantic-assist-effect-identity-v1",
+        comparator: "=",
+        value: { numerator: 0, denominator: 1 },
+      },
+      {
+        id: "runner-lab-automatic-score-distance-max-v1",
+        assertionId: "automatic-assist-score-parity-v1",
+        comparator: "<=",
+        value: { numerator: 3, denominator: 1 },
+      },
+      {
+        id: "runner-lab-narrative-mismatch-max-v1",
+        assertionId: "assist-narrative-parity-v1",
+        comparator: "=",
+        value: { numerator: 0, denominator: 1 },
+      },
+    ],
+  };
+  lock.expectedDirectionalResults = [
+    {
+      id: "runner-lab-semantic-manual-identity-v1",
+      contextId: "runner-laboratory-slice-v1",
+      policyAId: "runner-manual-neutral-v1",
+      policyBId: "runner-semantic-assist-neutral-v1",
+      assertionId: "semantic-assist-effect-identity-v1",
+      comparator: "=",
+    },
+    {
+      id: "runner-lab-automatic-manual-score-parity-v1",
+      contextId: "runner-laboratory-slice-v1",
+      policyAId: "runner-manual-neutral-v1",
+      policyBId: "runner-automatic-assist-neutral-v1",
+      assertionId: "automatic-assist-score-parity-v1",
+      comparator: "<=",
+    },
+    {
+      id: "runner-lab-automatic-manual-narrative-identity-v1",
+      contextId: "runner-laboratory-slice-v1",
+      policyAId: "runner-manual-neutral-v1",
+      policyBId: "runner-automatic-assist-neutral-v1",
+      assertionId: "assist-narrative-parity-v1",
+      comparator: "=",
+    },
+  ];
+  lock.review.designReason = "Lock the complete runner laboratory population and Assist gates before production tuning.";
+  return lock;
+}
+
+function validRunnerFixture() {
+  const assistAssertionIds = [
+    "semantic-assist-effect-identity-v1",
+    "automatic-assist-score-parity-v1",
+    "assist-narrative-parity-v1",
+  ];
+  const optionalKnownAnswers = [
+    ["0000000000000000", "story", ["2:risk-reward-secondary-v1", "3:risk-reward-secondary-v1", "5:avoid-secondary-hazard-v1"]],
+    ["0000000000000000", "normal", ["2:risk-reward-secondary-v1", "3:risk-reward-secondary-v1", "5:avoid-secondary-hazard-v1"]],
+    ["0000000000000000", "challenge", ["2:risk-reward-secondary-v1", "3:risk-reward-secondary-v1", "5:avoid-secondary-hazard-v1", "7:avoid-secondary-hazard-v1", "8:risk-reward-secondary-v1"]],
+    ["0000000000000001", "story", ["6:risk-reward-secondary-v1", "7:avoid-secondary-hazard-v1"]],
+    ["0000000000000001", "normal", ["5:risk-reward-secondary-v1", "6:risk-reward-secondary-v1", "7:avoid-secondary-hazard-v1"]],
+    ["0000000000000001", "challenge", ["3:risk-reward-secondary-v1", "5:risk-reward-secondary-v1", "6:risk-reward-secondary-v1", "7:avoid-secondary-hazard-v1", "9:avoid-secondary-hazard-v1"]],
+    ["000000000000270f", "story", ["1:avoid-secondary-hazard-v1", "2:risk-reward-secondary-v1", "7:risk-reward-secondary-v1"]],
+    ["000000000000270f", "normal", ["1:avoid-secondary-hazard-v1", "2:risk-reward-secondary-v1", "4:risk-reward-secondary-v1", "7:risk-reward-secondary-v1"]],
+    ["000000000000270f", "challenge", ["1:avoid-secondary-hazard-v1", "2:risk-reward-secondary-v1", "4:risk-reward-secondary-v1", "5:avoid-secondary-hazard-v1", "7:risk-reward-secondary-v1"]],
+  ].map(([runSeed, difficulty, includedPatternGroups]) => ({ runSeed, difficulty, includedPatternGroups }));
+  const spawnCursors = [
+    {
+      difficulty: "story",
+      spawnTicks: [208, 458, 708, 958, 1208, 1458, 1708, 1958, 2208, 2458],
+      nextSpawnDistancesMilli: [540800, 1190800, 1840800, 2490800, 3140800, 3790800, 4440800, 5090800, 5740800, 6390800],
+    },
+    {
+      difficulty: "normal",
+      spawnTicks: [218, 468, 718, 968, 1218, 1468, 1718, 1968, 2218, 2468],
+      nextSpawnDistancesMilli: [654000, 1404000, 2154000, 2904000, 3654000, 4404000, 5154000, 5904000, 6654000, 7404000],
+    },
+    {
+      difficulty: "challenge",
+      spawnTicks: [218, 468, 718, 968, 1218, 1468, 1718, 1968, 2218, 2468],
+      nextSpawnDistancesMilli: [741200, 1591200, 2441200, 3291200, 4141200, 4991200, 5841200, 6691200, 7541200, 8391200],
+    },
+  ];
+  return {
+    $schema: "../runner-fixture-v1.schema.json",
+    schemaVersion: 1,
+    fixtureId: "runner-laboratory-fixture-v1",
+    status: "locked",
+    phaseId: "phase-2",
+    contentLockId: "runner-laboratory-content-lock-v1",
+    runtimeContentVersion: "phase-1-v1",
+    evaluatorId: "runner-laboratory-evaluator-v1",
+    population: {
+      seedSetId: "balance-seeds-0-9999-v1",
+      start: 0,
+      endInclusive: 9999,
+      step: 1,
+      count: 10000,
+      firstEncodedSeed: "0000000000000000",
+      lastEncodedSeed: "000000000000270f",
+      profileIds: registry.startingProfiles.map(({ id }) => id),
+      difficulties: [...registry.difficulties],
+    },
+    stage: {
+      stageIds: ["runner-lab-v1"],
+      patternIds: [
+        "runner-lab-benefit-fork-v1",
+        "runner-lab-risk-reward-v1",
+        "runner-lab-avoid-only-v1",
+        "runner-lab-quiet-window-v1",
+      ],
+      durationTicks: 3000,
+      decisionWindowCount: 10,
+      categoryCounts: [
+        { patternId: "runner-lab-benefit-fork-v1", count: 4 },
+        { patternId: "runner-lab-risk-reward-v1", count: 3 },
+        { patternId: "runner-lab-avoid-only-v1", count: 2 },
+        { patternId: "runner-lab-quiet-window-v1", count: 1 },
+      ],
+      rollingHorizonPatterns: 3,
+      firstWindowAnchorTick: 300,
+      windowAnchorSpacingTicks: 250,
+      lastWindowAnchorTick: 2550,
+      latestContactOffsetTicks: 18,
+      latestPossibleContactTick: 2568,
+      standalonePractice: true,
+    },
+    generator: {
+      algorithmId: "runner-laboratory-generator-v1",
+      permutationAlgorithm: "pattern-entropy-decorate-sort-v1",
+      permutationTokenDerivation: "pattern-entropy-fnv1a32-v1(runSeed,stageId,initialPatternIndex+copyOrdinal,sequence-order)",
+      copyOrdinalDomain: "global-multiset-index-0-through-9",
+      permutationRank: "uint32-ascending",
+      permutationTieBreak: ["template-index-ascending", "copy-index-ascending"],
+      permutationKnownAnswerTestsRequired: true,
+      copyOrdinalMapping: [
+        [0, 0, 0, "runner-lab-benefit-fork-v1"],
+        [1, 0, 1, "runner-lab-benefit-fork-v1"],
+        [2, 0, 2, "runner-lab-benefit-fork-v1"],
+        [3, 0, 3, "runner-lab-benefit-fork-v1"],
+        [4, 1, 0, "runner-lab-risk-reward-v1"],
+        [5, 1, 1, "runner-lab-risk-reward-v1"],
+        [6, 1, 2, "runner-lab-risk-reward-v1"],
+        [7, 2, 0, "runner-lab-avoid-only-v1"],
+        [8, 2, 1, "runner-lab-avoid-only-v1"],
+        [9, 3, 0, "runner-lab-quiet-window-v1"],
+      ].map(([copyOrdinal, templateIndex, copyIndex, patternId]) => ({ copyOrdinal, templateIndex, copyIndex, patternId })),
+      knownAnswers: [
+        {
+          runSeed: "0000000000000000",
+          course: [
+            ["runner-lab-quiet-window-v1", 0], ["runner-lab-risk-reward-v1", 1],
+            ["runner-lab-risk-reward-v1", 1], ["runner-lab-benefit-fork-v1", 0],
+            ["runner-lab-avoid-only-v1", 1], ["runner-lab-benefit-fork-v1", 0],
+            ["runner-lab-avoid-only-v1", 1], ["runner-lab-risk-reward-v1", 2],
+            ["runner-lab-benefit-fork-v1", 2], ["runner-lab-benefit-fork-v1", 2],
+          ].map(([patternId, rotation]) => ({ patternId, rotation })),
+        },
+        {
+          runSeed: "0000000000000001",
+          course: [
+            ["runner-lab-benefit-fork-v1", 1], ["runner-lab-benefit-fork-v1", 0],
+            ["runner-lab-risk-reward-v1", 0], ["runner-lab-quiet-window-v1", 0],
+            ["runner-lab-risk-reward-v1", 2], ["runner-lab-risk-reward-v1", 1],
+            ["runner-lab-avoid-only-v1", 2], ["runner-lab-benefit-fork-v1", 2],
+            ["runner-lab-avoid-only-v1", 1], ["runner-lab-benefit-fork-v1", 2],
+          ].map(([patternId, rotation]) => ({ patternId, rotation })),
+        },
+        {
+          runSeed: "000000000000270f",
+          course: [
+            ["runner-lab-avoid-only-v1", 0], ["runner-lab-risk-reward-v1", 0],
+            ["runner-lab-benefit-fork-v1", 1], ["runner-lab-risk-reward-v1", 2],
+            ["runner-lab-avoid-only-v1", 1], ["runner-lab-benefit-fork-v1", 0],
+            ["runner-lab-risk-reward-v1", 2], ["runner-lab-quiet-window-v1", 0],
+            ["runner-lab-benefit-fork-v1", 2], ["runner-lab-benefit-fork-v1", 2],
+          ].map(([patternId, rotation]) => ({ patternId, rotation })),
+        },
+      ],
+      laneRotationSelection: "legal-rotations[floor(uint32-lane-rotation-times-length-div-2^32)]",
+      deterministic: true,
+      rerollAllowed: false,
+      entropyInputs: ["runSeed", "stageId", "patternIndex", "entropyChannel"],
+      entropyChannels: ["sequence-order", "lane-rotation", "optional-variant"],
+      canonicalEntityOrder: ["patternIndex", "slotIndex", "instanceId"],
+      coursePatternIndexStart: 1,
+      initialPatternIndex: 0,
+      initialResolvedThroughPatternIndex: 0,
+      terminalPatternIndex: 11,
+      spawnTickDerivation: "window-anchor-minus-difficulty-lead-ticks",
+      newlySpawnedEntitiesAdvanceOnSpawnTick: false,
+      spawnCursorSemantics: {
+        nonterminalDistanceDerivation: "world-speed-milli-per-tick-times-next-spawn-tick",
+        triggerPredicate: "simulation-tick-gte-next-spawn-tick-and-world-distance-gte-next-spawn-distance",
+        triggerEvaluationBoundary: "active-tick-boundary-before-input-motion-and-entity-advance",
+        cursorValuesByDifficulty: spawnCursors,
+        immediateAppendOrder: [
+          "append-canonical-pattern-entities",
+          "set-pattern-index-to-greatest-appended-course-index",
+          "set-next-spawn-tick-and-distance-to-following-cursor",
+          "canonicalize-active-entities",
+        ],
+        patternIndexSemantics: "greatest-appended-course-index-then-11-for-terminal-sentinel",
+        resolvedThroughPatternIndexSemantics: "sentinel-0-at-entry-then-greatest-consecutive-course-pattern-with-marker-and-every-included-slot-terminal",
+        resolvedThroughAdvanceBoundary: "after-canonical-terminal-resolution-of-that-pattern",
+      },
+      nextSpawnSentinel: {
+        tick: 3001,
+        distanceMilliByDifficulty: { story: 7802600, normal: 9003000, challenge: 10203400 },
+        postLastPolicy: "retain-terminal-sentinel",
+      },
+      optionalInclusion: {
+        appliesTo: "optional-group-id",
+        tokenDerivation: "pattern-entropy-fnv1a32-v1(runSeed,stageId,patternIndex,optional-variant-then-group-id)",
+        channelDerivation: "optional-variant-<optionalGroupId>",
+        scale: 100,
+        rule: "floor-uint32-times-100-div-2^32-strictly-less-than-optional-density",
+        groupAtomic: true,
+        knownAnswers: optionalKnownAnswers,
+      },
+      maxLiveInteractiveEntities: 24,
+    },
+    movement: {
+      lanes: [0, 1, 2],
+      laneCentersMilli: [0, 1000, 2000],
+      tweenTicks: 11,
+      bufferCapacity: 1,
+      interpolationFormulaId: "source-plus-rounded-delta-times-elapsed-over-11-v1",
+      laneRoleModuloMapping: {
+        "rotation-origin": "rotation-mod-3",
+        "rotation-next": "rotation-plus-1-mod-3",
+        "rotation-previous": "rotation-plus-2-mod-3",
+      },
+      incomingStateClosure: {
+        total: 107,
+        idle: 7,
+        bufferedIdle: 4,
+        moving: 100,
+        elapsedTicks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        bufferedHandoffCompletionState: "idle-at-first-target",
+        bufferedHandoffNextTickState: "moving-to-buffered-target-elapsed-1",
+      },
+    },
+    warning: {
+      baseReactionTicks: 38,
+      requiredMoveFloors: [
+        { requiredMoves: 0, minWarningTicks: 38 },
+        { requiredMoves: 1, minWarningTicks: 50 },
+        { requiredMoves: 2, minWarningTicks: 60 },
+      ],
+      leadTicks: { story: 92, normal: 82, challenge: 82 },
+      remainingMotionComputation: "exact-from-visible-interpolation-and-buffer",
+    },
+    difficultyProfiles: [
+      { difficulty: "story", worldSpeedMilliPerTick: 2600, optionalDensity: 50, variantId: "runner-lab-story-variant-v1", durationTicks: 3000 },
+      { difficulty: "normal", worldSpeedMilliPerTick: 3000, optionalDensity: 75, variantId: "runner-lab-normal-variant-v1", durationTicks: 3000 },
+      { difficulty: "challenge", worldSpeedMilliPerTick: 3400, optionalDensity: 100, variantId: "runner-lab-challenge-variant-v1", durationTicks: 3000 },
+    ],
+    collision: {
+      coordinateSystem: "integer-fixed-point",
+      playerXMilli: 180000,
+      playerHalfWidthMilli: 18000,
+      laneHalfWidthMilli: 300,
+      entityWidthMilli: 34000,
+      contactXRule: "closed-interval-overlap-v1",
+      laneContactRule: "absolute-player-lane-position-minus-entity-lane-center-lte-lane-half-width",
+      laneContactBoundary: "closed",
+      contactTickMeaning: "first-closed-horizontal-overlap-and-earliest-full-contact-for-lane-aligned-player",
+      firstHorizontalOverlapEntityCenterXMilli: 215000,
+      spawnXDerivation: "215000-plus-world-speed-times-difficulty-lead-plus-contact-offset-ticks",
+      playerGeometryInvariant: true,
+      hitboxNarrowerThanVisual: true,
+      contactResolution: "at-most-once",
+      negativeContactProofRequired: true,
+      invulnerabilityTicks: 25,
+      invulnerabilityInterval: "[contactTick,contactTick+25)",
+      contactEffectIdentity: {
+        entityInstanceIdGrammar: "entity-<16-lowercase-hex>",
+        effectIdDerivation: "effect-<same-16-lowercase-hex>",
+        source: "runner",
+        transactionId: null,
+        causedByChoiceId: null,
+        simulationTick: "authoritative-contact-tick",
+      },
+      invulnerabilityByMode: {
+        manual: "negative-authoritative-contact-sets-half-open-interval-overlap-hazards-pass-without-effect-benefits-apply",
+        semantic: "negative-authoritative-contact-sets-half-open-interval-overlap-hazards-pass-without-effect-benefits-apply",
+        automatic: "all-contacts-pass-nonauthoritative-no-contact-effects-no-future-invulnerability",
+      },
+      safeBoundary: {
+        closedOverlapTravelMilli: 70000,
+        firstSafeTickFormula: "window-anchor-plus-contact-offset-plus-floor-70000-div-world-speed-plus-1",
+        maximumOffsetTicksByDifficulty: { story: 45, normal: 42, challenge: 39 },
+        quietWindowSafeTick: "window-anchor-tick",
+        contactedEntitiesTerminalizeImmediately: true,
+        uncontactedEntitiesPassAtFirstSafeTick: true,
+        terminalEntitiesRemovedAndIdsRecorded: "end-of-terminal-tick-canonical-order",
+        manualDecisionMarkerPasses: "pattern-first-safe-tick-after-latest-included-slot-or-anchor-for-quiet",
+      },
+    },
+    entityEffects: [
+      { entityContentId: "runner-lab-health-token-v1", kind: "benefit", scoreId: "health", requestedDelta: 1, effectCategoryId: "runner-benefit-v1" },
+      { entityContentId: "runner-lab-happiness-token-v1", kind: "benefit", scoreId: "happiness", requestedDelta: 1, effectCategoryId: "runner-benefit-v1" },
+      { entityContentId: "runner-lab-money-token-v1", kind: "benefit", scoreId: "money", requestedDelta: 1, effectCategoryId: "runner-benefit-v1" },
+      { entityContentId: "runner-lab-clutter-hazard-v1", kind: "hazard", scoreId: "health", requestedDelta: -1, effectCategoryId: "runner-hazard-v1" },
+      { entityContentId: "runner-lab-pressure-hazard-v1", kind: "hazard", scoreId: "happiness", requestedDelta: -1, effectCategoryId: "runner-hazard-v1" },
+    ],
+    patternTemplates: [
+      {
+        patternId: "runner-lab-benefit-fork-v1",
+        category: "benefit-fork",
+        occurrenceCount: 4,
+        legalRotations: [0, 1, 2],
+        slots: [
+          { slotIndex: 0, entityContentId: "runner-lab-health-token-v1", laneRole: "rotation-origin", contactOffsetTicks: 0, optional: false, optionalGroupId: null },
+          { slotIndex: 1, entityContentId: "runner-lab-happiness-token-v1", laneRole: "rotation-next", contactOffsetTicks: 0, optional: false, optionalGroupId: null },
+          { slotIndex: 2, entityContentId: "runner-lab-money-token-v1", laneRole: "rotation-previous", contactOffsetTicks: 0, optional: false, optionalGroupId: null },
+        ],
+      },
+      {
+        patternId: "runner-lab-risk-reward-v1",
+        category: "risk-reward",
+        occurrenceCount: 3,
+        legalRotations: [0, 1, 2],
+        slots: [
+          { slotIndex: 0, entityContentId: "runner-lab-money-token-v1", laneRole: "rotation-origin", contactOffsetTicks: 0, optional: false, optionalGroupId: null },
+          { slotIndex: 1, entityContentId: "runner-lab-clutter-hazard-v1", laneRole: "rotation-origin", contactOffsetTicks: 18, optional: false, optionalGroupId: null },
+          { slotIndex: 2, entityContentId: "runner-lab-happiness-token-v1", laneRole: "rotation-next", contactOffsetTicks: 0, optional: true, optionalGroupId: "risk-reward-secondary-v1" },
+          { slotIndex: 3, entityContentId: "runner-lab-pressure-hazard-v1", laneRole: "rotation-previous", contactOffsetTicks: 0, optional: true, optionalGroupId: "risk-reward-secondary-v1" },
+        ],
+      },
+      {
+        patternId: "runner-lab-avoid-only-v1",
+        category: "avoid-only",
+        occurrenceCount: 2,
+        legalRotations: [0, 1, 2],
+        slots: [
+          { slotIndex: 0, entityContentId: "runner-lab-clutter-hazard-v1", laneRole: "rotation-origin", contactOffsetTicks: 0, optional: false, optionalGroupId: null },
+          { slotIndex: 1, entityContentId: "runner-lab-pressure-hazard-v1", laneRole: "rotation-next", contactOffsetTicks: 0, optional: true, optionalGroupId: "avoid-secondary-hazard-v1" },
+        ],
+      },
+      {
+        patternId: "runner-lab-quiet-window-v1",
+        category: "quiet-window",
+        occurrenceCount: 1,
+        legalRotations: [0],
+        slots: [],
+      },
+    ],
+    markers: {
+      initial: {
+        contentId: "runner-lab-start-marker-v1",
+        patternIndex: 0,
+        representation: "resolved-id-sentinel",
+        storedInActiveEntities: false,
+        kind: "opportunity",
+        slotIndex: 63,
+        lane: 1,
+        xMilli: 215000,
+        widthMilli: 1,
+        collisionParticipation: "none",
+        instanceIdDerivation: "stable-coordinate-v1-run-seed-stage-pattern-slot-content",
+        resolvedEntityIdRecorded: true,
+        acknowledgementRepresentation: "implicit-unresolved-by-id-absence-resolved-by-id-presence",
+        lifecycle: "resolved-before-first-active-tick",
+      },
+      terminal: {
+        contentId: "runner-lab-finish-marker-v1",
+        patternIndex: 11,
+        representation: "resolved-id-sentinel",
+        storedInActiveEntities: false,
+        kind: "opportunity",
+        slotIndex: 63,
+        lane: 1,
+        xMilli: 215000,
+        widthMilli: 1,
+        collisionParticipation: "none",
+        instanceIdDerivation: "stable-coordinate-v1-run-seed-stage-pattern-slot-content",
+        resolvedEntityIdRecorded: true,
+        acknowledgementRepresentation: "implicit-unresolved-by-id-absence-resolved-by-id-presence",
+        lifecycle: "resolves-on-terminal-active-tick",
+      },
+      decision: {
+        contentId: "runner-lab-decision-marker-v1",
+        representation: "runner-entity",
+        kind: "opportunity",
+        slotIndex: 63,
+        lane: 1,
+        widthMilli: 1,
+        contactStateOnSpawn: "pending",
+        collisionParticipation: "none",
+        resolutionOwner: "assist-boundary",
+        manualPassBoundary: "pattern-first-safe-tick-after-latest-included-slot-or-anchor-for-quiet",
+        countPerPattern: 1,
+        instanceIdDerivation: "stable-coordinate-v1-run-seed-stage-pattern-slot-content",
+        spawnXDerivation: "215000-plus-world-speed-times-difficulty-lead-ticks",
+        resolvedEntityIdRecorded: true,
+        terminalLifecycleByMode: {
+          manual: "passed-at-window-safe-boundary",
+          automatic: "pending-at-spawn-checkpoint-then-resolved-in-next-ordinary-tick-atomic-commit",
+          semantic: "resolved-before-unpause-in-atomic-selection-commit",
+        },
+        semanticAcknowledgementLifecycle: "derive-from-retained-resolved-marker-id-until-next-marker-or-completion-memory",
+      },
+      resolvedEntityIdRetention: {
+        policy: "retain-all-until-stage-completion",
+        maximumIds: 40,
+        compaction: "none",
+        ordering: "lexicographic-ascending-after-every-mutation",
+        codecRejectsNoncanonicalOrder: true,
+        supports: ["invulnerability-owner-proof", "semantic-acknowledgement-derivation"],
+      },
+    },
+    completion: {
+      standalonePractice: true,
+      terminalRunStatus: "completed",
+      terminalStageStatus: "complete",
+      stageSettlementApplied: true,
+      terminalRunner: null,
+      nextStageId: null,
+      completionMemory: {
+        id: "memory-runner-laboratory-complete-v1",
+        kind: "milestone",
+        stageId: "runner-lab-v1",
+        summary: "Completed the runner laboratory.",
+        originChoiceId: null,
+      },
+      automaticAssistContactEffectCount: 0,
+      settlement: {
+        appliedCountPerMode: 1,
+        settlementId: "settlement-runner-laboratory-v1",
+        tick: 3000,
+        deterministic: true,
+        idempotent: true,
+        pendingSnapshot: {
+          runStatus: "active",
+          stagePhase: "settling",
+          settlementStatus: "pending",
+          startedTick: 3000,
+          completedTick: null,
+          runner: "present-with-terminal-sentinel",
+        },
+        appliedSnapshot: {
+          runStatus: "completed",
+          stagePhase: "complete",
+          settlementStatus: "applied",
+          startedTick: 3000,
+          completedTick: 3000,
+          runner: null,
+        },
+        pendingCheckpointRequired: true,
+        applicationTickDelta: 0,
+        applicationMayResumeFromReload: true,
+        transition: "separate-zero-tick-atomic-idempotent-apply-after-pending-checkpoint-or-reload",
+        manual: { effectCount: 0 },
+        semantic: { effectCount: 0 },
+        automatic: {
+          effectCountMinimum: 1,
+          effectCountMaximum: 3,
+          categoryId: "runner-lab-automatic-settlement-effect-v1",
+          source: "system",
+          transactionOwnedEffects: true,
+          effectOrder: ["health", "happiness", "money"],
+          zeroDeltaPolicy: "omit-effect",
+          requestedDeltaDerivation: "neutral-manual-terminal-score-minus-automatic-pre-settlement-score",
+          effectIdDerivation: {
+            algorithmId: "settlement-score-id-format-v1",
+            preimageFields: ["settlementId", "scoreId"],
+            format: "effect-runner-laboratory-<scoreId>-v1",
+            knownAnswers: [
+              { scoreId: "health", effectId: "effect-runner-laboratory-health-v1" },
+              { scoreId: "happiness", effectId: "effect-runner-laboratory-happiness-v1" },
+              { scoreId: "money", effectId: "effect-runner-laboratory-money-v1" },
+            ],
+          },
+          causedByChoiceId: null,
+          simulationTick: 3000,
+          nonemptyGuaranteedByAssertionId: "runner-automatic-settlement-idempotency-v1",
+          nonemptyStructuralProof: {
+            benefitForkCount: 4,
+            benefitForkLaneCoverage: "all-three-lanes",
+            neutralMinimumUtilityPerWindow: 0,
+            aggregateRequestedDeltaSumMinimum: 4,
+            conclusion: "at-least-one-nonzero-score-delta",
+          },
+        },
+      },
+    },
+    assist: {
+      modes: ["manual", "semantic", "automatic"],
+      semanticTargetCompilesToAdjacentRequests: true,
+      semanticPromptBoundary: "idle-null-buffer-only",
+      promptOpenTickDerivation: "window-anchor-minus-difficulty-lead-ticks",
+      semanticWaitingTickDelta: 0,
+      semanticSelectionEnabledWhen: "semantic-prompt-is-sole-pause-reason",
+      independentPauseSelectionBehavior: "reject-no-op-marker-pending-prompt-retained",
+      neutralEvaluationCommandBoundaryByMode: {
+        manual: "after-pattern-append-before-next-logical-step-at-prompt-open-tick",
+        semantic: "atomic-selection-step-at-prompt-open-tick",
+        automatic: "after-pattern-append-before-next-logical-step-at-prompt-open-tick",
+      },
+      rawLaneInputWhilePromptOpen: "disabled",
+      targetStoredOutsideRunnerState: false,
+      semanticSelectionCommit: {
+        markerResolution: "resolve-before-logical-step",
+        firstIntent: "one-adjacent-request-or-none-for-stay",
+        logicalSteps: 1,
+        secondIntent: "queue-same-direction-after-step-for-two-lane-target",
+        commitMode: "single-atomic-state-and-save",
+        resultingTickDelta: 1,
+        twoLaneResult: "moving-elapsed-1-with-single-buffer",
+        oneLaneResult: "moving-elapsed-1-with-null-buffer",
+        stayResult: "idle-with-null-buffer",
+        markerResolvedBeforeUnpause: true,
+      },
+      automaticDecisionCommit: {
+        spawnCheckpoint: "decision-marker-pending-with-no-stored-target",
+        targetDerivation: "recompute-neutral-manual-oracle-prefix-from-run-entry-through-current-marker",
+        oracleProjection: ["scores", "effects", "motion", "input-buffer", "resolved-entity-ids"],
+        oraclePrefixStoredOutsideRunState: false,
+        commitTick: "next-ordinary-active-tick",
+        commitMode: "single-atomic-marker-motion-buffer-and-save",
+        twoLaneResult: "moving-elapsed-1-with-single-buffer",
+        oneLaneResult: "moving-elapsed-1-with-null-buffer",
+        stayResult: "idle-with-null-buffer",
+        resolvedMarkerWithUnsavedTargetAllowed: false,
+      },
+      automaticRequiresLaneInput: false,
+      population: { seedCount: 10000, profileCount: 4, difficultyCount: 3, pairedEntryCount: 120000 },
+      assertionIds: assistAssertionIds,
+    },
+    initialState: {
+      simulationTick: 0,
+      activeTicks: 0,
+      worldDistanceMilli: 0,
+      currentLane: 1,
+      motion: "idle",
+      inputBuffer: null,
+      patternIndex: 0,
+      resolvedThroughPatternIndex: 0,
+      nextSpawnTickByDifficulty: { story: 208, normal: 218, challenge: 218 },
+      nextSpawnDistanceMilliByDifficulty: { story: 540800, normal: 654000, challenge: 741200 },
+      userPaused: true,
+      startMarkerResolvedIdPresent: false,
+      resolvedEntityIds: [],
+    },
+    startAction: {
+      tickDelta: 0,
+      activeTickDelta: 0,
+      worldDistanceDeltaMilli: 0,
+      insertStablePattern0Slot63ResolvedId: true,
+      userPausedAfter: false,
+    },
+    logicalTickPipeline: [
+      "accept-at-most-one-intent-and-advance-motion",
+      "increment-simulation-tick-active-ticks-and-world-distance",
+      "advance-only-entities-existing-before-this-step",
+      "resolve-collisions-effects-and-invulnerability-in-canonical-order",
+      "terminalize-or-pass-and-record-resolved-ids-in-canonical-order",
+      "append-due-pattern-at-new-tick-boundary-without-advancing-new-entities",
+      "open-semantic-prompt-and-add-semantic-pause-after-append",
+      "at-tick-3000-resolve-finish-set-terminal-cursors-create-pending-settlement-and-save-durable-checkpoint",
+    ],
+    replay: {
+      tweenElapsedTicks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      boundarySnapshots: [
+        "before-entity-contact", "after-entity-contact", "invulnerability-start",
+        "invulnerability-end", "pause", "resume", "stage-completion",
+      ],
+      remainingSpawnIdComparisonCap: 50,
+      canonicalHashRequired: true,
+      saveRoundTripRequired: true,
+    },
+    invariance: {
+      appearanceGameplayProjectionInvariant: true,
+      genderGameplayProjectionInvariant: true,
+      appearanceWitnessSeeds: [0, 1, 9999],
+      selectionCount: 512,
+      pauseTickDrift: 0,
+    },
+    assertions: [
+      { assertionId: "runner-generation-determinism-v1", population: 90000 },
+      { assertionId: "runner-pattern-composition-v1", population: 90000 },
+      { assertionId: "runner-laboratory-reachability-v1", population: 90000 },
+      { assertionId: "runner-input-adjacency-v1", population: 321 },
+      { assertionId: "runner-buffer-handoff-v1", population: 100 },
+      { assertionId: "runner-contact-idempotency-v1", population: 90000 },
+      { assertionId: "runner-invulnerability-ownership-v1", population: 90000 },
+      { assertionId: "runner-entity-cap-v1", population: 90000 },
+      { assertionId: "runner-nondepletion-v1", population: 120000 },
+      { assertionId: "runner-laboratory-replay-v1", population: 120000 },
+      { assertionId: "runner-automatic-settlement-idempotency-v1", population: 120000 },
+      { assertionId: "runner-modality-identity-v1", population: 120000 },
+      { assertionId: "runner-pause-drift-v1", population: 32 },
+      { assertionId: "runner-appearance-invariance-v1", population: 18432 },
+      ...assistAssertionIds.map((assertionId) => ({ assertionId, population: 120000 })),
+    ],
+    recomputationRequired: true,
+  };
+}
+
+function closedLiteralSchema(value) {
+  if (Array.isArray(value)) {
+    return {
+      type: "array",
+      minItems: value.length,
+      maxItems: value.length,
+      prefixItems: value.map(closedLiteralSchema),
+      items: false,
+    };
+  }
+  if (value !== null && typeof value === "object") {
+    const keys = Object.keys(value);
+    return {
+      type: "object",
+      additionalProperties: false,
+      required: keys,
+      properties: Object.fromEntries(keys.map((key) => [key, closedLiteralSchema(value[key])])),
+    };
+  }
+  return { const: value };
+}
+
+async function writeJson(filePath, value) {
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+async function writePhase2Bundle(root, { fixture = validRunnerFixture(), contentLock = phase2ContentLock() } = {}) {
+  const files = [
+    ["docs/phase-specs/phase-2.md", "# Phase 2 runner laboratory\n"],
+    ["docs/balance/locks/runner-laboratory-content-lock-v1.json", contentLock],
+    ["docs/balance/runner-fixture-v1.schema.json", closedLiteralSchema(fixture)],
+    ["docs/balance/runner-fixtures/runner-laboratory-fixture-v1.json", fixture],
+  ];
+  for (const [relative, value] of files) {
+    const absolute = path.join(root, ...relative.split("/"));
+    if (typeof value === "string") {
+      await mkdir(path.dirname(absolute), { recursive: true });
+      await writeFile(absolute, value, "utf8");
+    } else {
+      await writeJson(absolute, value);
+    }
+  }
+  const manifest = {
+    schemaVersion: 1,
+    manifestId: "phase-2-preregistration-lock-v1",
+    phaseId: "phase-2",
+    status: "locked",
+    hashAlgorithm: "sha256",
+    bytePolicy: "Repository-relative file bytes with LF enforced by docs/.gitattributes",
+    files: await Promise.all(files.map(async ([relative]) => ({
+      path: relative,
+      sha256: sha256(await readFile(path.join(root, ...relative.split("/")))),
+    }))),
+  };
+  await writeJson(path.join(root, "docs", "phase-specs", "phase-2-lock-manifest.json"), manifest);
+  return { fixture, contentLock, manifest };
+}
+
+function validRunnerEvidence(fixture, evaluatedSourceSha256 = "a".repeat(64)) {
+  return {
+    schemaVersion: 1,
+    fixtureId: fixture.fixtureId,
+    contentLockId: fixture.contentLockId,
+    evaluatedSourceSha256,
+    evaluatorId: fixture.evaluatorId,
+    complete: true,
+    assertionResults: fixture.assertions.map(({ assertionId, population }) => ({
+      assertionId,
+      status: "complete",
+      passed: true,
+      population,
+    })),
+  };
+}
+
+function completeAssistEvidenceReports(lock) {
+  const suite = registry.evaluationSuites.find(({ id }) => id === "assist-parity-v1");
+  if (!suite) throw new Error("Missing Assist parity suite fixture");
+  const policyCellIds = [suite.manualPolicyId, suite.semanticAssistPolicyId, suite.automaticAssistPolicyId]
+    .map((policyId) => `runner=${policyId}`);
+  const runCount = registry.seedSet.count
+    * registry.startingProfiles.length
+    * registry.difficulties.length
+    * lock.content.contextIds.length
+    * policyCellIds.length;
+  return [{
+    suiteId: suite.id,
+    status: "complete",
+    seedSetId: registry.seedSet.id,
+    seedCount: registry.seedSet.count,
+    profileIds: registry.startingProfiles.map(({ id }) => id),
+    difficulties: [...registry.difficulties],
+    contextIds: [...lock.content.contextIds],
+    policyCellIds,
+    runCount,
+    assertionResults: suite.assertionIds.map((assertionId) => ({
+      assertionId,
+      status: "complete",
+      passed: true,
+      runCount,
+    })),
+  }];
+}
+
+async function writeEvaluationSourceSkeleton(root) {
+  for (const [relative, contents] of [
+    ["package.json", "{}\n"],
+    ["package-lock.json", "{}\n"],
+    ["tsconfig.json", "{}\n"],
+    ["tsconfig.choice-of-life-core.json", "{}\n"],
+    ["vite.config.ts", "export default {};\n"],
+    ["src/main.ts", "export {};\n"],
+  ]) {
+    const absolute = path.join(root, ...relative.split("/"));
+    await mkdir(path.dirname(absolute), { recursive: true });
+    await writeFile(absolute, contents, "utf8");
+  }
+}
+
 function completeEvidenceReports(lock) {
   const suite = registry.evaluationSuites.find(({ id }) => id === "attribution-v1");
   if (!suite) throw new Error("Missing attribution suite fixture");
@@ -164,17 +939,31 @@ describe("Phase 1 fixture locks", () => {
       status: "locked",
       supplementsManifestId: "phase-1-preregistration-lock-v1",
     });
-    await expect(verifyLockManifestChain()).resolves.toMatchObject({
+    const chain = await verifyLockManifestChain();
+    expect(chain).toMatchObject({
       protectedPaths: expect.arrayContaining([
         "docs/save/run-state-v1-maximal.fixture.json",
         "docs/save/run-state-v1-maximal.fixture-correction-v2.json",
       ]),
     });
     const preregistrationBaseRevision = process.env.CHOICE_FIXTURE_TEST_PREREG_BASE_SHA?.trim() || null;
-    const validation = preregistrationBaseRevision === null
-      ? validateFixtureLocks()
-      : validateCommittedFixturePreregistration(process.cwd(), { baseRevision: preregistrationBaseRevision });
-    await expect(validation).resolves.toMatchObject({ manifests: 2, manifestFiles: 10 });
+    const hasRunnerEvidence = await readFile(
+      new URL("../docs/balance/runner-evaluation-results/runner-laboratory-fixture-v1.json", import.meta.url)
+    ).then(() => true, (error) => {
+      if (error.code === "ENOENT") return false;
+      throw error;
+    });
+    const validation = preregistrationBaseRevision !== null
+      ? validateCommittedFixturePreregistration(process.cwd(), { baseRevision: preregistrationBaseRevision })
+      : chain.additiveManifests > 0 && !hasRunnerEvidence
+        ? validateFixturePreregistration()
+        : validateFixtureLocks();
+    await expect(validation).resolves.toMatchObject({
+      manifests: chain.manifests.length,
+      manifestFiles: chain.protectedPaths.length,
+      additiveManifests: chain.additiveManifests,
+      additiveManifestFiles: chain.additiveManifestFiles,
+    });
   });
 
   it("rejects self-consistent edits to either pinned manifest", async () => {
@@ -237,10 +1026,7 @@ describe("Phase 1 fixture locks", () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-preregister-"));
     try {
       await copyDocsWithoutContentLocks(root);
-      const lock = validContentLock();
-      const lockPath = path.join(root, "docs/balance/locks", `${lock.lockId}.json`);
-      await mkdir(path.dirname(lockPath), { recursive: true });
-      await writeFile(lockPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
+      await writePhase2Bundle(root);
       await expect(validateFixturePreregistration(root)).resolves.toMatchObject({ contentLocks: 1 });
       await expect(validateCommittedFixturePreregistration(root)).rejects.toThrow();
     } finally {
@@ -260,10 +1046,7 @@ describe("Phase 1 fixture locks", () => {
       const baseBranch = branchOutput.trim();
 
       await execFileAsync("git", ["checkout", "-b", "fixture-feature"], { cwd: root });
-      const lock = validContentLock();
-      const lockPath = path.join(root, "docs/balance/locks", `${lock.lockId}.json`);
-      await mkdir(path.dirname(lockPath), { recursive: true });
-      await writeFile(lockPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
+      await writePhase2Bundle(root);
       await commitAll(root, "docs: preregister runner lab lock");
       await writeFile(path.join(root, "docs/feature-follow-up.md"), "Follow-up review note.\n", "utf8");
       await commitAll(root, "docs: follow up on preregistration review");
@@ -631,6 +1414,9 @@ describe("Phase 1 fixture locks", () => {
       await mkdir(path.join(root, "docs/balance/evaluation-results"), { recursive: true });
       await writeFile(path.join(root, "docs/balance/evaluation-results/result.json"), "{}\n", "utf8");
       expect(await evaluationSourceSha256(root)).toBe(initial);
+      await mkdir(path.join(root, "docs/balance/runner-evaluation-results"), { recursive: true });
+      await writeFile(path.join(root, "docs/balance/runner-evaluation-results/result.json"), "{}\n", "utf8");
+      expect(await evaluationSourceSha256(root)).toBe(initial);
       await writeFile(path.join(root, "src/choice-of-life/core/model.ts"), "export const model = 2;\n", "utf8");
       expect(await evaluationSourceSha256(root)).not.toBe(initial);
     } finally {
@@ -670,4 +1456,360 @@ describe("Phase 1 fixture locks", () => {
     duplicatePolicyCell[0].policyCellIds[1] = duplicatePolicyCell[0].policyCellIds[0];
     expect(() => validateActiveSuiteExecution(lock, registry, duplicatePolicyCell)).toThrow(/policy closure/);
   });
+});
+
+describe("additive phase manifests and Phase 2 runner fixture", () => {
+  it("keeps copied Phase 1 baselines isolated from worktree Phase 2 drafts", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-baseline-isolation-"));
+    try {
+      await copyDocsWithoutContentLocks(root);
+      await expect(verifyAdditiveLockManifests(root)).resolves.toMatchObject({
+        manifestCount: 0,
+        fileCount: 0,
+        records: [],
+      });
+      await expect(validateFixturePreregistration(root)).resolves.toMatchObject({
+        manifests: 2,
+        manifestFiles: 10,
+        additiveManifests: 0,
+        additiveManifestFiles: 0,
+        contentLocks: 0,
+        runnerFixtures: 0,
+        runnerEvidence: 0,
+      });
+      await writeFile(path.join(root, "docs", "phase-specs", "phase-2.md"), "# orphan Phase 2\n", "utf8");
+      await expect(validateFixturePreregistration(root)).rejects.toThrow(/requires docs\/phase-specs\/phase-2-lock-manifest\.json/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("discovers additive manifests, pins the exact Phase 2 bundle, and preregisters missing new evidence", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase2-bundle-"));
+    try {
+      await copyDocsWithoutContentLocks(root);
+      await writePhase2Bundle(root);
+      await expect(verifyAdditiveLockManifests(root)).resolves.toMatchObject({
+        manifestCount: 1,
+        fileCount: 4,
+        protectedPaths: expect.arrayContaining([
+          "docs/phase-specs/phase-2.md",
+          "docs/balance/locks/runner-laboratory-content-lock-v1.json",
+          "docs/balance/runner-fixture-v1.schema.json",
+          "docs/balance/runner-fixtures/runner-laboratory-fixture-v1.json",
+        ]),
+      });
+      await expect(validateFixturePreregistration(root)).resolves.toMatchObject({
+        manifests: 3,
+        manifestFiles: 14,
+        additiveManifests: 1,
+        additiveManifestFiles: 4,
+        contentLocks: 1,
+        runnerFixtures: 1,
+        runnerEvidence: 0,
+      });
+
+      const phase3Path = path.join(root, "docs", "phase-specs", "phase-3.md");
+      await writeFile(phase3Path, "# Phase 3\n", "utf8");
+      await writeJson(path.join(root, "docs", "phase-specs", "phase-3-lock-manifest.json"), {
+        schemaVersion: 1,
+        manifestId: "phase-3-preregistration-lock-v1",
+        phaseId: "phase-3",
+        status: "locked",
+        hashAlgorithm: "sha256",
+        bytePolicy: "Repository-relative file bytes with LF enforced by docs/.gitattributes",
+        files: [{ path: "docs/phase-specs/phase-3.md", sha256: sha256(await readFile(phase3Path)) }],
+      });
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/no registered phase validator phase-3/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects additive manifest hash edits, missing/extra fields, and wrong Phase 2 membership", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase2-manifest-mutants-"));
+    try {
+      await copyDocsWithoutContentLocks(root);
+      await writePhase2Bundle(root);
+      const manifestPath = path.join(root, "docs", "phase-specs", "phase-2-lock-manifest.json");
+      const phasePath = path.join(root, "docs", "phase-specs", "phase-2.md");
+      await writeFile(phasePath, "# silently retuned Phase 2\n", "utf8");
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/hash mismatch/);
+
+      await writePhase2Bundle(root);
+      const withExtra = JSON.parse(await readFile(manifestPath, "utf8"));
+      withExtra.surprise = true;
+      await writeJson(manifestPath, withExtra);
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/keys .*surprise/);
+
+      await writePhase2Bundle(root);
+      const missing = JSON.parse(await readFile(manifestPath, "utf8"));
+      delete missing.status;
+      await writeJson(manifestPath, missing);
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/keys .*status/);
+
+      await writePhase2Bundle(root);
+      const wrongId = JSON.parse(await readFile(manifestPath, "utf8"));
+      wrongId.manifestId = "unrelated-but-valid-v1";
+      await writeJson(manifestPath, wrongId);
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/canonical ID/);
+
+      await writePhase2Bundle(root);
+      const incomplete = JSON.parse(await readFile(manifestPath, "utf8"));
+      incomplete.files.pop();
+      await writeJson(manifestPath, incomplete);
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/Phase 2 manifest exact protected path set/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("enforces a closed runner schema and semantic registry/content linkage", () => {
+    const fixture = validRunnerFixture();
+    const lock = phase2ContentLock();
+    const schema = closedLiteralSchema(fixture);
+    expect(() => validateRunnerFixture(fixture, schema, lock, registry)).not.toThrow();
+
+    const extra = clone(fixture);
+    extra.generator.surprise = true;
+    expect(() => validateRunnerFixture(extra, schema, lock, registry)).toThrow(/unknown property surprise/);
+
+    const missing = clone(fixture);
+    delete missing.completion.completionMemory;
+    expect(() => validateRunnerFixture(missing, schema, lock, registry)).toThrow(/missing required property completionMemory/);
+
+    const selfConsistentWrongPhase = clone(fixture);
+    selfConsistentWrongPhase.phaseId = "phase-3";
+    expect(() => validateRunnerFixture(
+      selfConsistentWrongPhase,
+      closedLiteralSchema(selfConsistentWrongPhase),
+      lock,
+      registry,
+    )).toThrow(/runner fixture phase ID/);
+
+    const wrongProfiles = clone(fixture);
+    wrongProfiles.population.profileIds.pop();
+    expect(() => validateRunnerFixture(
+      wrongProfiles,
+      closedLiteralSchema(wrongProfiles),
+      lock,
+      registry,
+    )).toThrow(/starting profile closure/);
+
+    const wrongPatterns = clone(fixture);
+    wrongPatterns.stage.patternIds.reverse();
+    expect(() => validateRunnerFixture(
+      wrongPatterns,
+      closedLiteralSchema(wrongPatterns),
+      lock,
+      registry,
+    )).toThrow(/pattern ID closure/);
+
+    const wrongRuntime = clone(fixture);
+    wrongRuntime.runtimeContentVersion = "runner-laboratory-content-v1";
+    expect(() => validateRunnerFixture(
+      wrongRuntime,
+      closedLiteralSchema(wrongRuntime),
+      lock,
+      registry,
+    )).toThrow(/runtime content version/);
+
+    const changedKnownAnswer = clone(fixture);
+    changedKnownAnswer.generator.knownAnswers[0].course[0].rotation = 1;
+    expect(() => validateRunnerFixture(
+      changedKnownAnswer,
+      closedLiteralSchema(changedKnownAnswer),
+      lock,
+      registry,
+    )).toThrow(/runner fixture generator/);
+
+    const openLaneBoundary = clone(fixture);
+    openLaneBoundary.collision.laneContactBoundary = "open";
+    expect(() => validateRunnerFixture(
+      openLaneBoundary,
+      closedLiteralSchema(openLaneBoundary),
+      lock,
+      registry,
+    )).toThrow(/runner fixture collision/);
+
+    const outOfStateSemanticTarget = clone(fixture);
+    outOfStateSemanticTarget.assist.targetStoredOutsideRunnerState = true;
+    expect(() => validateRunnerFixture(
+      outOfStateSemanticTarget,
+      closedLiteralSchema(outOfStateSemanticTarget),
+      lock,
+      registry,
+    )).toThrow(/runner fixture assist/);
+  });
+
+  it("rejects omission of the four legal idle-buffer bridge states", () => {
+    const fixture = validRunnerFixture();
+    fixture.movement.incomingStateClosure.total = 103;
+    fixture.movement.incomingStateClosure.idle = 3;
+    delete fixture.movement.incomingStateClosure.bufferedIdle;
+    fixture.assertions.find(({ assertionId }) => assertionId === "runner-input-adjacency-v1").population = 309;
+    expect(() => validateRunnerFixture(
+      fixture,
+      closedLiteralSchema(fixture),
+      phase2ContentLock(),
+      registry,
+    )).toThrow(/runner fixture movement/);
+  });
+
+  it("requires exact, current, complete runner evidence and assertion populations", () => {
+    const fixture = validRunnerFixture();
+    const digest = "b".repeat(64);
+    const complete = validRunnerEvidence(fixture, digest);
+    expect(() => validateRunnerEvidence(fixture, complete, digest)).not.toThrow();
+    expect(() => validateRunnerEvidence(fixture, undefined, digest)).toThrow(/runner evidence must be an object/);
+
+    const stale = clone(complete);
+    stale.evaluatedSourceSha256 = "c".repeat(64);
+    expect(() => validateRunnerEvidence(fixture, stale, digest)).toThrow(/evaluated source mismatch/);
+
+    const partial = clone(complete);
+    partial.assertionResults.pop();
+    expect(() => validateRunnerEvidence(fixture, partial, digest)).toThrow(/assertion ID closure/);
+
+    const wrongPopulation = clone(complete);
+    wrongPopulation.assertionResults[0].population -= 1;
+    expect(() => validateRunnerEvidence(fixture, wrongPopulation, digest)).toThrow(/assertion population/);
+
+    const incomplete = clone(complete);
+    incomplete.complete = false;
+    expect(() => validateRunnerEvidence(fixture, incomplete, digest)).toThrow(/evidence is incomplete/);
+
+    const failed = clone(complete);
+    failed.assertionResults[0].passed = false;
+    expect(() => validateRunnerEvidence(fixture, failed, digest)).toThrow(/assertion failed/);
+
+    const skipped = clone(complete);
+    skipped.assertionResults[0].status = "skipped";
+    expect(() => validateRunnerEvidence(fixture, skipped, digest)).toThrow(/assertion incomplete/);
+
+    const extra = clone(complete);
+    extra.note = "not part of the evidence contract";
+    expect(() => validateRunnerEvidence(fixture, extra, digest)).toThrow(/keys .*note/);
+  });
+
+  it("requires the separate runner evidence file in strict validation", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase2-strict-evidence-"));
+    try {
+      await copyDocsWithoutContentLocks(root);
+      const { fixture, contentLock } = await writePhase2Bundle(root);
+      await writeEvaluationSourceSkeleton(root);
+      const digest = await evaluationSourceSha256(root);
+      await writeJson(
+        path.join(root, "docs", "balance", "evaluation-results", `${contentLock.lockId}.json`),
+        {
+          schemaVersion: 1,
+          lockId: contentLock.lockId,
+          evaluationBatchId: "phase-2-evaluation-batch-v1",
+          evaluatedSourceSha256: digest,
+          reports: completeAssistEvidenceReports(contentLock),
+        },
+      );
+      await expect(validateFixtureLocks(root, { verifyHistory: false })).rejects.toThrow(
+        /runner evidence unavailable/
+      );
+      await writeJson(
+        path.join(root, "docs", "balance", "runner-evaluation-results", `${fixture.fixtureId}.json`),
+        validRunnerEvidence(fixture, digest),
+      );
+      await expect(validateFixtureLocks(root, { verifyHistory: false })).resolves.toMatchObject({
+        runnerFixtures: 1,
+        runnerEvidence: 1,
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("binds each additive manifest bundle to one immutable docs-only creation commit", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase2-history-"));
+    try {
+      await copyDocsWithoutContentLocks(root);
+      await initialiseGitRepository(root);
+      await commitAll(root, "docs: establish Phase 1 baseline");
+      const { stdout: baseOutput } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: root });
+      const baseRevision = baseOutput.trim();
+      const { stdout: baseBranchOutput } = await execFileAsync("git", ["branch", "--show-current"], { cwd: root });
+      const baseBranch = baseBranchOutput.trim();
+      await execFileAsync("git", ["checkout", "-b", "unrelated-base"], { cwd: root });
+      await writeFile(path.join(root, "docs", "unrelated-base.md"), "Sibling base candidate.\n", "utf8");
+      await commitAll(root, "docs: create unrelated base candidate");
+      const { stdout: unrelatedOutput } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: root });
+      const unrelatedRevision = unrelatedOutput.trim();
+      await execFileAsync("git", ["checkout", baseBranch], { cwd: root });
+      await writePhase2Bundle(root);
+      await commitAll(root, "docs: preregister Phase 2 runner bundle");
+      const additive = await verifyAdditiveLockManifests(root);
+      await expect(verifyGitAdditiveManifestBundles(root, additive.records)).resolves.toBeUndefined();
+      await expect(verifyHistoricalAdditiveManifestPaths(
+        root,
+        ["docs/phase-specs/phase-2-lock-manifest.json"],
+      )).resolves.toEqual(["docs/phase-specs/phase-2-lock-manifest.json"]);
+      await expect(validateCommittedFixturePreregistration(root, { baseRevision })).resolves.toMatchObject({
+        runnerFixtures: 1,
+        runnerEvidence: 0,
+      });
+      await expect(validateCommittedFixturePreregistration(root, { baseRevision: unrelatedRevision })).rejects.toThrow(
+        /not an ancestor of HEAD/
+      );
+      await writeFile(path.join(root, "docs", "phase-2-follow-up.md"), "Follow-up review note.\n", "utf8");
+      await commitAll(root, "docs: follow up after Phase 2 preregistration");
+      await expect(validateCommittedFixturePreregistration(root)).rejects.toThrow(/evidence unavailable/);
+      await expect(validateCommittedFixturePreregistration(root, { baseRevision })).resolves.toMatchObject({
+        runnerFixtures: 1,
+        runnerEvidence: 0,
+      });
+
+      const manifestPath = path.join(root, "docs", "phase-specs", "phase-2-lock-manifest.json");
+      const phasePath = path.join(root, "docs", "phase-specs", "phase-2.md");
+      await writeFile(phasePath, "# self-consistent but edited Phase 2\n", "utf8");
+      const editedManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+      editedManifest.files.find(({ path: filePath }) => filePath === "docs/phase-specs/phase-2.md").sha256 =
+        sha256(await readFile(phasePath));
+      await writeJson(manifestPath, editedManifest);
+      const edited = await verifyAdditiveLockManifests(root);
+      await expect(verifyGitAdditiveManifestBundles(root, edited.records)).rejects.toThrow(/creation blob differs|current bytes differ/);
+
+      await rm(manifestPath);
+      await expect(verifyHistoricalAdditiveManifestPaths(root, [])).rejects.toThrow(/historical additive manifests differ/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 15_000);
+
+  it("rejects split creation commits and a bundle created with non-doc changes", async () => {
+    const splitRoot = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase2-split-"));
+    const mixedRoot = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase2-mixed-"));
+    try {
+      await copyDocsWithoutContentLocks(splitRoot);
+      await initialiseGitRepository(splitRoot);
+      await commitAll(splitRoot, "docs: establish Phase 1 baseline");
+      await writePhase2Bundle(splitRoot);
+      const manifestPath = path.join(splitRoot, "docs", "phase-specs", "phase-2-lock-manifest.json");
+      const manifestBytes = await readFile(manifestPath);
+      await rm(manifestPath);
+      await commitAll(splitRoot, "docs: create protected files separately");
+      await writeFile(manifestPath, manifestBytes);
+      await commitAll(splitRoot, "docs: create manifest too late");
+      const split = await verifyAdditiveLockManifests(splitRoot);
+      await expect(verifyGitAdditiveManifestBundles(splitRoot, split.records)).rejects.toThrow(/share one byte-creation commit/);
+
+      await copyDocsWithoutContentLocks(mixedRoot);
+      await initialiseGitRepository(mixedRoot);
+      await commitAll(mixedRoot, "docs: establish Phase 1 baseline");
+      await writePhase2Bundle(mixedRoot);
+      await mkdir(path.join(mixedRoot, "src"), { recursive: true });
+      await writeFile(path.join(mixedRoot, "src", "premature-runner.ts"), "export const premature = true;\n", "utf8");
+      await commitAll(mixedRoot, "feat: mix runner code into preregistration");
+      const mixed = await verifyAdditiveLockManifests(mixedRoot);
+      await expect(verifyGitAdditiveManifestBundles(mixedRoot, mixed.records)).rejects.toThrow(/docs-only commit/);
+    } finally {
+      await rm(splitRoot, { recursive: true, force: true });
+      await rm(mixedRoot, { recursive: true, force: true });
+    }
+  }, 20_000);
 });
