@@ -1,0 +1,25 @@
+node_modules
+dist
+dist-ssr
+.codex-tmp/
+*.local
+.DS_Store
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.claude
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Python tooling cache
+__pycache__/
+*.py[cod]
+
+# ImageGen pet authoring sheets remain local; the normalized runtime atlases,
+# anchors, builder, and provenance are versioned.
+src/assets/pets/source/

@@ -1,0 +1,21 @@
+{
+  "name": "choice-of-life",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Choice of Life — a three-score side-scrolling life runner where every decision shapes the future.",
+  "scripts": {
+    "dev": "vite",
+    "generate:training": "node scripts/generate-training-questions.mjs",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.4",
+    "vite": "^7.0.0"
+  }
+}

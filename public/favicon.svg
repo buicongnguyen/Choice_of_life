@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <rect width="16" height="16" fill="#1b1033"/>
+  <!-- simple pixel baby/person -->
+  <rect x="6" y="2" width="4" height="4" fill="#ffd9a8"/>
+  <rect x="6" y="2" width="4" height="1" fill="#7a4a1e"/>
+  <rect x="7" y="4" width="1" height="1" fill="#1b1033"/>
+  <rect x="9" y="4" width="1" height="1" fill="#1b1033"/>
+  <rect x="5" y="6" width="6" height="5" fill="#48b3ff"/>
+  <rect x="4" y="7" width="1" height="3" fill="#ffd9a8"/>
+  <rect x="11" y="7" width="1" height="3" fill="#ffd9a8"/>
+  <rect x="6" y="11" width="2" height="3" fill="#3a2a6a"/>
+  <rect x="8" y="11" width="2" height="3" fill="#3a2a6a"/>
+  <rect x="2" y="13" width="12" height="1" fill="#ff7ad9"/>
+</svg>
