@@ -27,6 +27,7 @@ const CORRECTION_LOCK_FILES = [
   { path: "docs/save/run-state-v1-maximal.fixture-correction-v2.json", sha256: "9566fd1dd85ee3b9305425809f94d30c9cc28e430cd747a24b33d41be83120cf" },
 ];
 const EVALUATION_SOURCE_FILES = [
+  "index.html",
   "package.json",
   "package-lock.json",
   "tsconfig.json",
@@ -65,27 +66,89 @@ const PHASE_2_PATTERN_IDS = [
   "runner-lab-avoid-only-v1",
   "runner-lab-quiet-window-v1",
 ];
+const PHASE_2_EVIDENCE_IDS = [
+  "evidence-runner-reachability-v1",
+  "evidence-runner-replay-v1",
+  "evidence-runner-assist-v1",
+  "evidence-runner-accessibility-v1",
+  "evidence-runner-completion-fact-v1",
+  "evidence-runner-completion-memory-v1",
+  "evidence-runner-appearance-invariance-v1",
+];
 const PHASE_2_ASSIST_ASSERTION_IDS = [
   "semantic-assist-effect-identity-v1",
   "automatic-assist-score-parity-v1",
   "assist-narrative-parity-v1",
 ];
+const EMPTY_GROUP_COUNTS = Object.freeze({});
+const PHASE_2_ASSERTION_GROUP_COUNTS = Object.freeze({
+  "runner-appearance-invariance-v1": Object.freeze({
+    witnessSeedCount: 3,
+    profileCount: 4,
+    difficultyCount: 3,
+    appearanceSelectionCount: 512,
+  }),
+  "runner-completion-memory-parity-v1": Object.freeze({
+    seedCount: 10_000,
+    profileCount: 4,
+    difficultyCount: 3,
+    pairedEntryCount: 120_000,
+  }),
+  "runner-simultaneous-contact-order-v1": Object.freeze({ permutationCount: 6 }),
+  "runner-semantic-choice-and-reload-identity-v1": Object.freeze({
+    decisionEntries: 1_080,
+    pauseGuardEntries: 4,
+    totalEntries: 1_084,
+  }),
+  "runner-automatic-no-input-completion-v1": Object.freeze({
+    seedCount: 10_000,
+    profileCount: 4,
+    difficultyCount: 3,
+    totalEntries: 120_000,
+  }),
+  "runner-reduced-motion-domain-identity-v1": Object.freeze({
+    savedPreferenceEntries: 120_000,
+    osPreferenceEntries: 120_000,
+    totalEntries: 240_000,
+  }),
+  "runner-accessibility-browser-matrix-v1": Object.freeze({
+    completionReflow: 40,
+    presentation: 72,
+    safeAreaOneHand: 8,
+    focus: 10,
+    announcements: 9,
+    total: 139,
+  }),
+});
+function runnerAssertion(assertionId, population) {
+  return {
+    assertionId,
+    population,
+    groupCounts: PHASE_2_ASSERTION_GROUP_COUNTS[assertionId] ?? EMPTY_GROUP_COUNTS,
+  };
+}
 const PHASE_2_ASSERTIONS = [
-  { assertionId: "runner-generation-determinism-v1", population: 90_000 },
-  { assertionId: "runner-pattern-composition-v1", population: 90_000 },
-  { assertionId: "runner-laboratory-reachability-v1", population: 90_000 },
-  { assertionId: "runner-input-adjacency-v1", population: 321 },
-  { assertionId: "runner-buffer-handoff-v1", population: 100 },
-  { assertionId: "runner-contact-idempotency-v1", population: 90_000 },
-  { assertionId: "runner-invulnerability-ownership-v1", population: 90_000 },
-  { assertionId: "runner-entity-cap-v1", population: 90_000 },
-  { assertionId: "runner-nondepletion-v1", population: 120_000 },
-  { assertionId: "runner-laboratory-replay-v1", population: 120_000 },
-  { assertionId: "runner-automatic-settlement-idempotency-v1", population: 120_000 },
-  { assertionId: "runner-modality-identity-v1", population: 120_000 },
-  { assertionId: "runner-pause-drift-v1", population: 32 },
-  { assertionId: "runner-appearance-invariance-v1", population: 18_432 },
-  ...PHASE_2_ASSIST_ASSERTION_IDS.map((assertionId) => ({ assertionId, population: 120_000 })),
+  runnerAssertion("runner-generation-determinism-v1", 90_000),
+  runnerAssertion("runner-pattern-composition-v1", 90_000),
+  runnerAssertion("runner-laboratory-reachability-v1", 90_000),
+  runnerAssertion("runner-input-adjacency-v1", 321),
+  runnerAssertion("runner-buffer-handoff-v1", 100),
+  runnerAssertion("runner-contact-idempotency-v1", 90_000),
+  runnerAssertion("runner-invulnerability-ownership-v1", 90_000),
+  runnerAssertion("runner-entity-cap-v1", 90_000),
+  runnerAssertion("runner-nondepletion-v1", 120_000),
+  runnerAssertion("runner-laboratory-replay-v1", 120_000),
+  runnerAssertion("runner-automatic-settlement-idempotency-v1", 120_000),
+  runnerAssertion("runner-modality-identity-v1", 120_000),
+  runnerAssertion("runner-pause-drift-v1", 32),
+  runnerAssertion("runner-appearance-invariance-v1", 18_432),
+  ...PHASE_2_ASSIST_ASSERTION_IDS.map((assertionId) => runnerAssertion(assertionId, 120_000)),
+  runnerAssertion("runner-completion-memory-parity-v1", 120_000),
+  runnerAssertion("runner-simultaneous-contact-order-v1", 6),
+  runnerAssertion("runner-semantic-choice-and-reload-identity-v1", 1_084),
+  runnerAssertion("runner-automatic-no-input-completion-v1", 120_000),
+  runnerAssertion("runner-reduced-motion-domain-identity-v1", 240_000),
+  runnerAssertion("runner-accessibility-browser-matrix-v1", 139),
 ];
 const PHASE_2_ENTITY_EFFECTS = [
   { entityContentId: "runner-lab-health-token-v1", kind: "benefit", scoreId: "health", requestedDelta: 1, effectCategoryId: "runner-benefit-v1" },
@@ -227,6 +290,30 @@ function fail(message) {
 
 function assert(condition, message) {
   if (!condition) fail(message);
+}
+
+function runnerManualReviewArtifactSha256(session) {
+  const preimage = JSON.stringify({
+    announcementWitnessCount: session.announcementWitnessCount,
+    browser: session.browser,
+    browserVersion: session.browserVersion,
+    completedAtUtc: session.completedAtUtc,
+    completionPathPassed: session.completionPathPassed,
+    focusTransitionCount: session.focusTransitionCount,
+    forcedColorsInspectionPassed: session.forcedColorsInspectionPassed,
+    keyboardInspectionPassed: session.keyboardInspectionPassed,
+    keyboardOnlyPassed: session.keyboardOnlyPassed,
+    nonvisualSemanticCompletionPassed: session.nonvisualSemanticCompletionPassed,
+    platform: session.platform,
+    reviewerAttestation: session.reviewerAttestation,
+    reviewerId: session.reviewerId,
+    screenReader: session.screenReader,
+    screenReaderVersion: session.screenReaderVersion,
+    semanticDecisionPromptPassed: session.semanticDecisionPromptPassed,
+    semanticStructurePassed: session.semanticStructurePassed,
+    sessionId: session.sessionId,
+  });
+  return createHash("sha256").update(preimage, "utf8").digest("hex");
 }
 
 function sorted(values) {
@@ -698,6 +785,9 @@ function assertExactObject(value, expected, label) {
 
 export function validateRunnerFixture(fixture, schema, contentLock, registry) {
   validateClosedSchema(schema, PHASE_2_RUNNER_SCHEMA_PATH);
+  assert(schema?.$schema === "https://json-schema.org/draft/2020-12/schema", "runner schema draft");
+  assert(schema?.$id === "https://choice-of-life.example/schemas/runner-fixture-v1.schema.json", "runner schema stable ID");
+  assert(schema?.title === "Choice of Life Runner Laboratory Fixture v1", "runner schema title");
   validateAgainstSchema(fixture, schema, "runner fixture");
   assertExactKeys(
     fixture,
@@ -706,7 +796,7 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
       "runtimeContentVersion", "evaluatorId", "population", "stage", "generator",
       "movement", "warning", "difficultyProfiles", "collision", "entityEffects",
       "patternTemplates", "markers", "completion", "assist",
-      "initialState", "startAction", "logicalTickPipeline", "replay", "invariance",
+      "initialState", "startAction", "logicalTickPipeline", "replay", "invariance", "accessibility",
       "assertions", "recomputationRequired",
     ],
     "runner fixture"
@@ -723,6 +813,10 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
   assert(contentLock?.lockId === fixture.contentLockId, "runner fixture content lock linkage");
   assert(contentLock?.content?.phaseId === fixture.phaseId, "runner fixture phase/content-lock linkage");
   assert(contentLock?.content?.contentVersion === PHASE_2_RUNTIME_CONTENT_VERSION, "runner fixture locked content version");
+  assert(
+    deepEqual(contentLock?.content?.evidenceIds, PHASE_2_EVIDENCE_IDS),
+    "runner fixture content-lock evidence ID closure"
+  );
 
   const population = fixture.population;
   assertExactKeys(
@@ -752,7 +846,7 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
     [
       "stageIds", "patternIds", "durationTicks", "decisionWindowCount", "categoryCounts",
       "rollingHorizonPatterns", "firstWindowAnchorTick", "windowAnchorSpacingTicks",
-      "lastWindowAnchorTick", "latestContactOffsetTicks", "latestPossibleContactTick", "standalonePractice",
+      "lastWindowAnchorTick", "latestContactOffsetTicks", "latestPossibleContactTick", "tickDurationMs", "standalonePractice",
     ],
     "runner fixture stage"
   );
@@ -772,6 +866,7 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
   assert(stage.lastWindowAnchorTick === 2550, "runner fixture last window anchor tick");
   assert(stage.latestContactOffsetTicks === 18, "runner fixture latest contact offset ticks");
   assert(stage.latestPossibleContactTick === 2568, "runner fixture latest possible contact tick");
+  assert(stage.tickDurationMs === 20, "runner fixture tick duration");
   assert(stage.standalonePractice === true, "runner fixture standalone practice stage");
 
   assertExactObject(fixture.generator, {
@@ -788,7 +883,12 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
     deterministic: true,
     rerollAllowed: false,
     entropyInputs: ["runSeed", "stageId", "patternIndex", "entropyChannel"],
-    entropyChannels: ["sequence-order", "lane-rotation", "optional-variant"],
+    entropyChannels: [
+      "sequence-order",
+      "lane-rotation",
+      "optional-variant-risk-reward-secondary-v1",
+      "optional-variant-avoid-secondary-hazard-v1",
+    ],
     canonicalEntityOrder: ["patternIndex", "slotIndex", "instanceId"],
     coursePatternIndexStart: 1,
     initialPatternIndex: 0,
@@ -799,14 +899,21 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
     spawnCursorSemantics: {
       nonterminalDistanceDerivation: "world-speed-milli-per-tick-times-next-spawn-tick",
       triggerPredicate: "simulation-tick-gte-next-spawn-tick-and-world-distance-gte-next-spawn-distance",
-      triggerEvaluationBoundary: "active-tick-boundary-before-input-motion-and-entity-advance",
+      triggerEvaluationBoundary: "post-transition-new-state-boundary-after-input-motion-tick-world-old-entity-advance-collision-and-terminalization-before-next-tick-input",
       cursorValuesByDifficulty: PHASE_2_SPAWN_CURSORS,
       immediateAppendOrder: [
         "append-canonical-pattern-entities",
         "set-pattern-index-to-greatest-appended-course-index",
         "set-next-spawn-tick-and-distance-to-following-cursor",
         "canonicalize-active-entities",
+        "open-semantic-assist-prompt-and-add-pause-when-applicable",
+        "save-durable-post-append-checkpoint",
       ],
+      durableCheckpointSemantics: {
+        countPerSpawnBoundary: 1,
+        boundary: "after-applicable-semantic-prompt-is-derived-from-pending-marker-and-before-next-tick-input",
+        reloadRule: "rederive-identical-semantic-prompt-from-persisted-pending-marker",
+      },
       patternIndexSemantics: "greatest-appended-course-index-then-11-for-terminal-sentinel",
       resolvedThroughPatternIndexSemantics: "sentinel-0-at-entry-then-greatest-consecutive-course-pattern-with-marker-and-every-included-slot-terminal",
       resolvedThroughAdvanceBoundary: "after-canonical-terminal-resolution-of-that-pattern",
@@ -833,6 +940,7 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
     tweenTicks: 11,
     bufferCapacity: 1,
     interpolationFormulaId: "source-plus-rounded-delta-times-elapsed-over-11-v1",
+    movingCurrentLaneRule: "source-until-completion-then-target",
     laneRoleModuloMapping: {
       "rotation-origin": "rotation-mod-3",
       "rotation-next": "rotation-plus-1-mod-3",
@@ -887,8 +995,81 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
     },
     invulnerabilityByMode: {
       manual: "negative-authoritative-contact-sets-half-open-interval-overlap-hazards-pass-without-effect-benefits-apply",
-      semantic: "negative-authoritative-contact-sets-half-open-interval-overlap-hazards-pass-without-effect-benefits-apply",
-      automatic: "all-contacts-pass-nonauthoritative-no-contact-effects-no-future-invulnerability",
+      "semantic-assist": "negative-authoritative-contact-sets-half-open-interval-overlap-hazards-pass-without-effect-benefits-apply",
+      "automatic-assist": "all-contacts-pass-nonauthoritative-no-contact-effects-no-future-invulnerability",
+    },
+    recoveryNullFutureInvulnerabilityRule: {
+      scope: {
+        runStatus: "active",
+        stageId: "runner-lab-v1",
+        stagePhase: "active",
+        recovery: null,
+      },
+      allowedOnlyWhen: "the-most-recent-negative-runner-effect-and-its-contacted-resolved-hazard-entity-prove-the-current-half-open-invulnerability-window",
+      proof: {
+        entityContentIds: ["runner-lab-clutter-hazard-v1", "runner-lab-pressure-hazard-v1"],
+        entityKind: "hazard",
+        effectCategoryId: "runner-hazard-v1",
+        effectSource: "runner",
+        effectSelectionRule: "greatest-simulation-tick-then-greatest-recent-ledger-index-among-negative-runner-effects",
+        effectMustBeMostRecentNegativeRunnerEffect: true,
+        entityContactStateAtResolution: "contacted",
+        entityInstanceIdMustAppearInResolvedEntityIds: true,
+        entityToEffectLink: "effectId-is-exactly-effect-prefix-plus-the-contacted-entity-instance-id-hex-suffix",
+        actualDeltaRule: "strictly-negative",
+        tickRule: "effect-simulation-tick-lte-current-tick-lt-effect-simulation-tick-plus-25",
+        invulnerableUntilTickRule: "equals-effect-simulation-tick-plus-25",
+      },
+      phase1SemanticsOutsideScope: "unchanged-recovery-required-for-future-invulnerability",
+    },
+    simultaneousContactOrderWitness: {
+      witnessType: "nonpersisted-production-collision-primitive-unit-witness",
+      runSeed: "0000000000000000",
+      difficulty: "challenge",
+      stageId: "runner-lab-v1",
+      tick: 500,
+      startingScores: { health: 50, happiness: 50, money: 50 },
+      generatedCoordinatePremise: {
+        patternIndex: 8,
+        patternId: "runner-lab-risk-reward-v1",
+        rotation: 2,
+        optionalGroupId: "risk-reward-secondary-v1",
+        optionalGroupIncluded: true,
+        slotZero: {
+          slotIndex: 0,
+          instanceId: "entity-1cd2eb9e83a7722e",
+          lifecycle: "already-terminal-before-synthetic-candidate-batch",
+        },
+      },
+      syntheticContactQualification: {
+        productionSeam: "canonical-contact-candidate-resolution-v1",
+        contactQualificationOverride: "fixture-only-bypass-x-lane-and-contact-timing-after-valid-coordinate-identity-check",
+        persistedRunStateAllowed: false,
+      },
+      entities: [
+        { patternIndex: 8, slotIndex: 1, instanceId: "entity-22ff92fcaa2e78c3", contentId: "runner-lab-clutter-hazard-v1" },
+        { patternIndex: 8, slotIndex: 2, instanceId: "entity-e312494944488c11", contentId: "runner-lab-happiness-token-v1" },
+        { patternIndex: 8, slotIndex: 3, instanceId: "entity-6e72eeaf4d10d1ad", contentId: "runner-lab-pressure-hazard-v1" },
+      ],
+      preexistingResolvedEntityIds: ["entity-1cd2eb9e83a7722e"],
+      inputPermutationCount: 6,
+      canonicalCoordinateOrder: ["patternIndex", "slotIndex", "instanceId"],
+      expectedEffectOrder: [
+        "effect-22ff92fcaa2e78c3",
+        "effect-e312494944488c11",
+      ],
+      expectedSuppressedEntityIds: ["entity-6e72eeaf4d10d1ad"],
+      expectedNewlyResolvedEntityIds: ["entity-22ff92fcaa2e78c3", "entity-6e72eeaf4d10d1ad", "entity-e312494944488c11"],
+      expectedFinalResolvedEntityIds: [
+        "entity-1cd2eb9e83a7722e", "entity-22ff92fcaa2e78c3", "entity-6e72eeaf4d10d1ad", "entity-e312494944488c11",
+      ],
+      expectedFinalScores: { health: 49, happiness: 51, money: 50 },
+      expectedInvulnerableUntilTick: 525,
+      allSixInputPermutationsMustMatchExpectedProjection: true,
+      canonicalBatchResultHashRule: "sha256-of-closed-batch-result-projection-must-be-identical-across-all-six-input-permutations",
+      equivalentFinalProjection: [
+        "batchResultSha256", "scores", "effectIds", "newlyResolvedEntityIds", "finalResolvedEntityIds", "invulnerableUntilTick",
+      ],
     },
     safeBoundary: {
       closedOverlapTravelMilli: 70000,
@@ -953,8 +1134,8 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
       resolvedEntityIdRecorded: true,
       terminalLifecycleByMode: {
         manual: "passed-at-window-safe-boundary",
-        automatic: "pending-at-spawn-checkpoint-then-resolved-in-next-ordinary-tick-atomic-commit",
-        semantic: "resolved-before-unpause-in-atomic-selection-commit",
+        "automatic-assist": "pending-at-spawn-checkpoint-then-resolved-in-next-ordinary-tick-atomic-commit",
+        "semantic-assist": "resolved-before-unpause-in-atomic-selection-commit",
       },
       semanticAcknowledgementLifecycle: "derive-from-retained-resolved-marker-id-until-next-marker-or-completion-memory",
     },
@@ -975,10 +1156,16 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
     terminalRunner: null,
     nextStageId: null,
     completionMemory: {
-      id: "memory-runner-laboratory-complete-v1",
+      memoryId: "memory-runner-laboratory-complete-v1",
       kind: "milestone",
       stageId: "runner-lab-v1",
       summary: "Completed the runner laboratory.",
+      originChoiceId: null,
+    },
+    completionFact: {
+      factId: "fact-runner-laboratory-complete-v1",
+      kind: "learning",
+      valueId: "value-runner-laboratory-practice-v1",
       originChoiceId: null,
     },
     automaticAssistContactEffectCount: 0,
@@ -994,7 +1181,14 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
         settlementStatus: "pending",
         startedTick: 3000,
         completedTick: null,
-        runner: "present-with-terminal-sentinel",
+        runner: {
+          present: true,
+          patternIndex: 11,
+          resolvedThroughPatternIndex: 11,
+          activeEntities: [],
+          finishMarkerResolvedIdPresent: true,
+          finishMarkerEverActive: false,
+        },
       },
       appliedSnapshot: {
         runStatus: "completed",
@@ -1009,8 +1203,8 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
       applicationMayResumeFromReload: true,
       transition: "separate-zero-tick-atomic-idempotent-apply-after-pending-checkpoint-or-reload",
       manual: { effectCount: 0 },
-      semantic: { effectCount: 0 },
-      automatic: {
+      "semantic-assist": { effectCount: 0 },
+      "automatic-assist": {
         effectCountMinimum: 1,
         effectCountMaximum: 3,
         categoryId: "runner-lab-automatic-settlement-effect-v1",
@@ -1041,9 +1235,95 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
         },
       },
     },
+    stateProjectionContract: {
+      unchangedFromEntryThroughPendingAndApplied: {
+        retainedSetupFields: [
+          "schemaVersion", "contentVersion", "runId", "runSeed", "startingProfileId", "difficulty",
+          "controlMode", "identity", "appearance", "accessibility",
+        ],
+        stageIdentity: { stageId: "runner-lab-v1", ageMonths: 0, durationTicks: 3000 },
+        recovery: null,
+        encounter: null,
+        consequences: { pending: [], resolved: [], terminal: [] },
+        storyAuxiliaryCollections: { credentials: [], relationships: [], conditions: [] },
+      },
+      commonPending: {
+        simulationTick: 3000,
+        activeTicks: 3000,
+        worldDistanceMilliByDifficulty: { story: 7800000, normal: 9000000, challenge: 10200000 },
+        runStatus: "active",
+        stagePhase: "settling",
+        settlementStatus: "pending",
+        patternIndex: 11,
+        resolvedThroughPatternIndex: 11,
+        activeEntities: [],
+        finishMarkerResolvedIdPresent: true,
+        finishMarkerEverActive: false,
+        storyState: { facts: [], memories: [], credentials: [], relationships: [], conditions: [] },
+      },
+      pendingByControlMode: {
+        manual: { effectIds: [], transactionOwnedEffects: [] },
+        "semantic-assist": { effectIds: [], transactionOwnedEffects: [] },
+        "automatic-assist": {
+          effectIdsAreReservedBeforeCheckpoint: true,
+          exactOrderedNonzeroFutureEffectIdLists: [
+            ["effect-runner-laboratory-health-v1"],
+            ["effect-runner-laboratory-happiness-v1"],
+            ["effect-runner-laboratory-money-v1"],
+            ["effect-runner-laboratory-health-v1", "effect-runner-laboratory-happiness-v1"],
+            ["effect-runner-laboratory-health-v1", "effect-runner-laboratory-money-v1"],
+            ["effect-runner-laboratory-happiness-v1", "effect-runner-laboratory-money-v1"],
+            ["effect-runner-laboratory-health-v1", "effect-runner-laboratory-happiness-v1", "effect-runner-laboratory-money-v1"],
+          ],
+          order: ["health", "happiness", "money"],
+          zeroDeltaEffectIdsOmitted: true,
+          transactionOwnedEffects: [],
+        },
+      },
+      commonApplied: {
+        simulationTick: 3000,
+        activeTicks: 3000,
+        worldDistanceMilliByDifficulty: { story: 7800000, normal: 9000000, challenge: 10200000 },
+        runStatus: "completed",
+        stagePhase: "complete",
+        settlementStatus: "applied",
+        patternIndexBeforeRunnerRemoval: 11,
+        resolvedThroughPatternIndexBeforeRunnerRemoval: 11,
+        runner: null,
+        activeEntitiesBeforeRunnerRemoval: [],
+        finishMarkerResolvedIdPresentBeforeRunnerRemoval: true,
+        finishMarkerEverActive: false,
+        storyState: {
+          facts: [{
+            factId: "fact-runner-laboratory-complete-v1",
+            kind: "learning",
+            valueId: "value-runner-laboratory-practice-v1",
+            originChoiceId: null,
+          }],
+          memories: [{
+            memoryId: "memory-runner-laboratory-complete-v1",
+            kind: "milestone",
+            stageId: "runner-lab-v1",
+            summary: "Completed the runner laboratory.",
+            originChoiceId: null,
+          }],
+          credentials: [],
+          relationships: [],
+          conditions: [],
+        },
+      },
+      appliedByControlMode: {
+        manual: { effectIds: [], transactionOwnedEffects: [] },
+        "semantic-assist": { effectIds: [], transactionOwnedEffects: [] },
+        "automatic-assist": {
+          effectIdsRule: "exactly-identical-to-pending-effectIds",
+          transactionOwnedEffectsRule: "exactly-one-applied-effect-for-each-pending-effectId-in-the-same-order",
+        },
+      },
+    },
   }, "runner fixture completion");
   assertExactObject(fixture.assist, {
-    modes: ["manual", "semantic", "automatic"],
+    modes: ["manual", "semantic-assist", "automatic-assist"],
     semanticTargetCompilesToAdjacentRequests: true,
     semanticPromptBoundary: "idle-null-buffer-only",
     promptOpenTickDerivation: "window-anchor-minus-difficulty-lead-ticks",
@@ -1052,10 +1332,15 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
     independentPauseSelectionBehavior: "reject-no-op-marker-pending-prompt-retained",
     neutralEvaluationCommandBoundaryByMode: {
       manual: "after-pattern-append-before-next-logical-step-at-prompt-open-tick",
-      semantic: "atomic-selection-step-at-prompt-open-tick",
-      automatic: "after-pattern-append-before-next-logical-step-at-prompt-open-tick",
+      "semantic-assist": "atomic-selection-step-at-prompt-open-tick",
+      "automatic-assist": "after-pattern-append-before-next-logical-step-at-prompt-open-tick",
     },
-    rawLaneInputWhilePromptOpen: "disabled",
+    rawLaneInputInSemanticAssist: {
+      scope: "entire-mode",
+      keyboard: "disabled",
+      buttons: "disabled",
+      swipe: "disabled",
+    },
     targetStoredOutsideRunnerState: false,
     semanticSelectionCommit: {
       markerResolution: "resolve-before-logical-step",
@@ -1072,6 +1357,13 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
     automaticDecisionCommit: {
       spawnCheckpoint: "decision-marker-pending-with-no-stored-target",
       targetDerivation: "recompute-neutral-manual-oracle-prefix-from-run-entry-through-current-marker",
+      oracleEntryReconstruction: {
+        source: "persisted-automatic-assist-entry-state",
+        replaceControlModeWith: "manual",
+        rederiveRunId: true,
+        hashAlgorithm: "stateHashV1",
+        liveAutomaticAssistHashAllowed: false,
+      },
       oracleProjection: ["scores", "effects", "motion", "input-buffer", "resolved-entity-ids"],
       oraclePrefixStoredOutsideRunState: false,
       commitTick: "next-ordinary-active-tick",
@@ -1095,19 +1387,71 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
     "runner fixture Assist assertion/content-lock closure"
   );
   assertExactObject(fixture.initialState, {
+    schemaVersion: 1,
+    contentVersion: "phase-1-v1",
+    runIdDerivation: "canonical-from-retained-setup-fields-after-control-mode-selection",
+    runStatus: "active",
+    retainedSetupFields: [
+      "runId", "runSeed", "startingProfileId", "difficulty", "controlMode", "identity", "appearance", "accessibility",
+    ],
+    reinitializedGameplayFields: [
+      "runStatus", "scores", "effectLedger", "storyState", "stage", "runner", "recovery", "encounter", "consequences", "simulationTick",
+    ],
+    stage: {
+      stageId: "runner-lab-v1",
+      phase: "active",
+      ageMonths: 0,
+      activeTicks: 0,
+      worldDistanceMilli: 0,
+      durationTicks: 3000,
+      settlement: null,
+    },
+    scoresByStartingProfile: registry.startingProfiles.map(({ id: startingProfileId, scores }) => ({ startingProfileId, scores })),
+    scoreSelectionRule: "scores-equal-the-exact-selected-starting-profile-scores",
+    effectLedger: {
+      recent: [],
+      totalsBySource: {
+        runner: { healthPositive: 0, healthNegative: 0, happinessPositive: 0, happinessNegative: 0, moneyPositive: 0, moneyNegative: 0 },
+        choice: { healthPositive: 0, healthNegative: 0, happinessPositive: 0, happinessNegative: 0, moneyPositive: 0, moneyNegative: 0 },
+        callback: { healthPositive: 0, healthNegative: 0, happinessPositive: 0, happinessNegative: 0, moneyPositive: 0, moneyNegative: 0 },
+        settlement: { healthPositive: 0, healthNegative: 0, happinessPositive: 0, happinessNegative: 0, moneyPositive: 0, moneyNegative: 0 },
+        recovery: { healthPositive: 0, healthNegative: 0, happinessPositive: 0, happinessNegative: 0, moneyPositive: 0, moneyNegative: 0 },
+        system: { healthPositive: 0, healthNegative: 0, happinessPositive: 0, happinessNegative: 0, moneyPositive: 0, moneyNegative: 0 },
+      },
+    },
+    storyState: { facts: [], memories: [], credentials: [], relationships: [], conditions: [] },
+    recovery: null,
+    encounter: null,
+    consequences: { pending: [], resolved: [], terminal: [] },
     simulationTick: 0,
-    activeTicks: 0,
-    worldDistanceMilli: 0,
-    currentLane: 1,
-    motion: "idle",
-    inputBuffer: null,
-    patternIndex: 0,
-    resolvedThroughPatternIndex: 0,
-    nextSpawnTickByDifficulty: { story: 208, normal: 218, challenge: 218 },
-    nextSpawnDistanceMilliByDifficulty: { story: 540800, normal: 654000, challenge: 741200 },
-    userPaused: true,
-    startMarkerResolvedIdPresent: false,
-    resolvedEntityIds: [],
+    runner: {
+      motion: {
+        kind: "idle",
+        currentLane: 1,
+        sourceLane: 1,
+        targetLane: 1,
+        elapsedTicks: 0,
+        totalTicks: 11,
+      },
+      inputBuffer: null,
+      spawnByDifficulty: PHASE_2_SPAWN_CURSORS.map(({ difficulty, spawnTicks, nextSpawnDistancesMilli }) => ({
+        difficulty,
+        patternIndex: 0,
+        nextSpawnTick: spawnTicks[0],
+        nextSpawnDistanceMilli: nextSpawnDistancesMilli[0],
+        resolvedThroughPatternIndex: 0,
+        resolvedEntityIds: [],
+      })),
+      activeEntities: [],
+      invulnerableUntilTick: 0,
+      userPaused: true,
+    },
+    invariants: {
+      simulationTickEqualsStageActiveTicks: true,
+      stageWorldDistanceEqualsDifficultySpeedTimesActiveTicks: true,
+      initialSpeedRelationEvaluatesToZero: true,
+      startMarkerResolvedIdPresent: false,
+    },
   }, "runner fixture initial state");
   assertExactObject(fixture.startAction, {
     tickDelta: 0,
@@ -1122,17 +1466,47 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
     "advance-only-entities-existing-before-this-step",
     "resolve-collisions-effects-and-invulnerability-in-canonical-order",
     "terminalize-or-pass-and-record-resolved-ids-in-canonical-order",
-    "append-due-pattern-at-new-tick-boundary-without-advancing-new-entities",
+    "evaluate-spawn-trigger-at-post-transition-new-state-boundary-before-next-tick-input",
+    "append-due-pattern-at-new-state-boundary-without-advancing-new-entities",
     "open-semantic-prompt-and-add-semantic-pause-after-append",
+    "save-durable-post-append-checkpoint-containing-pattern-marker-and-applicable-prompt",
     "at-tick-3000-resolve-finish-set-terminal-cursors-create-pending-settlement-and-save-durable-checkpoint",
   ], "runner fixture logical tick pipeline");
   assertExactObject(fixture.replay, {
     tweenElapsedTicks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    boundarySnapshots: [
-      "before-entity-contact", "after-entity-contact", "invulnerability-start",
-      "invulnerability-end", "pause", "resume", "stage-completion",
+    snapshotClosure: [
+      { boundaryId: "start-action", occurrence: "once", positions: ["before", "after"] },
+      { boundaryId: "idle-null-buffer", occurrence: "every-reachable-state", positions: ["at-state"] },
+      { boundaryId: "moving-null-buffer", occurrence: "every-tween-elapsed-tick", positions: ["at-state"] },
+      { boundaryId: "moving-full-buffer", occurrence: "every-tween-elapsed-tick-and-legal-buffer", positions: ["at-state"] },
+      { boundaryId: "movement-completion", occurrence: "every-source-target-pair", positions: ["before", "after"] },
+      { boundaryId: "buffer-handoff", occurrence: "every-legal-buffered-handoff", positions: ["before", "after"] },
+      { boundaryId: "semantic-assist-decision-marker", occurrence: "every-course-pattern", positions: ["before", "after"] },
+      { boundaryId: "automatic-assist-decision-marker", occurrence: "every-course-pattern", positions: ["before", "after"] },
+      { boundaryId: "manual-decision-marker", occurrence: "every-course-pattern", positions: ["before", "after"] },
+      { boundaryId: "entity-contact", occurrence: "every-included-contacted-entity", positions: ["before", "after"] },
+      { boundaryId: "safe-pass", occurrence: "every-included-uncontacted-entity-and-manual-marker", positions: ["before", "after"] },
+      { boundaryId: "invulnerability-window", occurrence: "every-authoritative-negative-contact", positions: ["start", "last-protected-tick", "end"] },
+      {
+        boundaryId: "pause-reason",
+        occurrence: "each-enumerated-reason",
+        reasons: ["user", "semantic-assist", "visibility", "focus-interruption", "modal"],
+        positions: ["pause", "resume"],
+        firstResumedFrameTickDelta: 0,
+      },
+      { boundaryId: "pending-settlement-checkpoint", occurrence: "once-per-run", positions: ["durable-pending"] },
+      { boundaryId: "applied-settlement", occurrence: "once-per-run", positions: ["after-apply", "completion"] },
     ],
     remainingSpawnIdComparisonCap: 50,
+    futureEntityIdProjection: {
+      startMarker: "include-unresolved-start-marker-id-before-start-and-omit-after-resolution",
+      includedSlots: "include-every-unresolved-included-pattern-slot-id-in-canonical-coordinate-order",
+      decisionMarkers: "include-every-unresolved-decision-marker-id",
+      finishMarker: "include-unresolved-finish-marker-id-until-terminal-resolution",
+      emissionOrder: ["patternIndex", "slotIndex", "instanceId"],
+      remainingOnly: true,
+      maximumIds: 50,
+    },
     canonicalHashRequired: true,
     saveRoundTripRequired: true,
   }, "runner fixture replay");
@@ -1140,9 +1514,358 @@ export function validateRunnerFixture(fixture, schema, contentLock, registry) {
     appearanceGameplayProjectionInvariant: true,
     genderGameplayProjectionInvariant: true,
     appearanceWitnessSeeds: [0, 1, 9999],
-    selectionCount: 512,
+    appearanceAxes: {
+      gender: ["female", "male"],
+      heritageStyleId: ["asian", "western", "black", "middle-eastern"],
+      hairStyleId: ["short-soft", "wavy-bob", "curly-crown", "tied-back"],
+      hairColorId: ["black", "dark-brown", "warm-brown", "silver"],
+      clothingPaletteId: ["sunrise", "meadow", "ocean", "berry"],
+      selectionCount: 512,
+    },
+    gameplayProjectionFields: [
+      "pattern-ids-and-rotations", "optional-group-inclusion", "collision-geometry", "logical-command-trace",
+      "contact-ticks-and-outcomes", "effect-ids-and-requested-and-actual-deltas", "completion-fact",
+      "completion-memory", "settlement", "final-scores",
+    ],
+    excludedPresentationFields: ["runId", "identity", "appearance", "accessibility"],
     pauseTickDrift: 0,
   }, "runner fixture invariance");
+  assertExactObject(fixture.accessibility, {
+    semanticChoiceAndReloadIdentity: {
+      profileCount: 4,
+      difficultyCount: 3,
+      structuralPatternRotationCases: [
+        { patternId: "runner-lab-benefit-fork-v1", rotation: 0 },
+        { patternId: "runner-lab-benefit-fork-v1", rotation: 1 },
+        { patternId: "runner-lab-benefit-fork-v1", rotation: 2 },
+        { patternId: "runner-lab-risk-reward-v1", rotation: 0 },
+        { patternId: "runner-lab-risk-reward-v1", rotation: 1 },
+        { patternId: "runner-lab-risk-reward-v1", rotation: 2 },
+        { patternId: "runner-lab-avoid-only-v1", rotation: 0 },
+        { patternId: "runner-lab-avoid-only-v1", rotation: 1 },
+        { patternId: "runner-lab-avoid-only-v1", rotation: 2 },
+        { patternId: "runner-lab-quiet-window-v1", rotation: 0 },
+      ],
+      sourceLanes: [0, 1, 2],
+      targetLanes: [0, 1, 2],
+      persistenceBranches: ["normal", "reload-before-selection", "reload-after-selection"],
+      branchComparisonRule: "each-entry-compares-all-three-persistence-branches",
+      populationFormula: "4-profiles-times-3-difficulties-times-10-structural-cases-times-3-source-lanes-times-3-target-lanes",
+      decisionEntries: 1080,
+      pauseGuardReasons: ["visibility", "focus-interruption", "user", "modal"],
+      pauseGuardInvariants: [
+        "selection-is-rejected",
+        "decision-marker-remains-pending",
+        "simulation-tick-active-ticks-and-world-distance-remain-stable",
+        "motion-input-buffer-active-entities-and-resolved-ids-remain-stable",
+        "resume-restores-the-identical-semantic-choice-and-first-resumed-frame-advances-zero-ticks",
+      ],
+      totalEntries: 1084,
+      semanticPersistenceIdentityFields: [
+        "decision-marker-id-and-contact-state", "simulationTick", "stage.activeTicks", "stage.worldDistanceMilli",
+        "runner.motion", "runner.inputBuffer", "stateHashV1", "future-entity-ids", "contact-outcomes",
+        "effect-ids-and-requested-and-actual-deltas", "completion-fact", "completion-memory",
+      ],
+      manualGameplayParityFields: [
+        "simulationTick", "stage.activeTicks", "stage.worldDistanceMilli", "runner.motion", "runner.inputBuffer",
+        "future-scoring-entity-ids-excluding-assist-markers", "scoring-contact-outcomes",
+        "effect-ids-and-requested-and-actual-deltas", "scores", "completion-fact", "completion-memory",
+      ],
+      manualGameplayParityExcludedFields: [
+        "controlMode", "runId", "stateHashV1", "assist-pause-reasons", "decision-marker-state",
+        "future-decision-marker-ids",
+      ],
+    },
+    automaticNoInputCompletion: {
+      population: 120000,
+      rawLaneInputCount: 0,
+      semanticChoiceInputCount: 0,
+      startActivationCount: 1,
+      completionRequired: true,
+      settlementAppliedCount: 1,
+      completionFactCount: 1,
+      completionMemoryCount: 1,
+      requiredInteractiveControlsAfterStart: 0,
+      pendingCheckpointReloadRequired: true,
+      appliedCompletionReloadRequired: true,
+      oracleSource: "reconstructed-manual-entry-stateHashV1",
+    },
+    reducedMotionDomainIdentity: {
+      savedPreferenceEntries: 120000,
+      osPreferenceEntries: 120000,
+      totalEntries: 240000,
+      effectivePreferenceTruthTable: [
+        { savedReducedMotion: false, osReducedMotion: false, effectiveReducedMotion: false },
+        { savedReducedMotion: false, osReducedMotion: true, effectiveReducedMotion: true },
+        { savedReducedMotion: true, osReducedMotion: false, effectiveReducedMotion: true },
+        { savedReducedMotion: true, osReducedMotion: true, effectiveReducedMotion: true },
+      ],
+      allowedDifferences: ["visual-interpolation-duration", "decorative-motion", "camera-motion"],
+      requiredIdentity: [
+        "stateHashV1", "logical-commands", "simulation-timing", "collision-timing", "contact-ticks-and-outcomes",
+        "effect-ids-and-deltas", "scores", "completion-state", "completion-fact", "completion-memory",
+      ],
+    },
+    browserMatrix: {
+      groupCounts: { completionReflow: 40, presentation: 72, safeAreaOneHand: 8, focus: 10, announcements: 9, total: 139 },
+      completionReflowMatrix: {
+        paths: ["manual-keyboard", "manual-buttons", "manual-swipe", "semantic-assist", "automatic-assist"],
+        viewports: [
+          { width: 1280, height: 720 },
+          { width: 800, height: 360 },
+          { width: 360, height: 800 },
+          { width: 320, height: 568 },
+        ],
+        textScalePercent: [100, 200],
+        count: 40,
+      },
+      presentationMatrix: {
+        viewports: [
+          { width: 1280, height: 720 },
+          { width: 800, height: 360 },
+          { width: 360, height: 800 },
+          { width: 320, height: 568 },
+        ],
+        textScalePercent: [100, 200],
+        contrast: ["standard", "high", "forced-colors"],
+        motionSource: ["normal", "saved-reduced", "os-reduced"],
+        count: 72,
+      },
+      safeAreaOneHandMatrix: {
+        mobileViewports: [{ width: 360, height: 800 }, { width: 320, height: 568 }],
+        textScalePercent: [100, 200],
+        reach: ["left", "right"],
+        count: 8,
+      },
+      contrast: {
+        normalTextMinimumRatio: "4.5:1",
+        largeTextMinimumRatio: "4.5:1",
+        nonTextMinimumRatio: "3:1",
+        colorAloneConveysMeaning: false,
+        redundantCues: ["label", "icon-or-shape", "outline-or-pattern", "color"],
+        forcedColorsTreatmentRequired: true,
+        nonTextSubjects: ["controls", "focus", "lane-boundaries", "meaningful-graphics"],
+      },
+      reflow: {
+        horizontalPageScrollAllowedAt320CssPx: false,
+        textClippingAllowedAt200Percent: false,
+        controlsObscurePlayerAllowed: false,
+        obscuredFocusAllowed: false,
+        undersizedTargetsAllowed: false,
+        intentionalVerticalDocumentScrollAt200Percent: true,
+      },
+      entryPresentation: {
+        initiallyPaused: true,
+        orientationTextVisible: true,
+        startControlElement: "button",
+        startControlNative: true,
+      },
+      semanticStructure: {
+        persistentRunnerRegion: {
+          element: "section",
+          accessibleName: "Runner status",
+          headingId: "runner-status-heading",
+        },
+        runnerStateSummary: {
+          element: "dl",
+          fields: ["mode", "lane", "motion", "pause"],
+          eachFieldHasTermAndDescription: true,
+        },
+        scoreOutputs: {
+          visibleCount: 3,
+          scoreOrder: ["health", "happiness", "money"],
+          eachHasAccessibleNameAndValue: true,
+        },
+        decisionPrompt: {
+          element: "fieldset",
+          nativeFieldsetRequired: true,
+          legendRequired: true,
+          untimed: true,
+          laneOrder: [0, 1, 2],
+          enabledChoiceRequiredForEveryVisuallyAvailableLane: true,
+          eachChoiceExposes: ["lane", "benefit", "hazard", "urgency"],
+          informationHorizon: "never-beyond-the-visual-warning-horizon",
+          sourceProjection: "same-locked-pattern-warning-projection-as-visual-playfield",
+          renderCaseAssertionId: "runner-semantic-choice-and-reload-identity-v1",
+          renderCaseCount: 1080,
+        },
+        progress: {
+          element: "progress",
+          minimum: 0,
+          maximum: 3000,
+          valueSource: "stage.activeTicks",
+          accessibleName: "Runner laboratory progress",
+        },
+        playfield: {
+          accessibilityTree: "excluded",
+          ariaHidden: true,
+          focusableDescendantsAllowed: false,
+          movingEntityAccessibilityNodesAllowed: false,
+        },
+        persistentStatus: { role: "status", politeness: "polite", atomic: true },
+        pauseResumeControlVisible: true,
+        completionRecapHeadingFocusRequired: true,
+      },
+      manualButtons: {
+        commands: ["lane-up", "lane-down"],
+        labelled: true,
+        minimumTargetCssPx: 44,
+      },
+      focusTransitions: [
+        { transitionId: "entry-to-start", expectedFocus: "start-button" },
+        { transitionId: "start-to-persistent-runner", expectedFocus: "pause-button" },
+        { transitionId: "semantic-prompt-open", expectedFocus: "first-enabled-semantic-choice" },
+        { transitionId: "semantic-choice-submit", expectedFocus: "runner-status-heading" },
+        { transitionId: "user-pause-resume", expectedFocus: "user-resume-button" },
+        { transitionId: "visibility-pause-resume", expectedFocus: "visibility-resume-button" },
+        { transitionId: "focus-interruption-resume", expectedFocus: "focus-resume-button" },
+        { transitionId: "modal-open", expectedFocus: "first-enabled-modal-control", requirements: ["background-inert", "forward-tab-contained", "backward-tab-contained"] },
+        { transitionId: "modal-close", expectedFocus: "modal-invoker" },
+        { transitionId: "completion", expectedFocus: "completion-recap-heading" },
+      ],
+      focusRules: {
+        visibleIndicatorRequired: true,
+        logicalOrderRequired: true,
+        modalTabContainmentRequired: true,
+        nonmodalFocusTrapAllowed: false,
+        focusRestoredAfterPrompt: true,
+      },
+      interruptionCoalescing: {
+        hiddenThenBlur: {
+          retainedPauseReasons: ["visibility"],
+          focusInterruptionAdded: false,
+          explicitResumeActivationsRequired: 1,
+          firstResumedFrameLogicalTickDelta: 0,
+        },
+        visibleThenBlur: {
+          retainedPauseReasons: ["focus-interruption"],
+          explicitResumeActivationsRequired: 1,
+          firstResumedFrameLogicalTickDelta: 0,
+        },
+      },
+      touchAndPointer: {
+        minimumTargetCssPx: 44,
+        surface: "dedicated-play-surface-only",
+        touchAction: "pan-x",
+        maximumActivePointers: 1,
+        additionalPointerPolicy: "cancel-active-sequence-and-ignore-until-all-pointers-release",
+        pointerCaptureBoundary: "capture-accepted-primary-pointer",
+        pointerCancelResult: "cancel-without-lane-request",
+        pointerReleaseRule: "release-capture-on-pointerup-pointercancel-and-lostpointercapture",
+        verticalSwipeThresholdCssPx: 24,
+        verticalMagnitudeMustExceedHorizontal: true,
+        verticalSwipeDirectionMapping: { negativeDeltaY: "lane-up", positiveDeltaY: "lane-down" },
+        synthesizedClickPolicy: "suppress-the-follow-up-click-from-the-consumed-pointer-sequence",
+        maximumIntentsPerPointerSequence: 1,
+        preventDefaultBoundary: "only-after-a-valid-vertical-swipe-is-recognized",
+        outsideSurfaceScrollSuppressionAllowed: false,
+        surroundingPageScrollableAt200PercentText: true,
+      },
+      keyboardAndRemapping: {
+        immutableBindings: [
+          { command: "lane-up", eventCode: "ArrowUp", ariaKeyshortcutsToken: "ArrowUp", displayLabel: "Up arrow" },
+          { command: "lane-down", eventCode: "ArrowDown", ariaKeyshortcutsToken: "ArrowDown", displayLabel: "Down arrow" },
+        ],
+        supplementalRemappableDefaults: [
+          { command: "lane-up", eventCode: "KeyW", ariaKeyshortcutsToken: "W", displayLabel: "W" },
+          { command: "lane-down", eventCode: "KeyS", ariaKeyshortcutsToken: "S", displayLabel: "S" },
+        ],
+        remappableCommandSet: ["lane-up", "lane-down"],
+        duplicateBindingPolicy: "reject",
+        rejectedRemapKeys: ["Tab", "Escape", "Enter", "Space", "modifier-chord", "browser-reserved", "system-reserved"],
+        persistence: "bounded-in-memory-current-mounted-session-only",
+        localStorageAllowed: false,
+        sessionStorageAllowed: false,
+        runStateStorageAllowed: false,
+        gameplayHashAffected: false,
+        reloadRule: "restore-supplemental-KeyW-KeyS-defaults",
+        resetRule: "restore-supplemental-KeyW-KeyS-defaults",
+        instructionsUpdateImmediately: true,
+        ariaKeyshortcutsUpdateImmediately: true,
+        preventDefaultBoundary: "only-when-keydown-produces-an-accepted-intent",
+        ignoredInputContexts: [
+          "input", "select", "contenteditable", "open-dialog", "before-start", "semantic-assist-entire-mode",
+          "paused-by-independent-reason", "stage-settling", "run-completed",
+        ],
+      },
+      liveRegions: {
+        structure: [
+          { regionId: "runner-status", role: "status", politeness: "polite", atomic: true },
+          { regionId: "runner-alert", role: "alert", politeness: "assertive", atomic: true },
+        ],
+        announcementWitnesses: [
+          "approach-warning-with-lane-and-time",
+          "actual-benefit-contact-with-score-and-delta",
+          "actual-hazard-contact-with-score-and-delta",
+          "suppressed-hazard-contact-with-no-score-change",
+          "clamped-effect-result-with-requested-and-actual-delta",
+          "semantic-prompt-open-and-choice-confirmation",
+          "pause-and-resume-with-reason",
+          "actionable-error-with-recovery-action",
+          "completion-with-singleton-fact-and-memory",
+        ],
+        progress: { maximumAnnouncementsPerSecond: 1, boundaryAnnouncementsRequired: true },
+        laneOutput: { ariaLive: false, updates: ["movement-start", "movement-end"] },
+        throttle: { minimumIntervalMs: 1000, duplicateSuppression: true, latestMessageWinsWithinInterval: true },
+        batching: {
+          unit: "once-per-warning-or-result-group",
+          perTickAnnouncementsAllowed: false,
+          perEntityAnnouncementsAllowed: false,
+        },
+        requiredContent: ["lane", "actual-post-clamp-delta", "resulting-score", "suppressed-hazard"],
+        optionalAnnouncements: {
+          mayBeDisabled: true,
+          fallback: "essential-visible-and-focus-readable-status-remains",
+          actionableErrorsRemainRoleAlert: true,
+        },
+      },
+      reducedMotionPresentation: {
+        effectiveRule: "saved-reduced-motion-or-os-prefers-reduced-motion",
+        disabledEffects: [
+          "parallax", "continuous-world-translation", "shake", "pulse", "particles", "spatial-tween-animation",
+        ],
+        laneSchematic: { ariaHidden: true, snapsWithoutAnimation: true },
+        nonLiveMovementTextFields: ["source-lane", "target-lane", "idle-or-moving", "urgency"],
+        nonLiveMovementTextBoundary: ["movement-start", "movement-end"],
+        simulationDomainIdentityRequired: true,
+        mediaListenerDisposalRequired: true,
+      },
+      safeAreaAndOneHand: {
+        safeAreaInsetsRequired: ["top", "right", "bottom", "left"],
+        portraitControlsReachableWithEitherHand: true,
+        landscapeControlsReachableWithEitherHand: true,
+        essentialControlRequiresTwoHands: false,
+        laneControlsInOneCluster: true,
+        clusterPlacements: ["left", "right"],
+        controlsInCluster: ["lane-up", "lane-down"],
+        settingsAndDialogCloseRestoresExactInvokerFocus: true,
+        interruptionResumeTargetsRelevantControlOrDecisionHeading: true,
+      },
+      audioRedundancy: {
+        audioRequiredForGameplay: false,
+        everyAudioCueHasVisualEquivalent: true,
+        everyAudioCueHasTextEquivalent: true,
+        everyAudioCueHasIconOrShapeEquivalent: true,
+        visibleWarningsCompleteWithAudioMuted: true,
+      },
+      nonvisualManualReview: {
+        required: true,
+        keyboardOnlyRequired: true,
+        screenReaderRequired: true,
+        screenReaderChoice: ["NVDA", "VoiceOver"],
+        compatibleBrowsersByPlatform: {
+          Windows: ["Chrome", "Edge", "Firefox"],
+          macOS: ["Chrome", "Edge", "Firefox", "Safari"],
+        },
+        minimumScreenReadersReviewed: 1,
+        actualAssistiveTechnologySessionRequired: true,
+        nonvisualSemanticCompletionRequired: true,
+        forcedColorsInspectionRequired: true,
+        evidenceArtifactRequired: true,
+        automatedChecksAloneSufficient: false,
+      },
+    },
+  }, "runner fixture accessibility");
   assertExactObject(fixture.assertions, PHASE_2_ASSERTIONS, "runner fixture assertions");
   return fixture;
 }
@@ -1152,7 +1875,7 @@ export function validateRunnerEvidence(fixture, evidence, expectedSourceSha256) 
     evidence,
     [
       "schemaVersion", "fixtureId", "contentLockId", "evaluatedSourceSha256",
-      "evaluatorId", "complete", "assertionResults",
+      "evaluatorId", "complete", "manualReviewEvidence", "assertionResults",
     ],
     "runner evidence"
   );
@@ -1164,17 +1887,96 @@ export function validateRunnerEvidence(fixture, evidence, expectedSourceSha256) 
   assert(evidence.evaluatedSourceSha256 === expectedSourceSha256, "runner evidence evaluated source mismatch");
   assert(evidence.evaluatorId === fixture.evaluatorId && evidence.evaluatorId === PHASE_2_EVALUATOR_ID, "runner evidence evaluator ID");
   assert(evidence.complete === true, "runner evidence is incomplete");
+  assertExactKeys(
+    evidence.manualReviewEvidence,
+    ["assertionId", "status", "session", "artifact"],
+    "runner nonvisual manual review evidence"
+  );
+  assert(
+    evidence.manualReviewEvidence.assertionId === "runner-accessibility-browser-matrix-v1",
+    "runner nonvisual manual review assertion ID"
+  );
+  assert(evidence.manualReviewEvidence.status === "complete", "runner nonvisual manual review incomplete");
+  const manualSession = evidence.manualReviewEvidence.session;
+  assertExactKeys(
+    manualSession,
+    [
+      "sessionId", "reviewerId", "reviewerAttestation", "keyboardOnlyPassed", "keyboardInspectionPassed",
+      "screenReader", "screenReaderVersion", "platform", "browser", "browserVersion", "completedAtUtc",
+      "focusTransitionCount", "announcementWitnessCount", "semanticStructurePassed", "semanticDecisionPromptPassed",
+      "nonvisualSemanticCompletionPassed", "forcedColorsInspectionPassed", "completionPathPassed",
+    ],
+    "runner nonvisual manual review session"
+  );
+  assert(ID_PATTERN.test(manualSession.sessionId), "runner nonvisual manual review session ID");
+  assert(ID_PATTERN.test(manualSession.reviewerId), "runner nonvisual manual review reviewer ID");
+  assert(manualSession.reviewerAttestation === true, "runner nonvisual manual review attestation");
+  assert(manualSession.keyboardOnlyPassed === true, "runner nonvisual keyboard-only review");
+  assert(manualSession.keyboardInspectionPassed === true, "runner nonvisual keyboard inspection");
+  assert(["NVDA", "VoiceOver"].includes(manualSession.screenReader), "runner nonvisual screen reader");
+  assert(
+    (manualSession.screenReader === "NVDA" && manualSession.platform === "Windows") ||
+      (manualSession.screenReader === "VoiceOver" && manualSession.platform === "macOS"),
+    "runner nonvisual screen reader platform"
+  );
+  assert(
+    typeof manualSession.screenReaderVersion === "string" &&
+      /^[A-Za-z0-9][A-Za-z0-9._ -]{0,31}$/.test(manualSession.screenReaderVersion),
+    "runner nonvisual screen reader version"
+  );
+  assert(["Chrome", "Edge", "Firefox", "Safari"].includes(manualSession.browser), "runner nonvisual browser");
+  const compatibleBrowsersByPlatform = {
+    Windows: ["Chrome", "Edge", "Firefox"],
+    macOS: ["Chrome", "Edge", "Firefox", "Safari"],
+  };
+  assert(
+    compatibleBrowsersByPlatform[manualSession.platform]?.includes(manualSession.browser) === true,
+    "runner nonvisual browser platform compatibility"
+  );
+  assert(
+    typeof manualSession.browserVersion === "string" &&
+      /^[A-Za-z0-9][A-Za-z0-9._ -]{0,31}$/.test(manualSession.browserVersion),
+    "runner nonvisual browser version"
+  );
+  assert(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(manualSession.completedAtUtc), "runner nonvisual review completion time");
+  assert(manualSession.focusTransitionCount === 10, "runner nonvisual focus transition count");
+  assert(manualSession.announcementWitnessCount === 9, "runner nonvisual announcement witness count");
+  assert(manualSession.semanticStructurePassed === true, "runner nonvisual semantic structure review");
+  assert(manualSession.semanticDecisionPromptPassed === true, "runner nonvisual Semantic decision prompt review");
+  assert(manualSession.nonvisualSemanticCompletionPassed === true, "runner nonvisual Semantic completion review");
+  assert(manualSession.forcedColorsInspectionPassed === true, "runner nonvisual forced-colors inspection");
+  assert(manualSession.completionPathPassed === true, "runner nonvisual completion path review");
+  const manualArtifact = evidence.manualReviewEvidence.artifact;
+  assertExactKeys(
+    manualArtifact,
+    ["artifactId", "format", "sha256"],
+    "runner nonvisual manual review artifact"
+  );
+  assert(ID_PATTERN.test(manualArtifact.artifactId), "runner nonvisual manual review artifact ID");
+  assert(manualArtifact.format === "embedded-manual-review-session-v1", "runner nonvisual manual review artifact format");
+  assert(SHA_PATTERN.test(manualArtifact.sha256), "runner nonvisual manual review artifact digest");
+  assert(
+    manualArtifact.sha256 === runnerManualReviewArtifactSha256(manualSession),
+    "runner nonvisual manual review artifact mismatch"
+  );
   assert(Array.isArray(evidence.assertionResults), "runner evidence assertion results");
-  const expectedAssertions = new Map(fixture.assertions.map(({ assertionId, population }) => [assertionId, population]));
+  const expectedAssertions = new Map(fixture.assertions.map((assertion) => [assertion.assertionId, assertion]));
   assert(expectedAssertions.size === fixture.assertions.length, "runner fixture duplicate assertion ID");
   const actualIds = evidence.assertionResults.map((result) => result?.assertionId);
   assert(new Set(actualIds).size === actualIds.length, "runner evidence duplicate assertion ID");
   assert(deepEqual(sorted(actualIds), sorted(expectedAssertions.keys())), "runner evidence assertion ID closure");
   for (const result of evidence.assertionResults) {
-    assertExactKeys(result, ["assertionId", "status", "passed", "population"], `runner evidence assertion ${result?.assertionId}`);
+    assertExactKeys(
+      result,
+      ["assertionId", "status", "passed", "population", "failureCount", "groupCounts"],
+      `runner evidence assertion ${result?.assertionId}`
+    );
+    const expected = expectedAssertions.get(result.assertionId);
     assert(result.status === "complete", `runner evidence assertion incomplete ${result.assertionId}`);
     assert(result.passed === true, `runner evidence assertion failed ${result.assertionId}`);
-    assert(result.population === expectedAssertions.get(result.assertionId), `runner evidence assertion population ${result.assertionId}`);
+    assert(result.population === expected?.population, `runner evidence assertion population ${result.assertionId}`);
+    assert(result.failureCount === 0, `runner evidence assertion failure count ${result.assertionId}`);
+    assert(deepEqual(result.groupCounts, expected?.groupCounts), `runner evidence assertion group counts ${result.assertionId}`);
   }
   return evidence;
 }
