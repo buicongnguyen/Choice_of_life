@@ -44,6 +44,12 @@ async function commitAll(root, message) {
   await execFileAsync("git", ["commit", "-m", message], { cwd: root });
 }
 
+async function copyDocsWithoutContentLocks(root) {
+  await cp(new URL("../docs", import.meta.url), path.join(root, "docs"), { recursive: true });
+  await rm(path.join(root, "docs", "balance", "locks"), { recursive: true, force: true });
+  await rm(path.join(root, "docs", "balance", "evaluation-results"), { recursive: true, force: true });
+}
+
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
@@ -230,7 +236,7 @@ describe("Phase 1 fixture locks", () => {
   it("preregisters an uncommitted lock before strict history validation", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-preregister-"));
     try {
-      await cp(new URL("../docs", import.meta.url), path.join(root, "docs"), { recursive: true });
+      await copyDocsWithoutContentLocks(root);
       const lock = validContentLock();
       const lockPath = path.join(root, "docs/balance/locks", `${lock.lockId}.json`);
       await mkdir(path.dirname(lockPath), { recursive: true });
@@ -245,7 +251,7 @@ describe("Phase 1 fixture locks", () => {
   it("recognizes a new lock across follow-up commits and a synthetic merge by explicit base SHA", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-preregister-merge-"));
     try {
-      await cp(new URL("../docs", import.meta.url), path.join(root, "docs"), { recursive: true });
+      await copyDocsWithoutContentLocks(root);
       await initialiseGitRepository(root);
       await commitAll(root, "docs: establish immutable fixture baseline");
       const { stdout: baseOutput } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: root });
