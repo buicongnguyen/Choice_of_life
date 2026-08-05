@@ -7,6 +7,12 @@ import type {
 } from "./run-state";
 import type { NewbornAction, NewbornState } from "./newborn/index";
 import type { EncounterEngineState } from "./encounters/index";
+import type {
+  EducationRouteId,
+  EducationState,
+  ExamPreparationChoiceId,
+  PrimaryEducationRouteId,
+} from "./education/index";
 
 export type Gender = RunStateV1["identity"]["gender"];
 export type AppearanceSelection = RunStateV1["appearance"];
@@ -105,6 +111,16 @@ export type EncounterChapterActionResult =
   | { readonly kind: "ready"; readonly state: EncounterChapterState; readonly notice?: ShellNotice }
   | { readonly kind: "invalid"; readonly notice: ShellNotice };
 
+export type EducationChapterAction =
+  | Readonly<{ type: "choose-preparation"; choiceId: ExamPreparationChoiceId }>
+  | Readonly<{ type: "reveal-grade" }>
+  | Readonly<{ type: "select-route"; routeId: EducationRouteId }>
+  | Readonly<{ type: "retrain"; routeId: PrimaryEducationRouteId }>;
+
+export type EducationChapterActionResult =
+  | { readonly kind: "ready"; readonly state: EducationState; readonly notice?: ShellNotice }
+  | { readonly kind: "invalid"; readonly notice: ShellNotice };
+
 /**
  * Phase-3 runtime capability. Newborn progress is deliberately session-scoped
  * until it can be incorporated into the versioned run save without weakening
@@ -121,6 +137,13 @@ export interface EncounterChapterShellPort {
   currentEncounterState(): EncounterChapterState | null;
   enterEncounters(): EncounterChapterActionResult;
   dispatchEncounter(action: EncounterChapterAction): EncounterChapterActionResult;
+}
+
+/** Phase-5 high-school and education runtime, kept session-scoped for now. */
+export interface EducationChapterShellPort {
+  currentEducationState(): EducationState | null;
+  enterEducation(): EducationChapterActionResult;
+  dispatchEducation(action: EducationChapterAction): EducationChapterActionResult;
 }
 
 export interface RunnerLaboratoryShellPort {
@@ -146,4 +169,6 @@ export interface BrowserDependencies {
   readonly newborn?: NewbornShellPort;
   /** Phase-4 encounters-and-consequences capability. */
   readonly encounters?: EncounterChapterShellPort;
+  /** Phase-5 high-school and education capability. */
+  readonly education?: EducationChapterShellPort;
 }

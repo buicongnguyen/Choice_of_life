@@ -10,6 +10,15 @@ import {
   reduceEncounterEngine,
   scheduleEncounter,
 } from "../core/encounters/index";
+import {
+  chooseExamPreparation,
+  createEducationState,
+  resolveEducationExam,
+  retrainEducation,
+  selectEducationRoute,
+  type EducationState,
+  type EducationSupportLevel,
+} from "../core/education/index";
 import { createRunnerLaboratoryEntryState, RUNNER_LABORATORY_STAGE_ID } from "../core/runner/contract";
 import type { SeedPort } from "../core/seed-port";
 import { STARTING_PROFILE_SCORES, type RunStateV1, type StartingProfileId } from "../core/run-state";
@@ -17,6 +26,9 @@ import { stateHashV1 } from "../core/run-state-hash";
 import type {
   BrowserDependencies,
   ChoiceOfLifeShellPort,
+  EducationChapterAction,
+  EducationChapterActionResult,
+  EducationChapterShellPort,
   EncounterChapterAction,
   EncounterChapterActionResult,
   EncounterChapterShellPort,
@@ -87,7 +99,7 @@ function copyValidSettings(value: unknown): VisualSettings | null {
   };
 }
 
-export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort, EncounterChapterShellPort {
+export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort, EncounterChapterShellPort, EducationChapterShellPort {
   startNewLife(selection: SetupSelection): RunActionResult;
   continueLife(): RunActionResult;
   saveSettings(settings: VisualSettings): SettingsActionResult;
@@ -141,6 +153,35 @@ const ENCOUNTER_RECOVERY_POLICY = Object.freeze({
   triggerAtOrBelow: 45,
   recoverTo: 50,
 });
+
+function educationSupportLevel(state: EncounterChapterState): EducationSupportLevel {
+  const caregiverCloseness = state.engine.relationships
+    .filter((relationship) => relationship.kind === "caregiver")
+    .reduce((highest, relationship) => Math.max(highest, relationship.closeness), 0);
+  if (caregiverCloseness >= 70) return "strong";
+  if (caregiverCloseness >= 35) return "some";
+  return "none";
+}
+
+function priorEducationAchievement(state: EncounterChapterState): number {
+  const wellbeing = Math.round(
+    state.engine.scores.health * 0.35 + state.engine.scores.happiness * 0.45,
+  );
+  const rememberedStudy = state.engine.memories.some((memory) =>
+    memory.summary.toLocaleLowerCase().includes("study"),
+  );
+  return Math.max(35, Math.min(88, wellbeing + (rememberedStudy ? 8 : 0)));
+}
+
+function deterministicExamPerformance(runSeed: string, choiceId: string): number {
+  let hash = 2_166_136_261;
+  const input = `${runSeed}:education-exam:${choiceId}`;
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return 45 + ((hash >>> 0) % 36);
+}
 
 function createEncounterChapterState(
   runId: string,
@@ -210,6 +251,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
   // into durable saves while still supporting the complete stage in-session.
   let newbornState: NewbornState | null = null;
   let encounterState: EncounterChapterState | null = null;
+  let educationState: EducationState | null = null;
   let settings: VisualSettings = currentState ? { ...currentState.accessibility } : { ...DEFAULT_SETTINGS };
   let notice = noticeForLoad(initialLoad);
   const listeners = new Set<() => void>();
@@ -312,6 +354,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       currentState = state;
       newbornState = null;
       encounterState = null;
+      educationState = null;
       if (result.kind === "saved") {
         notice = null;
       } else if (result.kind === "unavailable") {
@@ -544,6 +587,71 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       publish();
       return { kind: "ready", state: encounterState };
     },
+    currentEducationState(): EducationState | null {
+      return educationState;
+    },
+    enterEducation(): EducationChapterActionResult {
+      if (currentState === null || encounterState === null || encounterState.phase !== "complete") {
+        return {
+          kind: "invalid",
+          notice: warning("Complete encounters and consequences before starting education."),
+        };
+      }
+      if (educationState !== null && educationState.runId === currentState.runId) {
+        return { kind: "ready", state: educationState, ...(notice ? { notice } : {}) };
+      }
+      try {
+        educationState = createEducationState({
+          runId: currentState.runId,
+          ageMonths: 198,
+          scores: encounterState.engine.scores,
+          supportLevel: educationSupportLevel(encounterState),
+          priorAchievement: priorEducationAchievement(encounterState),
+        });
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("Education could not begin. Your completed encounters are unchanged."),
+        };
+      }
+      notice = {
+        tone: "status",
+        message: "High school and education are active for this browser session.",
+      };
+      publish();
+      return { kind: "ready", state: educationState, notice };
+    },
+    dispatchEducation(action: EducationChapterAction): EducationChapterActionResult {
+      if (educationState === null || currentState === null) {
+        return {
+          kind: "invalid",
+          notice: warning("Start high school and education before making this choice."),
+        };
+      }
+      try {
+        if (action.type === "choose-preparation") {
+          educationState = chooseExamPreparation(educationState, action.choiceId);
+        } else if (action.type === "reveal-grade") {
+          const choiceId = educationState.preparationChoiceId;
+          if (choiceId === null) throw new Error("Exam preparation has not been chosen");
+          educationState = resolveEducationExam(
+            educationState,
+            deterministicExamPerformance(currentState.runSeed, choiceId),
+          );
+        } else if (action.type === "select-route") {
+          educationState = selectEducationRoute(educationState, action.routeId);
+        } else {
+          educationState = retrainEducation(educationState, action.routeId);
+        }
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("That education choice is not available. Your latest result was kept."),
+        };
+      }
+      publish();
+      return { kind: "ready", state: educationState };
+    },
     enterRunnerLaboratory(): RunnerLaboratoryActionResult {
       if (currentState === null) {
         return { kind: "invalid", notice: runnerNotice("Create a life before opening the runner laboratory.") };
@@ -610,5 +718,6 @@ export function createBrowserDependencies(): BrowserDependencies {
     runner: shell,
     newborn: shell,
     encounters: shell,
+    education: shell,
   };
 }
