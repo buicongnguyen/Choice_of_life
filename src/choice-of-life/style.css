@@ -1234,3 +1234,1030 @@ body {
     display: grid;
   }
 }
+
+/* Phase 3: Newborn nursery. This is intentionally isolated from the runner. */
+.col-newborn-view {
+  --col-newborn-ink: #34424b;
+  --col-newborn-outline: #543d3a;
+  --col-newborn-cream: #fff8e8;
+  display: grid;
+  gap: clamp(0.75rem, 2vw, 1.15rem);
+  min-inline-size: 0;
+  inline-size: 100%;
+  max-inline-size: 70rem;
+  padding: clamp(0.65rem, 2vw, 1rem);
+  border: 2px solid #d8bc9b;
+  border-radius: 1.35rem;
+  color: var(--col-newborn-ink);
+  background: rgb(255 253 246 / 94%);
+  box-shadow: 0 1rem 2.5rem rgb(72 53 42 / 15%);
+  overflow-x: clip;
+}
+
+.col-newborn-view [hidden] {
+  display: none !important;
+}
+
+.col-newborn-view h2,
+.col-newborn-view h3,
+.col-newborn-view p {
+  margin-block: 0;
+}
+
+.col-newborn-stage-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 18rem);
+  align-items: end;
+  gap: 1rem;
+}
+
+.col-newborn-stage-header h2 {
+  margin-block: 0.15rem 0.25rem;
+  color: #4b3937;
+  font-size: clamp(1.45em, 4vw, 2.3em);
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.col-newborn-stage-copy {
+  max-inline-size: 44rem;
+  color: var(--col-muted);
+}
+
+.col-newborn-clock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.25rem 0.55rem;
+  padding: 0.7rem 0.8rem;
+  border: 2px solid #bd8c63;
+  border-radius: 0.85rem;
+  background: #fff5dc;
+}
+
+.col-newborn-clock label {
+  font-size: 0.85em;
+  font-weight: 800;
+}
+
+.col-newborn-clock progress {
+  grid-column: 1 / -1;
+  inline-size: 100%;
+  block-size: 0.9rem;
+  color: #d47353;
+  accent-color: #d47353;
+}
+
+.col-newborn-clock output {
+  color: #754735;
+  font-weight: 850;
+}
+
+.col-newborn-scores {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.col-newborn-score {
+  min-inline-size: 0;
+  padding: 0.55rem 0.7rem;
+  border: 2px solid var(--col-newborn-outline);
+  border-radius: 0.8rem;
+  background: var(--col-newborn-cream);
+}
+
+.col-newborn-score--health {
+  border-color: #29775c;
+  background: #e8f5e8;
+}
+
+.col-newborn-score--happiness {
+  border-color: #a66520;
+  background: #fff0c9;
+}
+
+.col-newborn-score--money {
+  border-color: #355f96;
+  background: #e7f0ff;
+}
+
+.col-newborn-score dt {
+  color: #53626b;
+  font-size: 0.82em;
+  font-weight: 800;
+}
+
+.col-newborn-score dd {
+  display: grid;
+  grid-template-columns: auto minmax(3rem, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.col-newborn-score-value {
+  font-size: 1.35em;
+  font-weight: 900;
+}
+
+.col-newborn-score meter {
+  inline-size: 100%;
+}
+
+.col-newborn-playfield {
+  position: relative;
+  isolation: isolate;
+  min-inline-size: 0;
+  inline-size: 100%;
+  block-size: clamp(24rem, 51vw, 34rem);
+  border: 3px solid var(--col-newborn-outline);
+  border-radius: 1.15rem;
+  background: #f7d9bd;
+  box-shadow:
+    inset 0 0 0 3px rgb(255 255 255 / 70%),
+    0 0.6rem 1.2rem rgb(73 52 40 / 18%);
+  overflow: hidden;
+  touch-action: pan-x;
+  user-select: none;
+}
+
+.col-newborn-playfield:focus-visible {
+  outline-offset: 0.25rem;
+}
+
+.col-newborn-scenery {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background-color: #f8dfc6;
+  background-image:
+    linear-gradient(180deg, rgb(255 247 226 / 10%), rgb(255 247 226 / 4%)),
+    var(--col-newborn-nursery-image);
+  background-repeat: no-repeat;
+  background-position:
+    center,
+    calc(50% + var(--col-newborn-light-shift, 0%)) center;
+  background-size: cover;
+}
+
+.col-newborn-scenery::after {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  content: "";
+  background: linear-gradient(
+    180deg,
+    transparent 0 47%,
+    rgb(120 76 48 / 15%) 47% 48%,
+    rgb(255 246 223 / 5%) 48% 100%
+  );
+  pointer-events: none;
+}
+
+.col-newborn-window-light {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: -8%;
+  inset-inline-start: 8%;
+  inline-size: 38%;
+  block-size: 70%;
+  background: linear-gradient(120deg, rgb(255 249 203 / 55%), transparent 72%);
+  filter: blur(0.3rem);
+  animation: col-newborn-sunlight 6s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.col-newborn-room-track {
+  position: absolute;
+  z-index: 2;
+  inset-block: 0;
+  inset-inline-start: -50%;
+  inline-size: 200%;
+  transform: translate3d(var(--col-newborn-room-shift, 0%), 0, 0);
+  will-change: transform;
+  pointer-events: none;
+}
+
+.col-newborn-window {
+  position: absolute;
+  inset-block-start: 8%;
+  inline-size: 10rem;
+  aspect-ratio: 1.18;
+  border: 0.55rem solid #8f6753;
+  border-radius: 0.65rem;
+  background:
+    linear-gradient(90deg, transparent 47%, #8f6753 47% 53%, transparent 53%),
+    linear-gradient(0deg, transparent 47%, #8f6753 47% 53%, transparent 53%),
+    linear-gradient(180deg, #bfe3eb, #e8f5e8);
+  box-shadow: 0 0.4rem 0 rgb(90 56 42 / 18%);
+  opacity: 0.78;
+}
+
+.col-newborn-window::before,
+.col-newborn-window::after {
+  position: absolute;
+  inset-block-start: -0.35rem;
+  inline-size: 38%;
+  block-size: 118%;
+  content: "";
+  border: 0.15rem solid #c98672;
+  background: repeating-linear-gradient(90deg, #f2b7a6 0 0.7rem, #ffd8bd 0.7rem 1.4rem);
+}
+
+.col-newborn-window::before {
+  inset-inline-start: -43%;
+  border-radius: 0.6rem 0 1.2rem 0.6rem;
+}
+
+.col-newborn-window::after {
+  inset-inline-end: -43%;
+  border-radius: 0 0.6rem 0.6rem 1.2rem;
+}
+
+.col-newborn-window--one {
+  inset-inline-start: 7%;
+}
+
+.col-newborn-window--two {
+  inset-inline-start: 64%;
+}
+
+.col-newborn-shelf {
+  position: absolute;
+  inset-block-start: 26%;
+  inline-size: 9rem;
+  block-size: 0.75rem;
+  border: 0.18rem solid #60473d;
+  border-radius: 0.3rem;
+  background: #af7954;
+  box-shadow:
+    1rem -1rem 0 -0.35rem #f2b447,
+    2.2rem -1.15rem 0 -0.35rem #5b9e93,
+    3.4rem -0.95rem 0 -0.35rem #d66c63,
+    5.1rem -1.2rem 0 -0.35rem #7a75ae;
+  opacity: 0.85;
+}
+
+.col-newborn-shelf--one {
+  inset-inline-start: 30%;
+}
+
+.col-newborn-shelf--two {
+  inset-inline-start: 84%;
+}
+
+.col-newborn-dresser {
+  position: absolute;
+  inset-block-end: 49%;
+  inline-size: 7rem;
+  block-size: 5.2rem;
+  border: 0.25rem solid #61483d;
+  border-radius: 0.45rem 0.45rem 0.15rem 0.15rem;
+  background:
+    radial-gradient(circle at 50% 25%, #61483d 0 0.18rem, transparent 0.2rem),
+    radial-gradient(circle at 50% 62%, #61483d 0 0.18rem, transparent 0.2rem),
+    linear-gradient(180deg, #e0a472 0 48%, #61483d 48% 52%, #d88e61 52%);
+  opacity: 0.86;
+}
+
+.col-newborn-dresser--one {
+  inset-inline-start: 44%;
+}
+
+.col-newborn-dresser--two {
+  inset-inline-start: 95%;
+}
+
+.col-newborn-mobile {
+  position: absolute;
+  inset-block-start: 3%;
+  inline-size: 5rem;
+  block-size: 5rem;
+  border-block-start: 0.18rem solid #725242;
+  background:
+    radial-gradient(circle at 15% 55%, #e46f67 0 0.48rem, transparent 0.52rem),
+    radial-gradient(circle at 50% 78%, #f0b341 0 0.48rem, transparent 0.52rem),
+    radial-gradient(circle at 85% 48%, #4e9c94 0 0.48rem, transparent 0.52rem);
+  transform-origin: 50% 0;
+  animation: col-newborn-mobile-sway 3.5s ease-in-out infinite alternate;
+}
+
+.col-newborn-mobile::before {
+  position: absolute;
+  inset-block-start: -2.4rem;
+  inset-inline-start: 50%;
+  inline-size: 0.15rem;
+  block-size: 2.4rem;
+  content: "";
+  background: #725242;
+}
+
+.col-newborn-mobile--one {
+  inset-inline-start: 53%;
+}
+
+.col-newborn-mobile--two {
+  inset-inline-start: 105%;
+  animation-delay: -1.7s;
+}
+
+.col-newborn-floor {
+  position: absolute;
+  z-index: 2;
+  inset-inline: 0;
+  inset-block-start: 47%;
+  block-size: 53%;
+  border-block-start: 0.3rem solid rgb(91 63 47 / 60%);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgb(133 88 58 / 7%) 0 3rem,
+      rgb(255 255 255 / 9%) 3rem 6rem
+    ),
+    linear-gradient(180deg, rgb(250 221 175 / 66%), rgb(218 167 113 / 75%));
+}
+
+.col-newborn-floor::before {
+  position: absolute;
+  inset-block-start: 11%;
+  inset-inline: 10% 6%;
+  block-size: 76%;
+  content: "";
+  border: 0.22rem solid rgb(105 69 52 / 40%);
+  border-radius: 46%;
+  background:
+    radial-gradient(ellipse at center, rgb(255 245 216 / 50%) 0 42%, transparent 43%),
+    repeating-linear-gradient(90deg, #8ebfa844 0 1.5rem, #eaa38444 1.5rem 3rem);
+}
+
+.col-newborn-lanes {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: 47%;
+  inset-inline: 0;
+  block-size: 53%;
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+}
+
+.col-newborn-lane {
+  position: relative;
+  border-block-end: 2px dashed rgb(84 61 50 / 28%);
+}
+
+.col-newborn-lane:last-child {
+  border-block-end: 0;
+}
+
+.col-newborn-entity-field {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  pointer-events: none;
+}
+
+.col-newborn-entity {
+  position: absolute;
+  inset-block-start: var(--col-newborn-entity-y, 72%);
+  inset-inline-start: var(--col-newborn-entity-x, 100%);
+  display: grid;
+  place-items: center;
+  inline-size: clamp(2.3rem, 6vw, 3.4rem);
+  aspect-ratio: 1;
+  border: 0.22rem solid var(--col-newborn-outline);
+  color: #24323a;
+  background: #fff;
+  box-shadow:
+    0 0 0 0.18rem rgb(255 255 255 / 82%),
+    0 0.3rem 0.18rem rgb(75 50 39 / 28%);
+  font-size: clamp(1.05rem, 3vw, 1.65rem);
+  font-weight: 950;
+  line-height: 1;
+  transform: translate(-50%, -100%);
+}
+
+.col-newborn-entity--pickup {
+  border-radius: 50%;
+}
+
+.col-newborn-entity--health {
+  border-color: #1f6e52;
+  background: #e2f5e3;
+}
+
+.col-newborn-entity--happiness {
+  border-color: #9b5b12;
+  background: #fff0ad;
+}
+
+.col-newborn-entity--money {
+  border-color: #365f8d;
+  color: #203e65;
+  background: #dceaff;
+}
+
+.col-newborn-entity--hazard {
+  border-style: double;
+  border-width: 0.35rem;
+  border-radius: 0.25rem 0.25rem 50%;
+  border-color: #8e2727;
+  color: #fff;
+  background: #bd3d3d;
+  transform: translate(-50%, -100%) rotate(45deg);
+}
+
+.col-newborn-baby {
+  position: absolute;
+  z-index: 9;
+  inset-block-start: var(--col-newborn-lane-y, 73%);
+  inset-inline-start: var(--col-newborn-player-x, 24%);
+  inline-size: clamp(4.4rem, 10vw, 5.8rem);
+  block-size: clamp(5rem, 12vw, 6.6rem);
+  filter: drop-shadow(0 0.35rem 0.15rem rgb(72 50 39 / 28%));
+  transform: translate(-50%, -100%);
+  transform-origin: 50% 100%;
+  transition: inset-block-start 180ms ease-out;
+}
+
+.col-newborn-baby-head {
+  position: absolute;
+  z-index: 3;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  inline-size: 68%;
+  aspect-ratio: 0.96;
+  border: 0.19rem solid var(--col-newborn-outline);
+  border-radius: 46% 48% 44% 44%;
+  background: #efb985;
+  transform: translateX(-50%);
+}
+
+.col-newborn-baby-curl {
+  position: absolute;
+  inset-block-start: -17%;
+  inset-inline-start: 36%;
+  inline-size: 34%;
+  aspect-ratio: 1;
+  border: 0.26rem solid #563525;
+  border-block-end-color: transparent;
+  border-radius: 50%;
+  transform: rotate(-18deg);
+}
+
+.col-newborn-baby-ear {
+  position: absolute;
+  inset-block-start: 42%;
+  inline-size: 17%;
+  aspect-ratio: 0.8;
+  border: 0.16rem solid var(--col-newborn-outline);
+  border-radius: 50%;
+  background: #e9aa7b;
+}
+
+.col-newborn-baby-ear--left {
+  inset-inline-start: -11%;
+}
+
+.col-newborn-baby-ear--right {
+  inset-inline-end: -11%;
+}
+
+.col-newborn-baby-eye {
+  position: absolute;
+  inset-block-start: 43%;
+  inline-size: 10%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #322c2c;
+  box-shadow: inset 0.08rem 0.08rem 0 #fff;
+}
+
+.col-newborn-baby-eye--left {
+  inset-inline-start: 25%;
+}
+
+.col-newborn-baby-eye--right {
+  inset-inline-end: 25%;
+}
+
+.col-newborn-baby-cheek {
+  position: absolute;
+  inset-block-start: 61%;
+  inline-size: 16%;
+  block-size: 8%;
+  border-radius: 50%;
+  background: #dc7a75aa;
+}
+
+.col-newborn-baby-cheek--left {
+  inset-inline-start: 16%;
+}
+
+.col-newborn-baby-cheek--right {
+  inset-inline-end: 16%;
+}
+
+.col-newborn-baby-smile {
+  position: absolute;
+  inset-block-start: 64%;
+  inset-inline-start: 42%;
+  inline-size: 17%;
+  aspect-ratio: 1.6;
+  border-block-end: 0.14rem solid #723e3e;
+  border-radius: 50%;
+}
+
+.col-newborn-baby-body {
+  position: absolute;
+  z-index: 2;
+  inset-block-end: 1%;
+  inset-inline-start: 50%;
+  inline-size: 61%;
+  block-size: 52%;
+  border: 0.19rem solid var(--col-newborn-outline);
+  border-radius: 44% 44% 36% 36%;
+  background: #6db7ae;
+  transform: translateX(-50%);
+}
+
+.col-newborn-baby-bib {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 4%;
+  inset-inline-start: 50%;
+  display: grid;
+  place-items: center;
+  inline-size: 56%;
+  aspect-ratio: 1.15;
+  border-radius: 12% 12% 50% 50%;
+  color: #c95957;
+  background: #fff9dc;
+  font-size: 0.65em;
+  transform: translateX(-50%);
+}
+
+.col-newborn-baby-arm,
+.col-newborn-baby-leg {
+  position: absolute;
+  border: 0.17rem solid var(--col-newborn-outline);
+  background: #efb985;
+  transform-origin: 50% 0;
+}
+
+.col-newborn-baby-arm {
+  inset-block-start: 25%;
+  inline-size: 22%;
+  block-size: 69%;
+  border-radius: 0.8rem;
+}
+
+.col-newborn-baby-arm--left {
+  inset-inline-start: -18%;
+  transform: rotate(24deg);
+}
+
+.col-newborn-baby-arm--right {
+  inset-inline-end: -18%;
+  transform: rotate(-24deg);
+}
+
+.col-newborn-baby-leg {
+  z-index: -1;
+  inset-block-end: -24%;
+  inline-size: 39%;
+  block-size: 58%;
+  border-radius: 0 0 55% 55%;
+  background: #f1ba88;
+}
+
+.col-newborn-baby-leg--left {
+  inset-inline-start: -4%;
+  transform: rotate(25deg);
+}
+
+.col-newborn-baby-leg--right {
+  inset-inline-end: -4%;
+  transform: rotate(-25deg);
+}
+
+.col-newborn-baby[data-motion="crawl"] .col-newborn-baby-body {
+  inline-size: 70%;
+  block-size: 45%;
+  border-radius: 42% 46% 35% 38%;
+}
+
+.col-newborn-baby[data-motion="crawl"] .col-newborn-baby-head {
+  inset-inline-start: 42%;
+}
+
+.col-newborn-baby[data-motion="crawl"][data-frame="0"] .col-newborn-baby-arm--left,
+.col-newborn-baby[data-motion="crawl"][data-frame="0"] .col-newborn-baby-leg--right,
+.col-newborn-baby[data-motion="crawl"][data-frame="1"] .col-newborn-baby-arm--right,
+.col-newborn-baby[data-motion="crawl"][data-frame="1"] .col-newborn-baby-leg--left {
+  transform: rotate(48deg);
+}
+
+.col-newborn-position {
+  position: absolute;
+  z-index: 10;
+  inset: auto auto 0.35rem 0.55rem;
+  max-inline-size: calc(100% - 1rem);
+  padding: 0.18rem 0.45rem;
+  border-radius: 0.4rem;
+  color: #2e3338;
+  background: rgb(255 253 246 / 90%);
+  font-size: 0.78em;
+  font-weight: 750;
+}
+
+.col-newborn-caregiver {
+  position: absolute;
+  z-index: 8;
+  inset-block-start: 72%;
+  inset-inline-end: clamp(2rem, 10%, 7rem);
+  inline-size: clamp(4.5rem, 10vw, 6.2rem);
+  block-size: clamp(8rem, 18vw, 11rem);
+  filter: drop-shadow(0 0.35rem 0.18rem rgb(72 50 39 / 28%));
+  transform: translateY(-100%);
+  animation: col-newborn-caregiver-arrive 380ms ease-out both;
+}
+
+.col-newborn-caregiver-head {
+  position: absolute;
+  z-index: 3;
+  inset-block-start: 4%;
+  inset-inline-start: 50%;
+  inline-size: 58%;
+  aspect-ratio: 0.88;
+  border: 0.2rem solid var(--col-newborn-outline);
+  border-radius: 48% 48% 43% 43%;
+  background:
+    radial-gradient(circle at 33% 48%, #332b2a 0 5%, transparent 6%),
+    radial-gradient(circle at 67% 48%, #332b2a 0 5%, transparent 6%),
+    radial-gradient(ellipse at 50% 69%, transparent 0 15%, #8e4e4f 16% 20%, transparent 21%),
+    #d49a6d;
+  transform: translateX(-50%);
+}
+
+.col-newborn-caregiver-hair {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: -1%;
+  inset-inline-start: 50%;
+  inline-size: 67%;
+  aspect-ratio: 1.06;
+  border-radius: 50% 50% 38% 38%;
+  background: #4b3129;
+  box-shadow:
+    -1rem 0.7rem 0 -0.25rem #4b3129,
+    1rem 0.7rem 0 -0.25rem #4b3129;
+  transform: translateX(-50%);
+}
+
+.col-newborn-caregiver-body {
+  position: absolute;
+  z-index: 2;
+  inset-block-end: 5%;
+  inset-inline-start: 50%;
+  inline-size: 76%;
+  block-size: 65%;
+  border: 0.22rem solid var(--col-newborn-outline);
+  border-radius: 38% 38% 16% 16%;
+  background:
+    linear-gradient(90deg, transparent 46%, #fff7dc 46% 54%, transparent 54%),
+    #db796e;
+  transform: translateX(-50%);
+}
+
+.col-newborn-caregiver-arm {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 43%;
+  inline-size: 22%;
+  block-size: 46%;
+  border: 0.18rem solid var(--col-newborn-outline);
+  border-radius: 1rem;
+  background: #d49a6d;
+  transform-origin: 50% 0;
+}
+
+.col-newborn-caregiver-arm--left {
+  inset-inline-start: 1%;
+  transform: rotate(30deg);
+}
+
+.col-newborn-caregiver-arm--right {
+  inset-inline-end: 1%;
+  transform: rotate(-30deg);
+}
+
+.col-newborn-caregiver-shadow {
+  position: absolute;
+  z-index: 0;
+  inset-block-end: 0;
+  inset-inline-start: 50%;
+  inline-size: 100%;
+  block-size: 8%;
+  border-radius: 50%;
+  background: rgb(65 45 38 / 28%);
+  transform: translateX(-50%);
+}
+
+.col-newborn-control-area {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem 1rem;
+}
+
+.col-newborn-instructions {
+  color: var(--col-muted);
+  font-size: 0.9em;
+}
+
+.col-newborn-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(44px, auto));
+  gap: 0.45rem;
+}
+
+.col-newborn-lane-button,
+.col-newborn-pause-button {
+  min-block-size: 48px;
+  white-space: nowrap;
+}
+
+.col-newborn-choice-tray {
+  display: grid;
+  gap: 0.65rem;
+  padding: clamp(0.8rem, 2vw, 1.2rem);
+  border: 3px solid #b56d58;
+  border-radius: 1rem;
+  background: #fff3dc;
+  box-shadow: 0 0.5rem 1.2rem rgb(90 56 42 / 12%);
+}
+
+.col-newborn-choice-tray h3,
+.col-newborn-recap h3 {
+  color: #5a3c36;
+  font-size: 1.35em;
+}
+
+.col-newborn-choice-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.col-newborn-choice {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  min-block-size: 44px;
+  padding: 0.8rem;
+  border: 2px solid #8f604c;
+  border-radius: 0.8rem;
+  color: var(--col-newborn-ink);
+  background: #fffdf5;
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.col-newborn-choice:hover:not(:disabled) {
+  border-color: #6c3c32;
+  background: #fff9e5;
+  transform: translateY(-1px);
+}
+
+.col-newborn-choice strong {
+  color: #683f35;
+  font-size: 1.08em;
+}
+
+.col-newborn-choice span {
+  line-height: 1.35;
+}
+
+.col-newborn-choice small {
+  color: var(--col-muted);
+  line-height: 1.35;
+}
+
+.col-newborn-recap {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  border: 3px double #356b61;
+  border-radius: 1rem;
+  background: #eaf5ec;
+}
+
+.col-newborn-recap-scores {
+  font-size: 1.08em;
+  font-weight: 850;
+}
+
+.col-newborn-recap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.col-newborn-status {
+  min-block-size: 1.6em;
+  padding: 0.5rem 0.7rem;
+  border-inline-start: 0.3rem solid #b56d58;
+  color: #4c3d3a;
+  background: #fff7e8;
+}
+
+.col-newborn-view[data-paused="true"] .col-newborn-playfield::after,
+.col-newborn-view[data-phase="caregiver-choice"] .col-newborn-playfield::after {
+  position: absolute;
+  z-index: 12;
+  inset-block-start: 0.65rem;
+  inset-inline-start: 50%;
+  padding: 0.35rem 0.75rem;
+  border: 2px solid #664a40;
+  border-radius: 999px;
+  content: "Time paused";
+  color: #433632;
+  background: #fff9e9;
+  font-weight: 850;
+  transform: translateX(-50%);
+}
+
+.choice-life-root[data-contrast="high"] .col-newborn-view,
+.choice-life-root[data-contrast="high"] .col-newborn-score,
+.choice-life-root[data-contrast="high"] .col-newborn-clock,
+.choice-life-root[data-contrast="high"] .col-newborn-choice-tray,
+.choice-life-root[data-contrast="high"] .col-newborn-choice,
+.choice-life-root[data-contrast="high"] .col-newborn-recap,
+.choice-life-root[data-contrast="high"] .col-newborn-status {
+  border-color: #000;
+  color: #000;
+  background: #fff;
+}
+
+.choice-life-root[data-contrast="high"] .col-newborn-playfield,
+.choice-life-root[data-contrast="high"] .col-newborn-entity,
+.choice-life-root[data-contrast="high"] .col-newborn-baby-head,
+.choice-life-root[data-contrast="high"] .col-newborn-baby-body,
+.choice-life-root[data-contrast="high"] .col-newborn-caregiver-head,
+.choice-life-root[data-contrast="high"] .col-newborn-caregiver-body {
+  border-color: #000;
+}
+
+@keyframes col-newborn-sunlight {
+  from {
+    opacity: 0.64;
+  }
+
+  to {
+    opacity: 0.92;
+  }
+}
+
+@keyframes col-newborn-mobile-sway {
+  from {
+    transform: rotate(-3deg);
+  }
+
+  to {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes col-newborn-caregiver-arrive {
+  from {
+    opacity: 0;
+    transform: translate(1.5rem, -100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(0, -100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .col-newborn-window-light,
+  .col-newborn-mobile,
+  .col-newborn-caregiver {
+    animation: none !important;
+  }
+
+  .col-newborn-baby,
+  .col-newborn-room-track {
+    transition: none !important;
+  }
+}
+
+.choice-life-root[data-reduced-motion="true"] .col-newborn-window-light,
+.choice-life-root[data-reduced-motion="true"] .col-newborn-mobile,
+.choice-life-root[data-reduced-motion="true"] .col-newborn-caregiver {
+  animation: none !important;
+}
+
+.choice-life-root[data-reduced-motion="true"] .col-newborn-baby,
+.choice-life-root[data-reduced-motion="true"] .col-newborn-room-track {
+  transition: none !important;
+}
+
+@media (forced-colors: active) {
+  .col-newborn-view,
+  .col-newborn-score,
+  .col-newborn-clock,
+  .col-newborn-playfield,
+  .col-newborn-choice-tray,
+  .col-newborn-choice,
+  .col-newborn-recap,
+  .col-newborn-status,
+  .col-newborn-entity,
+  .col-newborn-baby-head,
+  .col-newborn-baby-body,
+  .col-newborn-caregiver-head,
+  .col-newborn-caregiver-body {
+    border-color: CanvasText;
+    color: CanvasText;
+    background: Canvas;
+    forced-color-adjust: auto;
+  }
+
+  .col-newborn-lane {
+    border-color: CanvasText;
+  }
+}
+
+@media (max-width: 46rem) {
+  .col-newborn-stage-header,
+  .col-newborn-control-area {
+    grid-template-columns: 1fr;
+  }
+
+  .col-newborn-clock {
+    inline-size: 100%;
+  }
+
+  .col-newborn-controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    inline-size: 100%;
+  }
+}
+
+@media (max-width: 36rem) {
+  .col-newborn-view {
+    padding: 0.55rem;
+    border-radius: 0.9rem;
+  }
+
+  .col-newborn-scores,
+  .col-newborn-choice-list {
+    grid-template-columns: 1fr;
+  }
+
+  .col-newborn-score {
+    display: grid;
+    grid-template-columns: minmax(5rem, auto) minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .col-newborn-playfield {
+    block-size: 25rem;
+  }
+
+  .col-newborn-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .col-newborn-pause-button {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .col-newborn-recap-actions {
+    display: grid;
+  }
+}
+
+@media (max-width: 23rem) {
+  .col-newborn-playfield {
+    block-size: 22rem;
+  }
+
+  .col-newborn-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .col-newborn-pause-button {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .col-newborn-baby {
+    inset-inline-start: min(var(--col-newborn-player-x, 24%), 4.8rem);
+  }
+}

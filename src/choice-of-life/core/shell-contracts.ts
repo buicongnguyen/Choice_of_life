@@ -5,6 +5,7 @@ import type {
   RunStateV1,
   StartingProfileId,
 } from "./run-state";
+import type { NewbornAction, NewbornState } from "./newborn/index";
 
 export type Gender = RunStateV1["identity"]["gender"];
 export type AppearanceSelection = RunStateV1["appearance"];
@@ -72,6 +73,21 @@ export type RunnerLaboratoryCommitResult =
   | { readonly kind: "unavailable"; readonly state: RunStateV1; readonly notice: ShellNotice }
   | { readonly kind: "invalid"; readonly notice: ShellNotice };
 
+export type NewbornActionResult =
+  | { readonly kind: "ready"; readonly state: NewbornState; readonly notice?: ShellNotice }
+  | { readonly kind: "invalid"; readonly notice: ShellNotice };
+
+/**
+ * Phase-3 runtime capability. Newborn progress is deliberately session-scoped
+ * until it can be incorporated into the versioned run save without weakening
+ * the existing save validator.
+ */
+export interface NewbornShellPort {
+  currentNewbornState(): NewbornState | null;
+  enterNewborn(): NewbornActionResult;
+  dispatchNewborn(action: NewbornAction): NewbornActionResult;
+}
+
 export interface RunnerLaboratoryShellPort {
   currentRunState(): RunStateV1 | null;
   enterRunnerLaboratory(): RunnerLaboratoryActionResult;
@@ -91,4 +107,6 @@ export interface BrowserDependencies {
   readonly shell: ChoiceOfLifeShellPort;
   /** Phase-2 runtime capability; optional so the Phase-1 shell remains embeddable. */
   readonly runner?: RunnerLaboratoryShellPort;
+  /** Phase-3 actual-life capability; optional for older embedded shells. */
+  readonly newborn?: NewbornShellPort;
 }

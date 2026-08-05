@@ -6,8 +6,8 @@ Active plan: [CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md](../CHOICE_OF_LIFE_IMPLEM
 |---|---|---|---|---|
 | 0A — Plan, tooling, baselines | Complete | `3c97ecacc939894e7949228b46473a1c04855ffe` | [phase-0a.md](./reviews/phase-0a.md) | [run 30827359242](https://github.com/buicongnguyen/Choice_of_life/actions/runs/30827359242), exact SHA and primary-flow smoke passed |
 | 1 — Shell and deterministic core | Complete | `792e052aaea6abd99eb9707ed434d66e15055dfd` | [phase-1 review](./reviews/phase-1.md) | [deploy run 30851183545](https://github.com/buicongnguyen/Choice_of_life/actions/runs/30851183545), [lock run 30851183625](https://github.com/buicongnguyen/Choice_of_life/actions/runs/30851183625), exact SHA and title → setup → create/save → resume smoke passed |
-| 2 — Runner laboratory | Implementation complete; exhaustive verification deferred by user | pending | [phase-2 contract](./phase-specs/phase-2.md) | Deployment pending |
-| 3 — Newborn | Pending | — | — | — |
+| 2 — Runner laboratory | Complete; exhaustive verification deferred by user | `b4f39435b4104e5338c6a840a3ca23190f9f1d34` | [phase-2 contract](./phase-specs/phase-2.md) | [deploy run 31005473206](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31005473206) succeeded |
+| 3 — Newborn | Implementation complete; verification deferred by user | pending | Generated nursery art and runnable newborn stage | Deployment pending |
 | 4 — Encounters and consequences | Pending | — | — | — |
 | 5 — High School and Education | Pending | — | — | — |
 | 6 — First Career and provisional ending | Pending | — | — | — |
@@ -17,11 +17,7 @@ Active plan: [CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md](../CHOICE_OF_LIFE_IMPLEM
 | 10 — Art, audio, accessibility, and balance | Pending | — | — | — |
 | 11 — Release hardening | Pending | — | — | — |
 
-Each phase uses two non-recursive records. The implementation commit contains the
-pre-deploy review with deployment fields marked pending. After that exact SHA
-deploys and passes live smoke testing, a `docs/**`-only evidence commit records
-the implementation SHA and marks the phase complete. The Pages workflow ignores
-docs-only pushes, so the verified implementation remains live. Evidence commits
-run `npm run verify` but do not require another evidence-closure commit. Any
-non-doc path makes an evidence commit deployable and requires its own exact-SHA
-smoke before the next phase.
+From Phase 3 onward, the user requested an implementation-first workflow: make
+each phase runnable with a production build, then commit, push, and deploy it.
+Exhaustive simulations, browser audits, test matrices, and review gates are
+deferred until the later debugging pass.

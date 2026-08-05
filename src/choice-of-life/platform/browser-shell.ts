@@ -1,13 +1,16 @@
 import { RUNNER_LABORATORY_CATALOG } from "../core/catalog";
 import { deepFreeze } from "../core/immutable";
 import { createInitialRunState } from "../core/run-factory";
+import { createNewbornState, reduceNewborn, type NewbornState } from "../core/newborn/index";
 import { createRunnerLaboratoryEntryState, RUNNER_LABORATORY_STAGE_ID } from "../core/runner/contract";
 import type { SeedPort } from "../core/seed-port";
-import type { RunStateV1, StartingProfileId } from "../core/run-state";
+import { STARTING_PROFILE_SCORES, type RunStateV1, type StartingProfileId } from "../core/run-state";
 import { stateHashV1 } from "../core/run-state-hash";
 import type {
   BrowserDependencies,
   ChoiceOfLifeShellPort,
+  NewbornActionResult,
+  NewbornShellPort,
   ReadyRun,
   RunnerLaboratoryActionResult,
   RunnerLaboratoryCommitResult,
@@ -68,7 +71,7 @@ function copyValidSettings(value: unknown): VisualSettings | null {
   };
 }
 
-export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort {
+export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort {
   startNewLife(selection: SetupSelection): RunActionResult;
   continueLife(): RunActionResult;
   saveSettings(settings: VisualSettings): SettingsActionResult;
@@ -122,6 +125,10 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
   const store: SaveStore = createSaveStore(options.storage, RUNNER_LABORATORY_CATALOG);
   const initialLoad = store.load();
   let currentState = initialLoad.kind === "ready" ? initialLoad.state : initialLoad.kind === "unavailable" ? initialLoad.state : null;
+  // Kept separate from RunStateV1 until the versioned save schema has a
+  // newborn payload. This prevents an unvalidated Phase-3 shape from leaking
+  // into durable saves while still supporting the complete stage in-session.
+  let newbornState: NewbornState | null = null;
   let settings: VisualSettings = currentState ? { ...currentState.accessibility } : { ...DEFAULT_SETTINGS };
   let notice = noticeForLoad(initialLoad);
   const listeners = new Set<() => void>();
@@ -222,6 +229,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
         return { kind: "invalid-save", notice };
       }
       currentState = state;
+      newbornState = null;
       if (result.kind === "saved") {
         notice = null;
       } else if (result.kind === "unavailable") {
@@ -280,6 +288,57 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
     },
     currentRunState(): RunStateV1 | null {
       return currentState;
+    },
+    currentNewbornState(): NewbornState | null {
+      return newbornState;
+    },
+    enterNewborn(): NewbornActionResult {
+      if (currentState === null) {
+        return {
+          kind: "invalid",
+          notice: warning("Create a life before starting the newborn stage."),
+        };
+      }
+      if (newbornState !== null && newbornState.runId === currentState.runId) {
+        return { kind: "ready", state: newbornState, ...(notice ? { notice } : {}) };
+      }
+      try {
+        newbornState = createNewbornState({
+          runId: currentState.runId,
+          runSeed: currentState.runSeed,
+          difficulty: currentState.difficulty,
+          scores: { ...STARTING_PROFILE_SCORES[currentState.startingProfileId] },
+        });
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("The newborn stage could not be created. Your saved life was not changed."),
+        };
+      }
+      notice = {
+        tone: "status",
+        message: "Newborn progress is active for this browser session; your life setup remains safely saved.",
+      };
+      publish();
+      return { kind: "ready", state: newbornState, notice };
+    },
+    dispatchNewborn(action): NewbornActionResult {
+      if (newbornState === null) {
+        return {
+          kind: "invalid",
+          notice: warning("Start the newborn stage before making newborn choices."),
+        };
+      }
+      try {
+        newbornState = reduceNewborn(newbornState, action);
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("That newborn action could not be applied. Your latest stage state was kept."),
+        };
+      }
+      publish();
+      return { kind: "ready", state: newbornState };
     },
     enterRunnerLaboratory(): RunnerLaboratoryActionResult {
       if (currentState === null) {
@@ -345,5 +404,6 @@ export function createBrowserDependencies(): BrowserDependencies {
   return {
     shell,
     runner: shell,
+    newborn: shell,
   };
 }

@@ -1,6 +1,11 @@
 import "./style.css";
 
 import { generateRunnerLaboratoryCourse } from "./core/runner/course-generator";
+import {
+  NEWBORN_STAGE_CONTRACT,
+  type NewbornAction,
+  type NewbornState,
+} from "./core/newborn/index";
 import type { RunStateV1 } from "./core/run-state";
 import { createBrowserDependencies } from "./platform/browser-shell";
 import { createBrowserRunnerSession } from "./platform/browser-runner-session";
@@ -51,6 +56,7 @@ import {
   type RunnerViewCharacterToken,
   type RunnerViewVisualOptions,
 } from "./presentation/runner-view";
+import { mountNewbornView, type NewbornView } from "./presentation/newborn-view";
 
 export type { BrowserDependencies, ChoiceOfLifeShellPort } from "./presentation/contracts";
 export type { SetupSelection, VisualSettings } from "./presentation/model";
@@ -63,7 +69,7 @@ export function mountChoiceOfLifeInBrowser(root: HTMLElement): ChoiceOfLifeApp {
   return mountChoiceOfLife(root, createBrowserDependencies());
 }
 
-type Screen = "title" | "setup" | "ready" | "runner";
+type Screen = "title" | "setup" | "ready" | "newborn" | "runner";
 
 interface LocalState {
   screen: Screen;
@@ -82,9 +88,19 @@ interface MountedRunner {
   readonly unsubscribeInputGate: () => void;
 }
 
+interface MountedNewborn {
+  readonly view: NewbornView;
+  readonly stopClock: () => void;
+}
+
 const mountedRoots = new WeakMap<HTMLElement, ChoiceOfLifeApp>();
 const PENDING_STATUS_ID = "choice-life-pending-status";
 const NOTICE_ID = "choice-life-notice";
+const NEWBORN_TICK_INTERVAL_MS = 100;
+const NEWBORN_TICKS_PER_INTERVAL = Math.max(
+  1,
+  Math.round(NEWBORN_TICK_INTERVAL_MS / NEWBORN_STAGE_CONTRACT.tickDurationMs),
+);
 
 const FOCUSABLE_SELECTOR = [
   "a[href]",
@@ -155,6 +171,8 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   let settingsOpenerId: string | null = null;
   let focusAfterRenderId: string | null = null;
   let mountedRunner: MountedRunner | null = null;
+  let mountedNewborn: MountedNewborn | null = null;
+  let newbornActionInProgress = false;
   let runnerActionInProgress = false;
   let runnerCommitInProgress = false;
   let snapshot = safeSnapshot(dependencies.shell);
@@ -235,6 +253,11 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       snapshot = safeSnapshot(dependencies.shell);
       state.settings = cloneSettings(snapshot.settings);
     }
+    if (state.screen === "newborn" && screen !== "newborn") {
+      disposeMountedNewborn();
+      snapshot = safeSnapshot(dependencies.shell);
+      state.settings = cloneSettings(snapshot.settings);
+    }
     state.screen = screen;
     state.notice = null;
     focusAfterRenderId = screen === "title"
@@ -243,7 +266,9 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
         ? "setup-heading"
         : screen === "ready"
           ? "ready-heading"
-          : "runner-status-heading";
+          : screen === "newborn"
+            ? "newborn-stage-heading"
+            : "runner-status-heading";
     render();
   };
 
@@ -557,7 +582,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       createElement(document, "p", { className: "col-success-mark", text: "Ready" }),
       createElement(document, "h2", { text: "Your life is ready", attributes: { "id": "ready-heading" } }),
       createElement(document, "p", {
-        text: "The deterministic starting state is saved. The first playable room will continue from exactly this point.",
+        text: "The deterministic starting state is saved. Begin the actual newborn stage, or open the runner laboratory as optional practice.",
       }),
     );
     if (state.readyRun) {
@@ -576,10 +601,25 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       );
     }
     const actions = createElement(document, "div", { className: "col-actions" });
+    if (dependencies.newborn) {
+      const newbornProgress = dependencies.newborn.currentNewbornState();
+      const newbornButton = createButton(
+        newbornProgress?.phase === "complete"
+          ? "Review newborn recap"
+          : newbornProgress
+            ? "Continue newborn stage"
+            : "Start newborn stage",
+        "col-button col-button--primary",
+      );
+      newbornButton.setAttribute("data-newborn-enter", "");
+      newbornButton.disabled = state.pending !== null;
+      listen(newbornButton, "click", enterNewborn);
+      actions.append(newbornButton);
+    }
     if (dependencies.runner) {
       const runnerButton = createButton(
-        "Open runner laboratory",
-        "col-button col-button--primary",
+        "Open runner laboratory (practice)",
+        "col-button col-button--quiet",
       );
       runnerButton.setAttribute("data-runner-enter", "");
       runnerButton.disabled = state.pending !== null;
@@ -595,6 +635,159 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     renderNotice(panel);
     main.append(panel);
   };
+
+  function disposeMountedNewborn(): void {
+    const runtime = mountedNewborn;
+    mountedNewborn = null;
+    if (runtime === null) return;
+    try {
+      runtime.stopClock();
+    } finally {
+      runtime.view.dispose();
+    }
+  }
+
+  function newbornActionFailure(notice: ShellNotice): void {
+    disposeMountedNewborn();
+    state.screen = "ready";
+    state.notice = notice;
+    focusAfterRenderId = NOTICE_ID;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    render();
+  }
+
+  function dispatchNewborn(action: NewbornAction): void {
+    if (
+      disposed || newbornActionInProgress ||
+      dependencies.newborn === undefined || mountedNewborn === null
+    ) return;
+    newbornActionInProgress = true;
+    let result: ReturnType<typeof dependencies.newborn.dispatchNewborn>;
+    try {
+      result = dependencies.newborn.dispatchNewborn(action);
+    } catch {
+      newbornActionInProgress = false;
+      newbornActionFailure(errorNotice(
+        "The newborn stage could not apply that action. Your saved life was not changed.",
+      ));
+      return;
+    }
+    newbornActionInProgress = false;
+    if (result.kind === "invalid") {
+      newbornActionFailure(result.notice);
+      return;
+    }
+    state.notice = result.notice ?? null;
+    mountedNewborn?.view.render(result.state);
+    if (result.state.phase === "complete") {
+      mountedNewborn?.stopClock();
+    }
+  }
+
+  function mountEnteredNewborn(
+    enteredState: NewbornState,
+    enteredNotice: ShellNotice | null,
+  ): void {
+    disposeMountedRunner();
+    disposeMountedNewborn();
+    renderLifetime.dispose();
+    renderLifetime = new CleanupBag();
+    state.screen = "newborn";
+    state.notice = enteredNotice;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    applySettings();
+
+    const main = createElement(document, "main", {
+      className: "col-shell col-newborn-shell",
+      attributes: {
+        "aria-labelledby": "choice-life-title",
+        "aria-busy": "false",
+      },
+    });
+    renderHeader(main);
+    renderNotice(main);
+    const newbornHost = createElement(document, "div", {
+      className: "col-newborn-host",
+      attributes: { "data-newborn-host": "" },
+    });
+    main.append(newbornHost);
+    root.replaceChildren(main);
+
+    let view: NewbornView | null = null;
+    let clockId: number | null = null;
+    const ownerWindow = document.defaultView;
+    const stopClock = (): void => {
+      if (clockId !== null && ownerWindow !== null) {
+        ownerWindow.clearInterval(clockId);
+        clockId = null;
+      }
+    };
+    try {
+      view = mountNewbornView(newbornHost, {
+        dispatch: dispatchNewborn,
+        onContinue: continueFromNewborn,
+        onReturnToTitle: returnFromNewbornToTitle,
+      });
+      mountedNewborn = Object.freeze({ view, stopClock });
+      view.render(enteredState);
+      root.querySelector<HTMLElement>("#newborn-stage-heading")?.focus();
+      if (ownerWindow !== null && enteredState.phase !== "complete") {
+        clockId = ownerWindow.setInterval(() => {
+          if (document.visibilityState !== "hidden") {
+            dispatchNewborn({ type: "advance", ticks: NEWBORN_TICKS_PER_INTERVAL });
+          }
+        }, NEWBORN_TICK_INTERVAL_MS);
+      }
+    } catch {
+      stopClock();
+      view?.dispose();
+      newbornActionFailure(errorNotice(
+        "The newborn room could not be displayed. Return to the title and continue your life to retry.",
+      ));
+    }
+  }
+
+  function enterNewborn(): void {
+    if (disposed || newbornActionInProgress || dependencies.newborn === undefined) {
+      return;
+    }
+    newbornActionInProgress = true;
+    let result: ReturnType<typeof dependencies.newborn.enterNewborn>;
+    try {
+      result = dependencies.newborn.enterNewborn();
+    } catch {
+      newbornActionInProgress = false;
+      newbornActionFailure(errorNotice(
+        "The newborn stage could not be opened. Your saved life was not changed.",
+      ));
+      return;
+    }
+    newbornActionInProgress = false;
+    if (result.kind === "invalid") {
+      newbornActionFailure(result.notice);
+      return;
+    }
+    mountEnteredNewborn(result.state, result.notice ?? null);
+  }
+
+  function continueFromNewborn(): void {
+    if (disposed) return;
+    disposeMountedNewborn();
+    state.screen = "ready";
+    state.notice = {
+      tone: "status",
+      message: "The newborn chapter is complete. The next life stage will continue from this result in the next implementation phase.",
+    };
+    focusAfterRenderId = NOTICE_ID;
+    render();
+  }
+
+  function returnFromNewbornToTitle(): void {
+    if (disposed) return;
+    setScreen("title");
+  }
 
   function disposeRunnerParts(
     input: RunnerInputDomAdapter | null,
@@ -1013,6 +1206,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     if (disposed) {
       return;
     }
+    if (state.screen === "newborn" && mountedNewborn !== null) {
+      applySettings();
+      const currentNewborn = dependencies.newborn?.currentNewbornState() ?? null;
+      if (currentNewborn !== null) {
+        mountedNewborn.view.render(currentNewborn);
+      }
+      return;
+    }
     if (state.screen === "runner" && mountedRunner !== null) {
       applySettings();
       mountedRunner.view.updateVisualOptions(runnerVisualOptions(
@@ -1086,6 +1287,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       }
       disposed = true;
       operationVersion += 1;
+      disposeMountedNewborn();
       disposeMountedRunner();
       renderLifetime.dispose();
       lifetime.dispose();
