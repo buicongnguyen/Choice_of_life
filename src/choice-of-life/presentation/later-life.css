@@ -1,0 +1,1435 @@
+.col-later-life-view {
+  --col-ink: #263a3a;
+  --col-muted: #627273;
+  --col-paper: #fffdf7;
+  --col-cream: #fff4d8;
+  --col-sand: #e9cf9d;
+  --col-coral: #e97762;
+  --col-coral-dark: #b74f42;
+  --col-teal: #397f7a;
+  --col-teal-dark: #245d5a;
+  --col-gold: #e8ab3c;
+  --col-green: #568765;
+  --col-blue: #608fa1;
+  width: min(1120px, calc(100% - 24px));
+  margin: 18px auto 40px;
+  color: var(--col-ink);
+  font-family: Inter, ui-rounded, "Nunito Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.col-later-life-view *,
+.col-later-life-view *::before,
+.col-later-life-view *::after {
+  box-sizing: border-box;
+}
+
+.col-later-life-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 28px 18px;
+  border: 1px solid rgba(69, 91, 87, 0.14);
+  border-bottom: 0;
+  border-radius: 26px 26px 0 0;
+  background:
+    radial-gradient(circle at 92% 18%, rgba(232, 171, 60, 0.2), transparent 25%),
+    linear-gradient(135deg, #fffdf8, #fff5dc);
+}
+
+.col-later-life-header h2,
+.col-later-life-tray h3,
+.col-later-life-ending h3,
+.col-later-life-biography-section h3,
+.col-later-life-remembered h3 {
+  margin: 0;
+  color: var(--col-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: -0.025em;
+}
+
+.col-later-life-header h2 {
+  margin-top: 3px;
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  line-height: 1;
+}
+
+.col-later-life-header-kicker,
+.col-later-life-eyebrow {
+  display: inline-block;
+  color: var(--col-coral-dark);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.col-later-life-lede {
+  max-width: 670px;
+  margin: 10px 0 0;
+  color: var(--col-muted);
+  line-height: 1.55;
+}
+
+.col-later-life-header-status {
+  display: grid;
+  flex: 0 0 min(230px, 30%);
+  gap: 8px;
+  justify-items: end;
+}
+
+.col-later-life-age {
+  padding: 6px 11px;
+  border: 1px solid rgba(57, 127, 122, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--col-teal-dark);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.col-later-life-progress {
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 99px;
+  background: #e8e2d2;
+}
+
+.col-later-life-progress::-webkit-progress-bar {
+  border-radius: 99px;
+  background: #e8e2d2;
+}
+
+.col-later-life-progress::-webkit-progress-value {
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--col-teal), var(--col-gold));
+}
+
+.col-later-life-progress::-moz-progress-bar {
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--col-teal), var(--col-gold));
+}
+
+.col-later-life-stage-rail {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin: 0;
+  padding: 10px 28px 12px;
+  border-right: 1px solid rgba(69, 91, 87, 0.14);
+  border-left: 1px solid rgba(69, 91, 87, 0.14);
+  background: #fffdf7;
+  list-style: none;
+}
+
+.col-later-life-stage-rail li {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  color: #929b98;
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.col-later-life-stage-rail li::after {
+  position: absolute;
+  right: 50%;
+  bottom: 4px;
+  left: -50%;
+  height: 2px;
+  background: #e4e5df;
+  content: "";
+}
+
+.col-later-life-stage-rail li:first-child::after {
+  display: none;
+}
+
+.col-later-life-stage-rail i {
+  z-index: 1;
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: auto;
+  border: 2px solid #d0d4ce;
+  border-radius: 50%;
+  background: var(--col-paper);
+}
+
+.col-later-life-stage-rail li.is-complete,
+.col-later-life-stage-rail li.is-active {
+  color: var(--col-teal-dark);
+}
+
+.col-later-life-stage-rail li.is-complete::after,
+.col-later-life-stage-rail li.is-active::after {
+  background: #77aaa4;
+}
+
+.col-later-life-stage-rail li.is-complete i {
+  border-color: var(--col-teal);
+  background: var(--col-teal);
+}
+
+.col-later-life-stage-rail li.is-active i {
+  width: 13px;
+  height: 13px;
+  border: 3px solid #fff;
+  background: var(--col-coral);
+  box-shadow: 0 0 0 2px var(--col-coral);
+}
+
+.col-later-life-scores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 12px 28px 16px;
+  border-right: 1px solid rgba(69, 91, 87, 0.14);
+  border-left: 1px solid rgba(69, 91, 87, 0.14);
+  background: var(--col-paper);
+}
+
+.col-later-life-score {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 5px 12px;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid rgba(55, 78, 75, 0.1);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 14px rgba(66, 76, 70, 0.05);
+}
+
+.col-later-life-score > span {
+  overflow: hidden;
+  font-size: 0.73rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-later-life-score output {
+  font-family: Georgia, serif;
+  font-size: 1.22rem;
+  font-weight: 850;
+}
+
+.col-later-life-score meter {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 6px;
+  border: 0;
+  border-radius: 99px;
+  background: #ecebe5;
+}
+
+.col-later-life-score meter::-webkit-meter-bar {
+  border: 0;
+  border-radius: 99px;
+  background: #ecebe5;
+}
+
+.col-later-life-score meter::-webkit-meter-optimum-value,
+.col-later-life-score meter::-webkit-meter-suboptimum-value,
+.col-later-life-score meter::-webkit-meter-even-less-good-value {
+  border-radius: 99px;
+  background: var(--meter-color);
+}
+
+.col-later-life-score meter::-moz-meter-bar {
+  border-radius: 99px;
+  background: var(--meter-color);
+}
+
+.col-later-life-score--health {
+  --meter-color: #d65d58;
+}
+
+.col-later-life-score--happiness {
+  --meter-color: #e4a72f;
+}
+
+.col-later-life-score--money {
+  --meter-color: #4d8b70;
+}
+
+.col-later-life-playfield {
+  position: relative;
+  min-height: 260px;
+  overflow: hidden;
+  border: 1px solid rgba(44, 76, 72, 0.17);
+  border-radius: 25px;
+  background: linear-gradient(#cbe3df 0 57%, #d9c09a 57% 63%, #b88f65 63%);
+  box-shadow: 0 16px 36px rgba(50, 74, 69, 0.11);
+  isolation: isolate;
+}
+
+.col-later-life-sky {
+  position: absolute;
+  inset: 0 0 37%;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent 52%),
+    linear-gradient(90deg, rgba(255, 247, 207, 0.72), transparent 50%);
+}
+
+.col-later-life-sun {
+  position: absolute;
+  top: 24px;
+  right: 11%;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #f6cb69;
+  box-shadow: 0 0 0 12px rgba(255, 233, 165, 0.34);
+}
+
+.col-later-life-cloud {
+  position: absolute;
+  width: 72px;
+  height: 18px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.7);
+  animation: col-later-life-cloud-drift 13s ease-in-out infinite alternate;
+}
+
+.col-later-life-cloud::before,
+.col-later-life-cloud::after {
+  position: absolute;
+  bottom: 4px;
+  border-radius: 50%;
+  background: inherit;
+  content: "";
+}
+
+.col-later-life-cloud::before {
+  left: 13px;
+  width: 28px;
+  height: 28px;
+}
+
+.col-later-life-cloud::after {
+  right: 12px;
+  width: 36px;
+  height: 36px;
+}
+
+.col-later-life-cloud--one {
+  top: 49px;
+  left: 10%;
+}
+
+.col-later-life-cloud--two {
+  top: 88px;
+  left: 47%;
+  width: 54px;
+  transform: scale(0.72);
+  animation-delay: -4s;
+}
+
+.col-later-life-scene-objects,
+.col-later-life-object {
+  position: absolute;
+}
+
+.col-later-life-scene-objects {
+  inset: 0;
+}
+
+.col-later-life-object {
+  transition: opacity 320ms ease, transform 420ms ease;
+}
+
+.col-later-life-object--desk {
+  right: 8%;
+  bottom: 33%;
+  width: 172px;
+  height: 67px;
+  border-radius: 9px 9px 3px 3px;
+  background: #916044;
+  box-shadow: inset 0 -9px rgba(70, 42, 29, 0.16);
+}
+
+.col-later-life-object--desk::before {
+  position: absolute;
+  right: 22px;
+  bottom: 63px;
+  width: 69px;
+  height: 48px;
+  border: 7px solid #435f63;
+  border-radius: 5px;
+  background: #cbe5e6;
+  box-shadow: 0 10px 0 -5px #435f63;
+  content: "";
+}
+
+.col-later-life-object--desk::after {
+  position: absolute;
+  right: 11px;
+  bottom: 0;
+  width: 11px;
+  height: 75px;
+  background: #704831;
+  box-shadow: -138px 0 #704831;
+  content: "";
+}
+
+.col-later-life-object--home {
+  right: 7%;
+  bottom: 37%;
+  width: 174px;
+  height: 104px;
+  border: 7px solid #f5ead1;
+  border-radius: 12px 12px 3px 3px;
+  background: #f7d19c;
+  box-shadow: inset 0 -12px rgba(164, 98, 68, 0.1);
+  opacity: 0;
+  transform: translateX(45px);
+}
+
+.col-later-life-object--home::before {
+  position: absolute;
+  top: -52px;
+  left: -16px;
+  width: 190px;
+  height: 65px;
+  background: #bd6654;
+  clip-path: polygon(50% 0, 100% 78%, 92% 100%, 8% 100%, 0 78%);
+  content: "";
+}
+
+.col-later-life-object--home::after {
+  position: absolute;
+  right: 22px;
+  bottom: 0;
+  width: 43px;
+  height: 72px;
+  border: 6px solid #fff1d3;
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  background: #77a6a0;
+  content: "";
+}
+
+.col-later-life-object--tree {
+  right: 10%;
+  bottom: 37%;
+  width: 38px;
+  height: 105px;
+  border-radius: 20px 20px 3px 3px;
+  background: #79563e;
+  box-shadow: inset 8px 0 rgba(255, 255, 255, 0.08);
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.col-later-life-object--tree::before,
+.col-later-life-object--tree::after {
+  position: absolute;
+  border-radius: 50%;
+  background: #5d926a;
+  content: "";
+}
+
+.col-later-life-object--tree::before {
+  top: -72px;
+  left: -59px;
+  width: 148px;
+  height: 112px;
+  box-shadow: 42px 5px #72a676, -16px 15px #4d805e;
+}
+
+.col-later-life-object--tree::after {
+  top: -88px;
+  left: -10px;
+  width: 75px;
+  height: 75px;
+  background: #77aa77;
+}
+
+.col-later-life-object--bench {
+  right: 25%;
+  bottom: 28%;
+  width: 116px;
+  height: 15px;
+  border-radius: 6px;
+  background: #9b6945;
+  box-shadow: 0 18px #825337;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.col-later-life-object--bench::after {
+  position: absolute;
+  top: 10px;
+  right: 11px;
+  width: 8px;
+  height: 45px;
+  background: #604b3d;
+  box-shadow: -87px 0 #604b3d;
+  content: "";
+}
+
+.col-later-life-view[data-stage="retirement-v1"] .col-later-life-object--desk,
+.col-later-life-view[data-stage="legacy-v1"] .col-later-life-object--desk {
+  opacity: 0;
+  transform: translateX(45px);
+}
+
+.col-later-life-view[data-stage="retirement-v1"] .col-later-life-object--home {
+  opacity: 1;
+  transform: none;
+}
+
+.col-later-life-view[data-stage="legacy-v1"] .col-later-life-object--tree,
+.col-later-life-view[data-stage="legacy-v1"] .col-later-life-object--bench {
+  opacity: 1;
+  transform: none;
+}
+
+.col-later-life-figure {
+  position: absolute;
+  bottom: 29%;
+  left: 29%;
+  width: 78px;
+  height: 140px;
+  filter: drop-shadow(0 7px 2px rgba(40, 51, 46, 0.17));
+  transform-origin: 50% 100%;
+  animation: col-later-life-breathe 3.8s ease-in-out infinite;
+}
+
+.col-later-life-figure-head {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  width: 40px;
+  height: 45px;
+  border: 3px solid #8b583d;
+  border-radius: 48% 48% 45% 45%;
+  background: #c8875f;
+  box-shadow: inset 0 -4px rgba(114, 68, 47, 0.12);
+}
+
+.col-later-life-figure-head::before {
+  position: absolute;
+  top: 18px;
+  left: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #302a27;
+  box-shadow: 17px 0 #302a27;
+  content: "";
+}
+
+.col-later-life-figure-head::after {
+  position: absolute;
+  top: 28px;
+  left: 15px;
+  width: 10px;
+  height: 5px;
+  border-bottom: 2px solid #7e3e3c;
+  border-radius: 50%;
+  content: "";
+}
+
+.col-later-life-figure-hair {
+  position: absolute;
+  z-index: 2;
+  top: 9px;
+  left: 17px;
+  width: 47px;
+  height: 26px;
+  border-radius: 52% 55% 32% 35%;
+  background: #dad6c9;
+  box-shadow: inset 7px -4px #b8b5aa;
+}
+
+.col-later-life-figure-hair::after {
+  position: absolute;
+  top: 11px;
+  right: -1px;
+  width: 12px;
+  height: 24px;
+  border-radius: 50%;
+  background: #cbc7bb;
+  content: "";
+}
+
+.col-later-life-figure-body {
+  position: absolute;
+  top: 61px;
+  left: 15px;
+  width: 52px;
+  height: 55px;
+  border-radius: 20px 20px 10px 10px;
+  background: var(--col-teal);
+  box-shadow: inset 0 -12px rgba(25, 76, 72, 0.15);
+}
+
+.col-later-life-figure-arm {
+  position: absolute;
+  z-index: -1;
+  top: 67px;
+  width: 16px;
+  height: 54px;
+  border-radius: 10px;
+  background: #c8875f;
+}
+
+.col-later-life-figure-arm--left {
+  left: 8px;
+  transform: rotate(5deg);
+}
+
+.col-later-life-figure-arm--right {
+  right: 4px;
+  transform: rotate(-8deg);
+}
+
+.col-later-life-figure-leg {
+  position: absolute;
+  bottom: 0;
+  width: 19px;
+  height: 40px;
+  border-radius: 6px 6px 10px 10px;
+  background: #554b49;
+}
+
+.col-later-life-figure-leg--left {
+  left: 19px;
+}
+
+.col-later-life-figure-leg--right {
+  right: 15px;
+}
+
+.col-later-life-view[data-stage="retirement-v1"] .col-later-life-figure-body {
+  background: #d77b5c;
+}
+
+.col-later-life-view[data-stage="legacy-v1"] .col-later-life-figure-body {
+  background: #718e5e;
+}
+
+.col-later-life-companion {
+  position: absolute;
+  bottom: 30%;
+  left: 45%;
+  width: 50px;
+  height: 99px;
+  opacity: 0.9;
+  filter: drop-shadow(0 6px 2px rgba(40, 51, 46, 0.13));
+}
+
+.col-later-life-companion-head {
+  position: absolute;
+  top: 8px;
+  left: 11px;
+  width: 30px;
+  height: 34px;
+  border: 2px solid #86573f;
+  border-radius: 50%;
+  background: #d59a72;
+  box-shadow: inset 0 8px #4c3c35;
+}
+
+.col-later-life-companion-body {
+  position: absolute;
+  top: 41px;
+  left: 7px;
+  width: 39px;
+  height: 53px;
+  border-radius: 15px 15px 9px 9px;
+  background: #e1a845;
+}
+
+.col-later-life-view[data-stage="retirement-v1"] .col-later-life-companion {
+  left: 46%;
+  transform: scale(0.92);
+}
+
+.col-later-life-view[data-stage="legacy-v1"] .col-later-life-companion {
+  left: 48%;
+  transform: scale(0.82);
+}
+
+.col-later-life-scene-caption {
+  position: absolute;
+  z-index: 4;
+  right: 18px;
+  bottom: 15px;
+  left: 18px;
+  margin: 0;
+  padding: 9px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 12px;
+  background: rgba(38, 58, 58, 0.78);
+  color: #fffdf6;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-align: center;
+  backdrop-filter: blur(5px);
+}
+
+.col-later-life-tray {
+  margin-top: 14px;
+  padding: 22px;
+  border: 1px solid rgba(48, 78, 74, 0.15);
+  border-radius: 22px;
+  background: var(--col-paper);
+  box-shadow: 0 12px 32px rgba(52, 71, 67, 0.08);
+}
+
+.col-later-life-tray h3 {
+  margin-top: 4px;
+  font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+}
+
+.col-later-life-tray > p {
+  max-width: 780px;
+  margin: 8px 0 16px;
+  color: var(--col-muted);
+  line-height: 1.55;
+}
+
+.col-later-life-option-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.col-later-life-option {
+  display: flex;
+  min-width: 0;
+  min-height: 218px;
+  flex-direction: column;
+  gap: 9px;
+  padding: 16px;
+  border: 1px solid #ded9ca;
+  border-radius: 17px;
+  background: #fff;
+  color: var(--col-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.col-later-life-option:hover {
+  border-color: #66a29b;
+  box-shadow: 0 10px 24px rgba(50, 94, 88, 0.13);
+  transform: translateY(-3px);
+}
+
+.col-later-life-option:focus-visible,
+.col-later-life-button:focus-visible {
+  outline: 3px solid rgba(60, 139, 132, 0.38);
+  outline-offset: 3px;
+}
+
+.col-later-life-option-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.col-later-life-option-title strong {
+  font-family: Georgia, serif;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.col-later-life-option-time {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border-radius: 99px;
+  background: #f3eee1;
+  color: #716a5c;
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+.col-later-life-option-summary,
+.col-later-life-option-tradeoff {
+  line-height: 1.45;
+}
+
+.col-later-life-option-summary {
+  color: #3d504f;
+  font-size: 0.84rem;
+}
+
+.col-later-life-option-tradeoff {
+  color: #7c6d62;
+  font-size: 0.73rem;
+}
+
+.col-later-life-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: auto;
+}
+
+.col-later-life-effect {
+  padding: 4px 6px;
+  border-radius: 7px;
+  font-size: 0.65rem;
+  font-weight: 850;
+}
+
+.col-later-life-effect--gain {
+  background: #e4f3e8;
+  color: #366b48;
+}
+
+.col-later-life-effect--cost {
+  background: #fae9e4;
+  color: #964c42;
+}
+
+.col-later-life-effect--neutral {
+  background: #edf0ee;
+  color: #5f6865;
+}
+
+.col-later-life-tray--callback {
+  border-color: rgba(232, 171, 60, 0.4);
+  background:
+    radial-gradient(circle at 94% 8%, rgba(232, 171, 60, 0.17), transparent 27%),
+    #fffdf7;
+}
+
+.col-later-life-callback-text {
+  color: var(--col-ink) !important;
+  font-family: Georgia, serif;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+}
+
+.col-later-life-callback-people,
+.col-later-life-people-list,
+.col-later-life-ledger-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 18px;
+}
+
+.col-later-life-person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 10px 7px 7px;
+  border: 1px solid rgba(57, 127, 122, 0.16);
+  border-radius: 99px;
+  background: #fff;
+}
+
+.col-later-life-person-avatar {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f1c273, #db795f);
+  color: #fff;
+  font-family: Georgia, serif;
+  font-weight: 900;
+}
+
+.col-later-life-person-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.col-later-life-person-copy strong {
+  font-size: 0.78rem;
+}
+
+.col-later-life-person-copy small {
+  overflow: hidden;
+  color: var(--col-muted);
+  font-size: 0.64rem;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.col-later-life-button {
+  min-height: 42px;
+  padding: 10px 17px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition: filter 150ms ease, transform 150ms ease;
+}
+
+.col-later-life-button:hover:not(:disabled) {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.col-later-life-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.col-later-life-button--primary {
+  background: var(--col-teal);
+  color: #fff;
+  box-shadow: 0 6px 13px rgba(36, 93, 90, 0.18);
+}
+
+.col-later-life-button--quiet {
+  border-color: #d8d9d2;
+  background: #fff;
+  color: var(--col-teal-dark);
+}
+
+.col-later-life-tray--ready {
+  text-align: center;
+}
+
+.col-later-life-tray--ready > p {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.col-later-life-ledger {
+  margin-top: 14px;
+  padding: 17px 20px;
+  border: 1px solid rgba(57, 127, 122, 0.14);
+  border-radius: 18px;
+  background: #f5f7f1;
+}
+
+.col-later-life-ledger h3 {
+  margin: 0 0 11px;
+  color: var(--col-teal-dark);
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+}
+
+.col-later-life-ledger-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.col-later-life-ledger-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.col-later-life-ledger-list li {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.3fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  font-size: 0.75rem;
+}
+
+.col-later-life-ledger-list li strong {
+  color: var(--col-ink);
+}
+
+.col-later-life-ledger-list li span {
+  color: var(--col-muted);
+}
+
+.col-later-life-ledger-empty,
+.col-later-life-empty {
+  color: var(--col-muted);
+  font-style: italic;
+}
+
+.col-later-life-ledger-people {
+  justify-content: flex-end;
+  margin: 0;
+}
+
+.col-later-life-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 14px 4px 0;
+}
+
+.col-later-life-footer p {
+  margin: 0;
+  color: var(--col-muted);
+  font-size: 0.74rem;
+}
+
+.col-later-life-view.is-biography .col-later-life-header {
+  border-bottom: 1px solid rgba(69, 91, 87, 0.14);
+  border-radius: 26px;
+}
+
+.col-later-life-view.is-biography .col-later-life-stage-rail {
+  margin: 10px 0 0;
+  border: 1px solid rgba(69, 91, 87, 0.14);
+  border-radius: 16px;
+}
+
+.col-later-life-view.is-biography .col-later-life-scores {
+  margin: 10px 0 0;
+  border: 1px solid rgba(69, 91, 87, 0.14);
+  border-radius: 16px;
+}
+
+.col-later-life-view.is-biography .col-later-life-tray {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.col-later-life-ending {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(28px, 6vw, 58px);
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 88% 22%, rgba(248, 204, 107, 0.32), transparent 26%),
+    radial-gradient(circle at 8% 86%, rgba(87, 145, 135, 0.22), transparent 30%),
+    linear-gradient(145deg, #fff8e7, #fffdf9);
+  text-align: center;
+}
+
+.col-later-life-ending::before,
+.col-later-life-ending::after {
+  position: absolute;
+  border: 2px solid rgba(57, 127, 122, 0.12);
+  border-radius: 50%;
+  content: "";
+}
+
+.col-later-life-ending::before {
+  top: -82px;
+  right: -60px;
+  width: 210px;
+  height: 210px;
+}
+
+.col-later-life-ending::after {
+  bottom: -95px;
+  left: -65px;
+  width: 240px;
+  height: 240px;
+}
+
+.col-later-life-ending h3 {
+  position: relative;
+  margin-top: 8px;
+  font-size: clamp(2rem, 6vw, 4.4rem);
+  line-height: 1;
+}
+
+.col-later-life-ending-reason {
+  position: relative;
+  max-width: 740px;
+  margin: 20px auto 0;
+  color: #435655;
+  font-family: Georgia, serif;
+  font-size: clamp(1rem, 2.1vw, 1.26rem);
+  line-height: 1.55;
+}
+
+.col-later-life-no-score {
+  position: relative;
+  max-width: 700px;
+  margin: 16px auto 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--col-teal-dark);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.col-later-life-reflections {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.col-later-life-reflection {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 12px;
+  padding: 18px;
+  border: 1px solid rgba(54, 83, 78, 0.13);
+  border-top: 4px solid var(--reflection-color);
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 9px 24px rgba(50, 69, 65, 0.07);
+}
+
+.col-later-life-reflection--health {
+  --reflection-color: #d65d58;
+}
+
+.col-later-life-reflection--happiness {
+  --reflection-color: #e4a72f;
+}
+
+.col-later-life-reflection--money {
+  --reflection-color: #4d8b70;
+}
+
+.col-later-life-reflection-label {
+  color: var(--col-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.col-later-life-reflection > strong {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  font-family: Georgia, serif;
+  font-size: 2rem;
+}
+
+.col-later-life-reflection-band {
+  color: var(--reflection-color);
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: capitalize;
+}
+
+.col-later-life-reflection p {
+  grid-column: 1 / -1;
+  margin: 7px 0 0;
+  color: var(--col-muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.col-later-life-biography-section,
+.col-later-life-remembered {
+  margin-top: 14px;
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid rgba(55, 80, 76, 0.13);
+  border-radius: 22px;
+  background: #fffdf8;
+}
+
+.col-later-life-biography-section > h3 {
+  margin-top: 4px;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+}
+
+.col-later-life-chapter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.col-later-life-chapter-card {
+  position: relative;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e2ded2;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.col-later-life-chapter-card[data-stage-id="later-career-v1"],
+.col-later-life-chapter-card[data-stage-id="retirement-v1"],
+.col-later-life-chapter-card[data-stage-id="legacy-v1"] {
+  border-color: rgba(57, 127, 122, 0.38);
+  background: #f6fbf7;
+}
+
+.col-later-life-chapter-card header {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.col-later-life-chapter-number {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  background: #f3ead6;
+  color: #9c6748;
+  font-family: Georgia, serif;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.col-later-life-chapter-card h4 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 0.95rem;
+}
+
+.col-later-life-chapter-age {
+  display: block;
+  margin-top: 2px;
+  color: var(--col-muted);
+  font-size: 0.64rem;
+}
+
+.col-later-life-chapter-card p {
+  margin: 10px 0;
+  color: #596765;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.col-later-life-chapter-card footer {
+  padding-top: 8px;
+  border-top: 1px dashed #dfdbd1;
+  color: var(--col-teal-dark);
+  font-size: 0.67rem;
+  font-weight: 800;
+}
+
+.col-later-life-remembered {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 22px;
+}
+
+.col-later-life-remembered h3 {
+  font-size: 1.25rem;
+}
+
+.col-later-life-people-list {
+  display: grid;
+  margin-bottom: 0;
+}
+
+.col-later-life-decision-list {
+  display: grid;
+  gap: 8px;
+  max-height: 370px;
+  margin: 13px 0 0;
+  padding: 0 4px 0 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.col-later-life-decision-list li {
+  display: grid;
+  gap: 2px;
+  padding: 9px 11px;
+  border-left: 3px solid #dfbc72;
+  border-radius: 0 9px 9px 0;
+  background: #faf7ed;
+}
+
+.col-later-life-decision-list strong {
+  font-size: 0.76rem;
+}
+
+.col-later-life-decision-list span {
+  color: var(--col-muted);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.col-later-life-closing {
+  margin: 14px 0 0;
+  padding: clamp(20px, 4vw, 32px);
+  border: 0;
+  border-radius: 20px;
+  background: var(--col-teal-dark);
+  color: #fffbed;
+}
+
+.col-later-life-closing p {
+  max-width: 820px;
+  margin: auto;
+  font-family: Georgia, serif;
+  font-size: clamp(0.95rem, 2vw, 1.16rem);
+  line-height: 1.65;
+  text-align: center;
+}
+
+.col-later-life-ending-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 0 4px;
+}
+
+@keyframes col-later-life-cloud-drift {
+  from { transform: translateX(-7px); }
+  to { transform: translateX(12px); }
+}
+
+@keyframes col-later-life-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@media (max-width: 800px) {
+  .col-later-life-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .col-later-life-header-status {
+    width: 100%;
+    flex-basis: auto;
+    justify-items: start;
+  }
+
+  .col-later-life-option-grid,
+  .col-later-life-chapter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .col-later-life-option:last-child {
+    grid-column: 1 / -1;
+    min-height: 180px;
+  }
+
+  .col-later-life-reflections,
+  .col-later-life-remembered {
+    grid-template-columns: 1fr;
+  }
+
+  .col-later-life-ledger-body {
+    grid-template-columns: 1fr;
+  }
+
+  .col-later-life-ledger-people {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .col-later-life-view {
+    width: min(100% - 12px, 1120px);
+    margin-top: 6px;
+  }
+
+  .col-later-life-header {
+    padding: 20px 17px 14px;
+    border-radius: 19px 19px 0 0;
+  }
+
+  .col-later-life-stage-rail,
+  .col-later-life-scores {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .col-later-life-stage-rail span {
+    font-size: 0.62rem;
+  }
+
+  .col-later-life-scores {
+    gap: 5px;
+  }
+
+  .col-later-life-score {
+    display: flex;
+    padding: 8px;
+    flex-direction: column;
+    gap: 3px;
+    text-align: center;
+  }
+
+  .col-later-life-score > span {
+    font-size: 0.62rem;
+  }
+
+  .col-later-life-score output {
+    font-size: 1.05rem;
+  }
+
+  .col-later-life-score meter {
+    display: none;
+  }
+
+  .col-later-life-playfield {
+    min-height: 220px;
+    border-radius: 18px;
+  }
+
+  .col-later-life-figure {
+    left: 20%;
+    transform: scale(0.88);
+  }
+
+  .col-later-life-companion {
+    left: 45%;
+    transform: scale(0.82);
+  }
+
+  .col-later-life-object--desk,
+  .col-later-life-object--home {
+    right: -4%;
+    transform: scale(0.78);
+    transform-origin: 100% 100%;
+  }
+
+  .col-later-life-tray {
+    padding: 17px;
+    border-radius: 17px;
+  }
+
+  .col-later-life-option-grid,
+  .col-later-life-chapter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .col-later-life-option,
+  .col-later-life-option:last-child {
+    grid-column: auto;
+    min-height: 0;
+  }
+
+  .col-later-life-ledger-list li {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .col-later-life-footer,
+  .col-later-life-ending-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .col-later-life-footer p {
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .col-later-life-view *,
+  .col-later-life-view *::before,
+  .col-later-life-view *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

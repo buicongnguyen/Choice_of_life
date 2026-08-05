@@ -12,8 +12,8 @@ Active plan: [CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md](../CHOICE_OF_LIFE_IMPLEM
 | 5 — High School and Education | Complete; verification deferred by user | `20e890958e50b95182d546b80e3f1dd2af0c8cd0` | Runnable education, qualifications, and retraining chapter | [deploy run 31008822061](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31008822061) succeeded |
 | 6 — First Career and provisional ending | Complete; verification deferred by user | `f79bd3c477f26de1ff180ebccfdb8b0ed15f3b22` | Runnable career offers, work cycles, doctor path, and provisional ending | [deploy run 31010216735](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31010216735) succeeded |
 | 7 — Childhood continuity | Complete; verification deferred by user | `41101ed69517ba4cbd015c24255adc1a1752c1ec` | Four continuous childhood stages, stable friends, pets, choices, and callbacks | [deploy run 31010882392](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31010882392) succeeded |
-| 8 — Adult routes | Implementation complete; verification deferred by user | pending | Relationships, spouse choice, optional marriage/children, home, caregiving, and midlife | Deployment pending |
-| 9 — Later life and full ending | Pending | — | — | — |
+| 8 — Adult routes | Complete; verification deferred by user | `648f1259e23c3d94806dac7545d4262a89cac9f0` | Relationships, spouse choice, optional marriage/children, home, caregiving, and midlife | [deploy run 31011540620](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31011540620) succeeded |
+| 9 — Later life and full ending | Implementation complete; verification deferred by user | pending | Later Career, retirement, legacy, 12-stage biography, and multi-factor ending | Deployment pending |
 | 10 — Art, audio, accessibility, and balance | Pending | — | — | — |
 | 11 — Release hardening | Pending | — | — | — |
 

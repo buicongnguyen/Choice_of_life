@@ -54,6 +54,9 @@ import type {
   EncounterChapterActionResult,
   EncounterChapterShellPort,
   EncounterChapterState,
+  LaterLifeChapterAction,
+  LaterLifeChapterActionResult,
+  LaterLifeChapterShellPort,
   NewbornActionResult,
   NewbornShellPort,
   ReadyRun,
@@ -79,6 +82,10 @@ import {
   createAdultChapterSession,
   type AdultChapterSession,
 } from "./adult-session";
+import {
+  createLaterLifeChapterSession,
+  type LaterLifeChapterSession,
+} from "./later-life-session";
 
 const DEFAULT_SETTINGS: VisualSettings = {
   highContrast: false,
@@ -124,7 +131,7 @@ function copyValidSettings(value: unknown): VisualSettings | null {
   };
 }
 
-export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort, EncounterChapterShellPort, ChildhoodChapterShellPort, EducationChapterShellPort, CareerChapterShellPort, AdultChapterShellPort {
+export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort, EncounterChapterShellPort, ChildhoodChapterShellPort, EducationChapterShellPort, CareerChapterShellPort, AdultChapterShellPort, LaterLifeChapterShellPort {
   startNewLife(selection: SetupSelection): RunActionResult;
   continueLife(): RunActionResult;
   saveSettings(settings: VisualSettings): SettingsActionResult;
@@ -351,6 +358,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
   let educationState: EducationState | null = null;
   let careerState: CareerState | null = null;
   let adultSession: AdultChapterSession | null = null;
+  let laterLifeSession: LaterLifeChapterSession | null = null;
   let settings: VisualSettings = currentState ? { ...currentState.accessibility } : { ...DEFAULT_SETTINGS };
   let notice = noticeForLoad(initialLoad);
   const listeners = new Set<() => void>();
@@ -457,6 +465,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       educationState = null;
       careerState = null;
       adultSession = null;
+      laterLifeSession = null;
       if (result.kind === "saved") {
         notice = null;
       } else if (result.kind === "unavailable") {
@@ -952,6 +961,67 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       publish();
       return { kind: "ready", state: result.state };
     },
+    currentLaterLifeState() {
+      return laterLifeSession?.getState() ?? null;
+    },
+    enterLaterLife(): LaterLifeChapterActionResult {
+      if (
+        currentState === null ||
+        adultSession === null ||
+        adultSession.getState().phase !== "complete"
+      ) {
+        return {
+          kind: "invalid",
+          notice: warning("Complete relationships, home, and midlife before opening the final chapters."),
+        };
+      }
+      if (
+        laterLifeSession !== null &&
+        laterLifeSession.getState().runId === currentState.runId
+      ) {
+        return {
+          kind: "ready",
+          state: laterLifeSession.getState(),
+          ...(notice ? { notice } : {}),
+        };
+      }
+      try {
+        laterLifeSession = createLaterLifeChapterSession({
+          adultHandoff: adultSession.getState(),
+        });
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("The final chapters could not begin. Your completed adult life is unchanged."),
+        };
+      }
+      notice = {
+        tone: "status",
+        message: "Later career, retirement, legacy, and your complete biography are active for this browser session.",
+      };
+      publish();
+      return { kind: "ready", state: laterLifeSession.getState(), notice };
+    },
+    dispatchLaterLife(action: LaterLifeChapterAction): LaterLifeChapterActionResult {
+      if (laterLifeSession === null) {
+        return {
+          kind: "invalid",
+          notice: warning("Open the final chapters before making this choice."),
+        };
+      }
+      const result = laterLifeSession.dispatch(action);
+      if (result.status === "rejected") {
+        return {
+          kind: "invalid",
+          notice: warning(result.reason ?? "That final-chapter action is not available."),
+        };
+      }
+      publish();
+      if (result.status === "new-life-ready") {
+        return { kind: "new-life-ready", state: result.state };
+      }
+      return { kind: "ready", state: result.state };
+    },
     enterRunnerLaboratory(): RunnerLaboratoryActionResult {
       if (currentState === null) {
         return { kind: "invalid", notice: runnerNotice("Create a life before opening the runner laboratory.") };
@@ -1022,5 +1092,6 @@ export function createBrowserDependencies(): BrowserDependencies {
     education: shell,
     career: shell,
     adult: shell,
+    laterLife: shell,
   };
 }

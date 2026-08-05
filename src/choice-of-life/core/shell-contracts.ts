@@ -15,6 +15,7 @@ import type {
 } from "./education/index";
 import type { CareerAction, CareerState } from "./career/index";
 import type { AdultAction, AdultState } from "./adult/index";
+import type { LaterLifeAction, LaterLifeState } from "./later-life/index";
 import type { ChildhoodAction, ChildhoodState } from "./childhood/index";
 
 export type Gender = RunStateV1["identity"]["gender"];
@@ -136,6 +137,15 @@ export type AdultChapterActionResult =
 
 export type AdultChapterAction = AdultAction;
 
+export type LaterLifeChapterAction =
+  | LaterLifeAction
+  | Readonly<{ type: "request-new-life" }>;
+
+export type LaterLifeChapterActionResult =
+  | { readonly kind: "ready"; readonly state: LaterLifeState; readonly notice?: ShellNotice }
+  | { readonly kind: "new-life-ready"; readonly state: LaterLifeState; readonly notice?: ShellNotice }
+  | { readonly kind: "invalid"; readonly notice: ShellNotice };
+
 export interface ChildhoodPlayerProfile {
   readonly startingProfileId: StartingProfileId;
   readonly difficulty: Difficulty;
@@ -199,6 +209,13 @@ export interface AdultChapterShellPort {
   dispatchAdult(action: AdultAction): AdultChapterActionResult;
 }
 
+/** Phase-9 later-career, retirement, legacy, and biography runtime. */
+export interface LaterLifeChapterShellPort {
+  currentLaterLifeState(): LaterLifeState | null;
+  enterLaterLife(): LaterLifeChapterActionResult;
+  dispatchLaterLife(action: LaterLifeChapterAction): LaterLifeChapterActionResult;
+}
+
 export interface RunnerLaboratoryShellPort {
   currentRunState(): RunStateV1 | null;
   enterRunnerLaboratory(): RunnerLaboratoryActionResult;
@@ -230,4 +247,6 @@ export interface BrowserDependencies {
   readonly career?: CareerChapterShellPort;
   /** Phase-8 relationships, home, and midlife capability. */
   readonly adult?: AdultChapterShellPort;
+  /** Phase-9 final chapters and complete-life biography capability. */
+  readonly laterLife?: LaterLifeChapterShellPort;
 }

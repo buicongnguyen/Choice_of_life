@@ -14,11 +14,13 @@ import type {
   EducationChapterAction,
   EncounterChapterAction,
   EncounterChapterState,
+  LaterLifeChapterAction,
 } from "./core/shell-contracts";
 import type { ChildhoodAction } from "./core/childhood/index";
 import type { EducationState } from "./core/education/index";
 import type { CareerState } from "./core/career/index";
 import type { AdultState } from "./core/adult/index";
+import type { LaterLifeState } from "./core/later-life/index";
 import { createBrowserDependencies } from "./platform/browser-shell";
 import { createBrowserRunnerSession } from "./platform/browser-runner-session";
 import { CleanupBag } from "./platform/lifecycle";
@@ -73,6 +75,7 @@ import { mountEncounterView, type EncounterView } from "./presentation/encounter
 import { mountEducationView, type EducationView } from "./presentation/education-view";
 import { mountCareerView, type CareerView } from "./presentation/career-view";
 import { mountAdultView, type AdultView } from "./presentation/adult-view";
+import { mountLaterLifeView, type LaterLifeView } from "./presentation/later-life-view";
 import { mountChildhoodView, type ChildhoodView } from "./presentation/childhood-view";
 
 export type { BrowserDependencies, ChoiceOfLifeShellPort } from "./presentation/contracts";
@@ -86,7 +89,7 @@ export function mountChoiceOfLifeInBrowser(root: HTMLElement): ChoiceOfLifeApp {
   return mountChoiceOfLife(root, createBrowserDependencies());
 }
 
-type Screen = "title" | "setup" | "ready" | "newborn" | "encounters" | "childhood" | "education" | "career" | "adult" | "runner";
+type Screen = "title" | "setup" | "ready" | "newborn" | "encounters" | "childhood" | "education" | "career" | "adult" | "later-life" | "runner";
 
 interface LocalState {
   screen: Screen;
@@ -129,6 +132,10 @@ interface MountedCareer {
 
 interface MountedAdult {
   readonly view: AdultView;
+}
+
+interface MountedLaterLife {
+  readonly view: LaterLifeView;
 }
 
 const mountedRoots = new WeakMap<HTMLElement, ChoiceOfLifeApp>();
@@ -217,12 +224,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   let mountedEducation: MountedEducation | null = null;
   let mountedCareer: MountedCareer | null = null;
   let mountedAdult: MountedAdult | null = null;
+  let mountedLaterLife: MountedLaterLife | null = null;
   let newbornActionInProgress = false;
   let encounterActionInProgress = false;
   let childhoodActionInProgress = false;
   let educationActionInProgress = false;
   let careerActionInProgress = false;
   let adultActionInProgress = false;
+  let laterLifeActionInProgress = false;
   let runnerActionInProgress = false;
   let runnerCommitInProgress = false;
   let snapshot = safeSnapshot(dependencies.shell);
@@ -333,6 +342,11 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       snapshot = safeSnapshot(dependencies.shell);
       state.settings = cloneSettings(snapshot.settings);
     }
+    if (state.screen === "later-life" && screen !== "later-life") {
+      disposeMountedLaterLife();
+      snapshot = safeSnapshot(dependencies.shell);
+      state.settings = cloneSettings(snapshot.settings);
+    }
     state.screen = screen;
     state.notice = null;
     focusAfterRenderId = screen === "title"
@@ -353,7 +367,9 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
                   ? "career-stage-heading"
                   : screen === "adult"
                     ? "adult-stage-heading"
-                    : "runner-status-heading";
+                    : screen === "later-life"
+                      ? "later-life-stage-heading"
+                      : "runner-status-heading";
     render();
   };
 
@@ -797,6 +813,26 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       adultButton.disabled = state.pending !== null;
       listen(adultButton, "click", enterAdult);
       actions.append(adultButton);
+    }
+    if (
+      dependencies.laterLife &&
+      dependencies.adult?.currentAdultState()?.phase === "complete"
+    ) {
+      const laterLifeProgress = dependencies.laterLife.currentLaterLifeState();
+      const laterLifeButton = createButton(
+        laterLifeProgress?.phase === "complete"
+          ? "Review complete life story"
+          : laterLifeProgress
+            ? "Continue final chapters"
+            : "Continue to Later Career",
+        laterLifeProgress?.phase === "complete"
+          ? "col-button col-button--quiet"
+          : "col-button col-button--primary",
+      );
+      laterLifeButton.setAttribute("data-later-life-enter", "");
+      laterLifeButton.disabled = state.pending !== null;
+      listen(laterLifeButton, "click", enterLaterLife);
+      actions.append(laterLifeButton);
     }
     if (dependencies.runner) {
       const runnerButton = createButton(
@@ -1643,6 +1679,10 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
 
   function continueFromAdult(): void {
     if (disposed) return;
+    if (dependencies.laterLife !== undefined) {
+      enterLaterLife();
+      return;
+    }
     disposeMountedAdult();
     state.screen = "ready";
     state.notice = {
@@ -1656,6 +1696,150 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   function returnFromAdultToReady(): void {
     if (disposed) return;
     setScreen("ready");
+  }
+
+  function disposeMountedLaterLife(): void {
+    const runtime = mountedLaterLife;
+    mountedLaterLife = null;
+    runtime?.view.dispose();
+  }
+
+  function laterLifeActionFailure(notice: ShellNotice): void {
+    disposeMountedLaterLife();
+    state.screen = "ready";
+    state.notice = notice;
+    focusAfterRenderId = NOTICE_ID;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    render();
+  }
+
+  function dispatchLaterLife(action: LaterLifeChapterAction): void {
+    if (
+      disposed || laterLifeActionInProgress ||
+      dependencies.laterLife === undefined || mountedLaterLife === null
+    ) return;
+    laterLifeActionInProgress = true;
+    let result: ReturnType<typeof dependencies.laterLife.dispatchLaterLife>;
+    try {
+      result = dependencies.laterLife.dispatchLaterLife(action);
+    } catch {
+      laterLifeActionInProgress = false;
+      laterLifeActionFailure(errorNotice("That final-chapter choice could not be applied. Your completed adult life is unchanged."));
+      return;
+    }
+    laterLifeActionInProgress = false;
+    if (result.kind === "invalid") {
+      laterLifeActionFailure(result.notice);
+      return;
+    }
+    state.notice = result.notice ?? null;
+    mountedLaterLife?.view.render(result.state);
+  }
+
+  function beginNewLifeFromLaterLife(): void {
+    if (
+      disposed || laterLifeActionInProgress ||
+      dependencies.laterLife === undefined || mountedLaterLife === null
+    ) return;
+    laterLifeActionInProgress = true;
+    let result: ReturnType<typeof dependencies.laterLife.dispatchLaterLife>;
+    try {
+      result = dependencies.laterLife.dispatchLaterLife({ type: "request-new-life" });
+    } catch {
+      laterLifeActionInProgress = false;
+      laterLifeActionFailure(errorNotice("A new life could not be prepared. Your complete biography is still available."));
+      return;
+    }
+    laterLifeActionInProgress = false;
+    if (result.kind === "invalid") {
+      laterLifeActionFailure(result.notice);
+      return;
+    }
+    if (result.kind !== "new-life-ready") return;
+    disposeMountedLaterLife();
+    state.setup = cloneSetup();
+    state.readyRun = null;
+    state.screen = "setup";
+    state.notice = {
+      tone: "status",
+      message: "Your biography is complete. Set up the next life when you are ready.",
+    };
+    focusAfterRenderId = "setup-heading";
+    render();
+  }
+
+  function returnFromLaterLifeToTitle(): void {
+    if (disposed) return;
+    setScreen("title");
+  }
+
+  function mountEnteredLaterLife(
+    enteredState: LaterLifeState,
+    enteredNotice: ShellNotice | null,
+  ): void {
+    disposeMountedRunner();
+    disposeMountedNewborn();
+    disposeMountedEncounter();
+    disposeMountedChildhood();
+    disposeMountedEducation();
+    disposeMountedCareer();
+    disposeMountedAdult();
+    disposeMountedLaterLife();
+    renderLifetime.dispose();
+    renderLifetime = new CleanupBag();
+    state.screen = "later-life";
+    state.notice = enteredNotice;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    applySettings();
+
+    const main = createElement(document, "main", {
+      className: "col-shell col-later-life-shell",
+      attributes: { "aria-labelledby": "choice-life-title", "aria-busy": "false" },
+    });
+    renderHeader(main);
+    renderNotice(main);
+    const host = createElement(document, "div", {
+      className: "col-later-life-host",
+      attributes: { "data-later-life-host": "" },
+    });
+    main.append(host);
+    root.replaceChildren(main);
+
+    let view: LaterLifeView | null = null;
+    try {
+      view = mountLaterLifeView(host, {
+        dispatch: dispatchLaterLife,
+        onReturnToTitle: returnFromLaterLifeToTitle,
+        onNewLife: beginNewLifeFromLaterLife,
+      });
+      mountedLaterLife = Object.freeze({ view });
+      view.render(enteredState);
+      root.querySelector<HTMLElement>("#later-life-stage-heading")?.focus();
+    } catch {
+      view?.dispose();
+      laterLifeActionFailure(errorNotice("The final chapters could not be displayed. Your completed adult life is still available."));
+    }
+  }
+
+  function enterLaterLife(): void {
+    if (disposed || laterLifeActionInProgress || dependencies.laterLife === undefined) return;
+    laterLifeActionInProgress = true;
+    let result: ReturnType<typeof dependencies.laterLife.enterLaterLife>;
+    try {
+      result = dependencies.laterLife.enterLaterLife();
+    } catch {
+      laterLifeActionInProgress = false;
+      laterLifeActionFailure(errorNotice("The final chapters could not be opened. Your completed adult life is unchanged."));
+      return;
+    }
+    laterLifeActionInProgress = false;
+    if (result.kind === "invalid") {
+      laterLifeActionFailure(result.notice);
+      return;
+    }
+    mountEnteredLaterLife(result.state, result.notice ?? null);
   }
 
   function disposeRunnerParts(
@@ -2127,6 +2311,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       }
       return;
     }
+    if (state.screen === "later-life" && mountedLaterLife !== null) {
+      applySettings();
+      const currentLaterLife = dependencies.laterLife?.currentLaterLifeState() ?? null;
+      if (currentLaterLife !== null) {
+        mountedLaterLife.view.render(currentLaterLife);
+      }
+      return;
+    }
     if (state.screen === "runner" && mountedRunner !== null) {
       applySettings();
       mountedRunner.view.updateVisualOptions(runnerVisualOptions(
@@ -2250,6 +2442,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       disposeMountedEducation();
       disposeMountedCareer();
       disposeMountedAdult();
+      disposeMountedLaterLife();
       disposeMountedRunner();
       renderLifetime.dispose();
       lifetime.dispose();
