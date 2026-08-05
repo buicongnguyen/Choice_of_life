@@ -7,6 +7,10 @@ import {
   type NewbornState,
 } from "./core/newborn/index";
 import type { RunStateV1 } from "./core/run-state";
+import type {
+  EncounterChapterAction,
+  EncounterChapterState,
+} from "./core/shell-contracts";
 import { createBrowserDependencies } from "./platform/browser-shell";
 import { createBrowserRunnerSession } from "./platform/browser-runner-session";
 import { CleanupBag } from "./platform/lifecycle";
@@ -57,6 +61,7 @@ import {
   type RunnerViewVisualOptions,
 } from "./presentation/runner-view";
 import { mountNewbornView, type NewbornView } from "./presentation/newborn-view";
+import { mountEncounterView, type EncounterView } from "./presentation/encounter-view";
 
 export type { BrowserDependencies, ChoiceOfLifeShellPort } from "./presentation/contracts";
 export type { SetupSelection, VisualSettings } from "./presentation/model";
@@ -69,7 +74,7 @@ export function mountChoiceOfLifeInBrowser(root: HTMLElement): ChoiceOfLifeApp {
   return mountChoiceOfLife(root, createBrowserDependencies());
 }
 
-type Screen = "title" | "setup" | "ready" | "newborn" | "runner";
+type Screen = "title" | "setup" | "ready" | "newborn" | "encounters" | "runner";
 
 interface LocalState {
   screen: Screen;
@@ -93,6 +98,11 @@ interface MountedNewborn {
   readonly stopClock: () => void;
 }
 
+interface MountedEncounter {
+  readonly view: EncounterView;
+  readonly stopClock: () => void;
+}
+
 const mountedRoots = new WeakMap<HTMLElement, ChoiceOfLifeApp>();
 const PENDING_STATUS_ID = "choice-life-pending-status";
 const NOTICE_ID = "choice-life-notice";
@@ -101,6 +111,8 @@ const NEWBORN_TICKS_PER_INTERVAL = Math.max(
   1,
   Math.round(NEWBORN_TICK_INTERVAL_MS / NEWBORN_STAGE_CONTRACT.tickDurationMs),
 );
+const ENCOUNTER_TICK_INTERVAL_MS = 250;
+const ENCOUNTER_TICKS_PER_INTERVAL = 5;
 
 const FOCUSABLE_SELECTOR = [
   "a[href]",
@@ -172,7 +184,9 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   let focusAfterRenderId: string | null = null;
   let mountedRunner: MountedRunner | null = null;
   let mountedNewborn: MountedNewborn | null = null;
+  let mountedEncounter: MountedEncounter | null = null;
   let newbornActionInProgress = false;
+  let encounterActionInProgress = false;
   let runnerActionInProgress = false;
   let runnerCommitInProgress = false;
   let snapshot = safeSnapshot(dependencies.shell);
@@ -258,6 +272,11 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       snapshot = safeSnapshot(dependencies.shell);
       state.settings = cloneSettings(snapshot.settings);
     }
+    if (state.screen === "encounters" && screen !== "encounters") {
+      disposeMountedEncounter();
+      snapshot = safeSnapshot(dependencies.shell);
+      state.settings = cloneSettings(snapshot.settings);
+    }
     state.screen = screen;
     state.notice = null;
     focusAfterRenderId = screen === "title"
@@ -268,7 +287,9 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
           ? "ready-heading"
           : screen === "newborn"
             ? "newborn-stage-heading"
-            : "runner-status-heading";
+            : screen === "encounters"
+              ? "encounter-stage-heading"
+              : "runner-status-heading";
     render();
   };
 
@@ -609,12 +630,29 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
           : newbornProgress
             ? "Continue newborn stage"
             : "Start newborn stage",
-        "col-button col-button--primary",
+        newbornProgress?.phase === "complete"
+          ? "col-button col-button--quiet"
+          : "col-button col-button--primary",
       );
       newbornButton.setAttribute("data-newborn-enter", "");
       newbornButton.disabled = state.pending !== null;
       listen(newbornButton, "click", enterNewborn);
       actions.append(newbornButton);
+      if (newbornProgress?.phase === "complete" && dependencies.encounters) {
+        const encounterProgress = dependencies.encounters.currentEncounterState();
+        const encounterButton = createButton(
+          encounterProgress?.phase === "complete"
+            ? "Review encounters & consequences"
+            : encounterProgress
+              ? "Continue encounters & consequences"
+              : "Continue to encounters",
+          "col-button col-button--primary",
+        );
+        encounterButton.setAttribute("data-encounter-enter", "");
+        encounterButton.disabled = state.pending !== null;
+        listen(encounterButton, "click", enterEncounters);
+        actions.append(encounterButton);
+      }
     }
     if (dependencies.runner) {
       const runnerButton = createButton(
@@ -691,6 +729,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   ): void {
     disposeMountedRunner();
     disposeMountedNewborn();
+    disposeMountedEncounter();
     renderLifetime.dispose();
     renderLifetime = new CleanupBag();
     state.screen = "newborn";
@@ -774,11 +813,15 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
 
   function continueFromNewborn(): void {
     if (disposed) return;
+    if (dependencies.encounters !== undefined) {
+      enterEncounters();
+      return;
+    }
     disposeMountedNewborn();
     state.screen = "ready";
     state.notice = {
       tone: "status",
-      message: "The newborn chapter is complete. The next life stage will continue from this result in the next implementation phase.",
+      message: "The newborn chapter is complete. Your result is ready for the next life stage.",
     };
     focusAfterRenderId = NOTICE_ID;
     render();
@@ -787,6 +830,160 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   function returnFromNewbornToTitle(): void {
     if (disposed) return;
     setScreen("title");
+  }
+
+  function disposeMountedEncounter(): void {
+    const runtime = mountedEncounter;
+    mountedEncounter = null;
+    if (runtime === null) return;
+    try {
+      runtime.stopClock();
+    } finally {
+      runtime.view.dispose();
+    }
+  }
+
+  function encounterActionFailure(notice: ShellNotice): void {
+    disposeMountedEncounter();
+    state.screen = "ready";
+    state.notice = notice;
+    focusAfterRenderId = NOTICE_ID;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    render();
+  }
+
+  function dispatchEncounter(action: EncounterChapterAction): void {
+    if (
+      disposed || encounterActionInProgress ||
+      dependencies.encounters === undefined || mountedEncounter === null
+    ) return;
+    encounterActionInProgress = true;
+    let result: ReturnType<typeof dependencies.encounters.dispatchEncounter>;
+    try {
+      result = dependencies.encounters.dispatchEncounter(action);
+    } catch {
+      encounterActionInProgress = false;
+      encounterActionFailure(errorNotice(
+        "That life choice could not be applied. Your completed newborn chapter is unchanged.",
+      ));
+      return;
+    }
+    encounterActionInProgress = false;
+    if (result.kind === "invalid") {
+      encounterActionFailure(result.notice);
+      return;
+    }
+    state.notice = result.notice ?? null;
+    mountedEncounter?.view.render(result.state);
+    if (result.state.phase === "complete") {
+      mountedEncounter?.stopClock();
+    }
+  }
+
+  function mountEnteredEncounters(
+    enteredState: EncounterChapterState,
+    enteredNotice: ShellNotice | null,
+  ): void {
+    disposeMountedRunner();
+    disposeMountedNewborn();
+    disposeMountedEncounter();
+    renderLifetime.dispose();
+    renderLifetime = new CleanupBag();
+    state.screen = "encounters";
+    state.notice = enteredNotice;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    applySettings();
+
+    const main = createElement(document, "main", {
+      className: "col-shell col-encounter-shell",
+      attributes: {
+        "aria-labelledby": "choice-life-title",
+        "aria-busy": "false",
+      },
+    });
+    renderHeader(main);
+    renderNotice(main);
+    const encounterHost = createElement(document, "div", {
+      className: "col-encounter-host",
+      attributes: { "data-encounter-host": "" },
+    });
+    main.append(encounterHost);
+    root.replaceChildren(main);
+
+    let view: EncounterView | null = null;
+    let clockId: number | null = null;
+    const ownerWindow = document.defaultView;
+    const stopClock = (): void => {
+      if (clockId !== null && ownerWindow !== null) {
+        ownerWindow.clearInterval(clockId);
+        clockId = null;
+      }
+    };
+    try {
+      view = mountEncounterView(encounterHost, {
+        dispatch: dispatchEncounter,
+        onContinueToEducation: continueFromEncounters,
+        onReturnToReady: returnFromEncountersToReady,
+      });
+      mountedEncounter = Object.freeze({ view, stopClock });
+      view.render(enteredState);
+      root.querySelector<HTMLElement>("#encounter-stage-heading")?.focus();
+      if (ownerWindow !== null && enteredState.phase !== "complete") {
+        clockId = ownerWindow.setInterval(() => {
+          if (document.visibilityState !== "hidden") {
+            dispatchEncounter({ type: "advance", ticks: ENCOUNTER_TICKS_PER_INTERVAL });
+          }
+        }, ENCOUNTER_TICK_INTERVAL_MS);
+      }
+    } catch {
+      stopClock();
+      view?.dispose();
+      encounterActionFailure(errorNotice(
+        "Encounters and consequences could not be displayed. Your newborn result is still available.",
+      ));
+    }
+  }
+
+  function enterEncounters(): void {
+    if (disposed || encounterActionInProgress || dependencies.encounters === undefined) {
+      return;
+    }
+    encounterActionInProgress = true;
+    let result: ReturnType<typeof dependencies.encounters.enterEncounters>;
+    try {
+      result = dependencies.encounters.enterEncounters();
+    } catch {
+      encounterActionInProgress = false;
+      encounterActionFailure(errorNotice(
+        "Encounters and consequences could not be opened. Your newborn result is unchanged.",
+      ));
+      return;
+    }
+    encounterActionInProgress = false;
+    if (result.kind === "invalid") {
+      encounterActionFailure(result.notice);
+      return;
+    }
+    mountEnteredEncounters(result.state, result.notice ?? null);
+  }
+
+  function continueFromEncounters(): void {
+    if (disposed) return;
+    disposeMountedEncounter();
+    state.screen = "ready";
+    state.notice = {
+      tone: "status",
+      message: "Encounters and consequences are complete. Education can now begin with these facts, memories, and relationships.",
+    };
+    focusAfterRenderId = NOTICE_ID;
+    render();
+  }
+
+  function returnFromEncountersToReady(): void {
+    if (disposed) return;
+    setScreen("ready");
   }
 
   function disposeRunnerParts(
@@ -831,6 +1028,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     enteredNotice: ShellNotice | null,
   ): void {
     disposeMountedRunner();
+    disposeMountedEncounter();
     renderLifetime.dispose();
     renderLifetime = new CleanupBag();
     state.screen = "runner";
@@ -1214,6 +1412,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       }
       return;
     }
+    if (state.screen === "encounters" && mountedEncounter !== null) {
+      applySettings();
+      const currentEncounter = dependencies.encounters?.currentEncounterState() ?? null;
+      if (currentEncounter !== null) {
+        mountedEncounter.view.render(currentEncounter);
+      }
+      return;
+    }
     if (state.screen === "runner" && mountedRunner !== null) {
       applySettings();
       mountedRunner.view.updateVisualOptions(runnerVisualOptions(
@@ -1263,7 +1469,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     if (state.pending !== "settings") {
       state.settings = cloneSettings(snapshot.settings);
     }
-    if (runnerActionInProgress || runnerCommitInProgress) {
+    if (runnerActionInProgress || runnerCommitInProgress || encounterActionInProgress) {
       applySettings();
       return;
     }
@@ -1274,6 +1480,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
         mountedRunner.session.getSnapshot().state.accessibility,
       ));
       mountedRunner.input.syncGate();
+      return;
+    }
+    if (mountedEncounter !== null) {
+      const currentEncounter = dependencies.encounters?.currentEncounterState() ?? null;
+      if (currentEncounter !== null) {
+        mountedEncounter.view.render(currentEncounter);
+      }
+      applySettings();
       return;
     }
     render();
@@ -1288,6 +1502,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       disposed = true;
       operationVersion += 1;
       disposeMountedNewborn();
+      disposeMountedEncounter();
       disposeMountedRunner();
       renderLifetime.dispose();
       lifetime.dispose();

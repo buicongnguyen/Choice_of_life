@@ -7,8 +7,8 @@ Active plan: [CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md](../CHOICE_OF_LIFE_IMPLEM
 | 0A — Plan, tooling, baselines | Complete | `3c97ecacc939894e7949228b46473a1c04855ffe` | [phase-0a.md](./reviews/phase-0a.md) | [run 30827359242](https://github.com/buicongnguyen/Choice_of_life/actions/runs/30827359242), exact SHA and primary-flow smoke passed |
 | 1 — Shell and deterministic core | Complete | `792e052aaea6abd99eb9707ed434d66e15055dfd` | [phase-1 review](./reviews/phase-1.md) | [deploy run 30851183545](https://github.com/buicongnguyen/Choice_of_life/actions/runs/30851183545), [lock run 30851183625](https://github.com/buicongnguyen/Choice_of_life/actions/runs/30851183625), exact SHA and title → setup → create/save → resume smoke passed |
 | 2 — Runner laboratory | Complete; exhaustive verification deferred by user | `b4f39435b4104e5338c6a840a3ca23190f9f1d34` | [phase-2 contract](./phase-specs/phase-2.md) | [deploy run 31005473206](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31005473206) succeeded |
-| 3 — Newborn | Implementation complete; verification deferred by user | pending | Generated nursery art and runnable newborn stage | Deployment pending |
-| 4 — Encounters and consequences | Pending | — | — | — |
+| 3 — Newborn | Complete; verification deferred by user | `4922d7d3c1522cb5d001c035a2f30d4fbce1c6c5` | Generated nursery art and runnable newborn stage | [deploy run 31006486403](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31006486403) succeeded |
+| 4 — Encounters and consequences | Implementation complete; verification deferred by user | pending | Runnable encounter chapter and consequence engine | Deployment pending |
 | 5 — High School and Education | Pending | — | — | — |
 | 6 — First Career and provisional ending | Pending | — | — | — |
 | 7 — Childhood continuity | Pending | — | — | — |

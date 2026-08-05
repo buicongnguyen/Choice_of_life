@@ -2,6 +2,14 @@ import { RUNNER_LABORATORY_CATALOG } from "../core/catalog";
 import { deepFreeze } from "../core/immutable";
 import { createInitialRunState } from "../core/run-factory";
 import { createNewbornState, reduceNewborn, type NewbornState } from "../core/newborn/index";
+import {
+  DEFAULT_ENCOUNTER_CATALOG,
+  canLeaveEncounterStage,
+  createEncounterEngineState,
+  getEncounterSafeCorridorStatus,
+  reduceEncounterEngine,
+  scheduleEncounter,
+} from "../core/encounters/index";
 import { createRunnerLaboratoryEntryState, RUNNER_LABORATORY_STAGE_ID } from "../core/runner/contract";
 import type { SeedPort } from "../core/seed-port";
 import { STARTING_PROFILE_SCORES, type RunStateV1, type StartingProfileId } from "../core/run-state";
@@ -9,6 +17,10 @@ import { stateHashV1 } from "../core/run-state-hash";
 import type {
   BrowserDependencies,
   ChoiceOfLifeShellPort,
+  EncounterChapterAction,
+  EncounterChapterActionResult,
+  EncounterChapterShellPort,
+  EncounterChapterState,
   NewbornActionResult,
   NewbornShellPort,
   ReadyRun,
@@ -22,6 +34,10 @@ import type {
   ShellSnapshot,
   SetupSelection,
   VisualSettings,
+} from "../core/shell-contracts";
+import {
+  ENCOUNTER_CHAPTER_DURATION_TICKS,
+  ENCOUNTER_CHAPTER_STAGE_ID,
 } from "../core/shell-contracts";
 import { createSaveStore, type LoadResult, type SaveStore } from "../persistence/save-store";
 import type { StoragePort } from "../persistence/storage-port";
@@ -71,7 +87,7 @@ function copyValidSettings(value: unknown): VisualSettings | null {
   };
 }
 
-export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort {
+export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort, EncounterChapterShellPort {
   startNewLife(selection: SetupSelection): RunActionResult;
   continueLife(): RunActionResult;
   saveSettings(settings: VisualSettings): SettingsActionResult;
@@ -121,6 +137,70 @@ function noticeForLoad(result: LoadResult): ShellNotice | null {
   }
 }
 
+const ENCOUNTER_RECOVERY_POLICY = Object.freeze({
+  triggerAtOrBelow: 45,
+  recoverTo: 50,
+});
+
+function createEncounterChapterState(
+  runId: string,
+  scores: RunStateV1["scores"],
+): EncounterChapterState {
+  let engine = createEncounterEngineState(scores);
+  for (const request of [
+    {
+      transactionId: `${runId}:encounter:caregiver`,
+      encounterId: "caregiver-comfort-v1",
+      stageId: ENCOUNTER_CHAPTER_STAGE_ID,
+      opensAtTick: 5,
+      closesAtTick: 45,
+    },
+    {
+      transactionId: `${runId}:encounter:playground`,
+      encounterId: "playground-sharing-v1",
+      stageId: ENCOUNTER_CHAPTER_STAGE_ID,
+      opensAtTick: 55,
+      closesAtTick: 110,
+    },
+    {
+      transactionId: `${runId}:encounter:study`,
+      encounterId: "study-or-rest-v1",
+      stageId: ENCOUNTER_CHAPTER_STAGE_ID,
+      opensAtTick: 120,
+      closesAtTick: 250,
+    },
+  ] as const) {
+    engine = scheduleEncounter(engine, DEFAULT_ENCOUNTER_CATALOG, request);
+  }
+  return Object.freeze({
+    schemaVersion: 1,
+    contentVersion: "encounter-chapter-v1",
+    runId,
+    stageId: ENCOUNTER_CHAPTER_STAGE_ID,
+    phase: "active",
+    simulationTick: 0,
+    durationTicks: ENCOUNTER_CHAPTER_DURATION_TICKS,
+    engine,
+  });
+}
+
+function encounterChapterWith(
+  state: EncounterChapterState,
+  engine: EncounterChapterState["engine"],
+  simulationTick = state.simulationTick,
+): EncounterChapterState {
+  const unresolvedRecovery = engine.recoveryHooks.some(
+    (hook) => hook.status === "offered",
+  );
+  const phase = simulationTick >= state.durationTicks
+    && canLeaveEncounterStage(engine, state.stageId)
+    && !getEncounterSafeCorridorStatus(engine).active
+    && !unresolvedRecovery
+    ? "complete"
+    : "active";
+  return Object.freeze({ ...state, engine, simulationTick, phase });
+}
+
 export function createBrowserShellPort(options: BrowserShellOptions): BrowserShellPort {
   const store: SaveStore = createSaveStore(options.storage, RUNNER_LABORATORY_CATALOG);
   const initialLoad = store.load();
@@ -129,6 +209,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
   // newborn payload. This prevents an unvalidated Phase-3 shape from leaking
   // into durable saves while still supporting the complete stage in-session.
   let newbornState: NewbornState | null = null;
+  let encounterState: EncounterChapterState | null = null;
   let settings: VisualSettings = currentState ? { ...currentState.accessibility } : { ...DEFAULT_SETTINGS };
   let notice = noticeForLoad(initialLoad);
   const listeners = new Set<() => void>();
@@ -230,6 +311,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       }
       currentState = state;
       newbornState = null;
+      encounterState = null;
       if (result.kind === "saved") {
         notice = null;
       } else if (result.kind === "unavailable") {
@@ -340,6 +422,128 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       publish();
       return { kind: "ready", state: newbornState };
     },
+    currentEncounterState(): EncounterChapterState | null {
+      return encounterState;
+    },
+    enterEncounters(): EncounterChapterActionResult {
+      if (currentState === null) {
+        return {
+          kind: "invalid",
+          notice: warning("Create a life before opening encounters and consequences."),
+        };
+      }
+      if (newbornState === null || newbornState.phase !== "complete") {
+        return {
+          kind: "invalid",
+          notice: warning("Complete the newborn chapter before continuing to life encounters."),
+        };
+      }
+      if (encounterState !== null && encounterState.runId === currentState.runId) {
+        return { kind: "ready", state: encounterState, ...(notice ? { notice } : {}) };
+      }
+      try {
+        encounterState = createEncounterChapterState(
+          currentState.runId,
+          newbornState.scores,
+        );
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("The encounter chapter could not be created. Your newborn result is still available."),
+        };
+      }
+      notice = {
+        tone: "status",
+        message: "Encounters are active for this browser session. Each decision is applied once.",
+      };
+      publish();
+      return { kind: "ready", state: encounterState, notice };
+    },
+    dispatchEncounter(action: EncounterChapterAction): EncounterChapterActionResult {
+      if (encounterState === null) {
+        return {
+          kind: "invalid",
+          notice: warning("Open encounters and consequences before making a choice."),
+        };
+      }
+      if (encounterState.phase === "complete") {
+        return { kind: "ready", state: encounterState };
+      }
+      try {
+        const context = {
+          stageId: encounterState.stageId,
+          simulationTick: encounterState.simulationTick,
+        };
+        let engine = encounterState.engine;
+        let simulationTick = encounterState.simulationTick;
+        if (action.type === "advance") {
+          const recoveryPending = engine.recoveryHooks.some(
+            (hook) => hook.status === "offered",
+          );
+          if (!getEncounterSafeCorridorStatus(engine).shouldPauseWorld && !recoveryPending) {
+            const ticks = Math.max(1, Math.min(25, Math.trunc(action.ticks ?? 1)));
+            simulationTick = Math.min(
+              encounterState.durationTicks,
+              encounterState.simulationTick + ticks,
+            );
+            engine = reduceEncounterEngine(
+              engine,
+              DEFAULT_ENCOUNTER_CATALOG,
+              {
+                type: "advance",
+                context: { ...context, simulationTick },
+              },
+              ENCOUNTER_RECOVERY_POLICY,
+            );
+          }
+        } else if (action.type === "choose") {
+          engine = reduceEncounterEngine(
+            engine,
+            DEFAULT_ENCOUNTER_CATALOG,
+            {
+              type: "resolve",
+              transactionId: action.transactionId,
+              optionId: action.optionId,
+              context,
+            },
+            ENCOUNTER_RECOVERY_POLICY,
+          );
+        } else if (action.type === "skip") {
+          engine = reduceEncounterEngine(
+            engine,
+            DEFAULT_ENCOUNTER_CATALOG,
+            { type: "skip", transactionId: action.transactionId, context },
+            ENCOUNTER_RECOVERY_POLICY,
+          );
+        } else if (action.type === "accept-recovery") {
+          engine = reduceEncounterEngine(
+            engine,
+            DEFAULT_ENCOUNTER_CATALOG,
+            { type: "accept-recovery", recoveryId: action.recoveryId, context },
+            ENCOUNTER_RECOVERY_POLICY,
+          );
+        } else {
+          engine = reduceEncounterEngine(
+            engine,
+            DEFAULT_ENCOUNTER_CATALOG,
+            { type: "dismiss-recovery", recoveryId: action.recoveryId, context },
+            ENCOUNTER_RECOVERY_POLICY,
+          );
+        }
+        encounterState = encounterChapterWith(
+          encounterState,
+          engine,
+          simulationTick,
+        );
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("That encounter action could not be applied. Your latest chapter state was kept."),
+        };
+      }
+      publish();
+      return { kind: "ready", state: encounterState };
+    },
     enterRunnerLaboratory(): RunnerLaboratoryActionResult {
       if (currentState === null) {
         return { kind: "invalid", notice: runnerNotice("Create a life before opening the runner laboratory.") };
@@ -405,5 +609,6 @@ export function createBrowserDependencies(): BrowserDependencies {
     shell,
     runner: shell,
     newborn: shell,
+    encounters: shell,
   };
 }

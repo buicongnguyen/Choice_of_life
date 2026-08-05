@@ -6,6 +6,7 @@ import type {
   StartingProfileId,
 } from "./run-state";
 import type { NewbornAction, NewbornState } from "./newborn/index";
+import type { EncounterEngineState } from "./encounters/index";
 
 export type Gender = RunStateV1["identity"]["gender"];
 export type AppearanceSelection = RunStateV1["appearance"];
@@ -77,6 +78,33 @@ export type NewbornActionResult =
   | { readonly kind: "ready"; readonly state: NewbornState; readonly notice?: ShellNotice }
   | { readonly kind: "invalid"; readonly notice: ShellNotice };
 
+export const ENCOUNTER_CHAPTER_STAGE_ID = "encounters-and-consequences-v1" as const;
+export const ENCOUNTER_CHAPTER_DURATION_TICKS = 350;
+
+export type EncounterChapterPhase = "active" | "complete";
+
+export interface EncounterChapterState {
+  readonly schemaVersion: 1;
+  readonly contentVersion: "encounter-chapter-v1";
+  readonly runId: string;
+  readonly stageId: typeof ENCOUNTER_CHAPTER_STAGE_ID;
+  readonly phase: EncounterChapterPhase;
+  readonly simulationTick: number;
+  readonly durationTicks: number;
+  readonly engine: EncounterEngineState;
+}
+
+export type EncounterChapterAction =
+  | Readonly<{ type: "advance"; ticks?: number }>
+  | Readonly<{ type: "choose"; transactionId: string; optionId: string }>
+  | Readonly<{ type: "skip"; transactionId: string }>
+  | Readonly<{ type: "accept-recovery"; recoveryId: string }>
+  | Readonly<{ type: "dismiss-recovery"; recoveryId: string }>;
+
+export type EncounterChapterActionResult =
+  | { readonly kind: "ready"; readonly state: EncounterChapterState; readonly notice?: ShellNotice }
+  | { readonly kind: "invalid"; readonly notice: ShellNotice };
+
 /**
  * Phase-3 runtime capability. Newborn progress is deliberately session-scoped
  * until it can be incorporated into the versioned run save without weakening
@@ -86,6 +114,13 @@ export interface NewbornShellPort {
   currentNewbornState(): NewbornState | null;
   enterNewborn(): NewbornActionResult;
   dispatchNewborn(action: NewbornAction): NewbornActionResult;
+}
+
+/** Phase-4 session runtime built on the reusable encounter engine. */
+export interface EncounterChapterShellPort {
+  currentEncounterState(): EncounterChapterState | null;
+  enterEncounters(): EncounterChapterActionResult;
+  dispatchEncounter(action: EncounterChapterAction): EncounterChapterActionResult;
 }
 
 export interface RunnerLaboratoryShellPort {
@@ -109,4 +144,6 @@ export interface BrowserDependencies {
   readonly runner?: RunnerLaboratoryShellPort;
   /** Phase-3 actual-life capability; optional for older embedded shells. */
   readonly newborn?: NewbornShellPort;
+  /** Phase-4 encounters-and-consequences capability. */
+  readonly encounters?: EncounterChapterShellPort;
 }
