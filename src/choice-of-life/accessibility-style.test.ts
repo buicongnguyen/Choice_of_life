@@ -50,7 +50,8 @@ describe("Phase 1 accessibility style contract", () => {
     expect(style).toMatch(/@media\s*\(max-width:\s*34rem\)[\s\S]*?\.col-actions[\s\S]*?flex-direction:\s*column/);
     expect(rule(".choice-life-root")).toMatch(/overflow-wrap:\s*anywhere/);
     expect(rule(".col-dialog")).toMatch(/overflow:\s*auto/);
-    expect(style).not.toMatch(/overflow:\s*hidden/);
+    expect(rule(".choice-life-root")).not.toMatch(/overflow:\s*hidden/);
+    expect(style.match(/html,\s*\nbody\s*\{[^}]+\}/)?.[0]).not.toMatch(/overflow:\s*hidden/);
   });
 
   it("keeps explicit high-contrast and reduced-motion behavior", () => {

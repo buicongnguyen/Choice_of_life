@@ -563,8 +563,7 @@ function scheduleOptionCallbacks(
       callbackTransactionIds.push(transactionId);
       continue;
     }
-    callbacks.push(
-      Object.freeze({
+    const scheduledCallback: ScheduledEncounterCallback = Object.freeze({
         transactionId,
         callbackId: callback.callbackId,
         status: "scheduled",
@@ -578,12 +577,12 @@ function scheduleOptionCallbacks(
           facts: Object.freeze([...(callback.facts ?? [])]),
           memories: Object.freeze([...(callback.memories ?? [])]),
           relationships: Object.freeze([...(callback.relationships ?? [])]),
-          storyText: callback.storyText,
+          ...(callback.storyText === undefined ? {} : { storyText: callback.storyText }),
         }),
         resolvedTick: null,
         supersededByTransactionId: null,
-      }),
-    );
+      });
+    callbacks.push(scheduledCallback);
     callbackTransactionIds.push(transactionId);
   }
   return Object.freeze({

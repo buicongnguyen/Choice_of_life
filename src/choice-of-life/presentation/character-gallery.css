@@ -393,7 +393,6 @@
   inline-size: 7rem;
 }
 
-/* Side and back poses stay inside the same fixed root box and foot anchor. */
 .col-gallery .col-character--faces-right .col-character__eye--left,
 .col-gallery .col-character--faces-right .col-character__cheek--left,
 .col-gallery .col-character--faces-left .col-character__eye--left,
@@ -436,7 +435,6 @@
   left: 40%;
 }
 
-/* Gallery-only hairstyle silhouettes make deterministic variants visibly distinct. */
 .col-gallery .col-character--hair-short-soft .col-character__hair,
 .col-gallery .col-character--hair-side-part-crop .col-character__hair,
 .col-gallery .col-character--hair-soft-undercut .col-character__hair {
@@ -541,7 +539,6 @@
   transform: rotate(-8deg);
 }
 
-/* Female and male presentations are visibly separate without changing metrics. */
 .col-gallery .col-character--feminine-silhouette .col-character__torso::before {
   background: linear-gradient(90deg, transparent 8%, rgba(255, 255, 255, 0.2) 50%, transparent 92%);
   border-radius: 50%;
@@ -557,7 +554,6 @@
   border-radius: 25% 25% 14% 14%;
 }
 
-/* Summer outfits expose short sleeves and lighter lower garments. */
 .col-gallery .col-character--season-summer .col-character__arm {
   background: linear-gradient(180deg, var(--col-character-primary) 0 34%, var(--col-character-skin) 35% 100%);
 }
@@ -572,7 +568,6 @@
   background: linear-gradient(180deg, var(--col-character-skin) 0 70%, var(--col-character-secondary) 71% 100%);
 }
 
-/* Job families get small uniform cues in addition to their wardrobe palettes. */
 .col-gallery .col-outfit--doctor .col-character__torso,
 .col-gallery .col-outfit--nurse .col-character__torso,
 .col-gallery .col-outfit--chef .col-character__torso {

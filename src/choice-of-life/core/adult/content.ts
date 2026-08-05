@@ -264,11 +264,11 @@ export function adultAppearanceAt(index: number, gender: AdultGender): AdultAppe
   const builds: readonly AdultAppearance["bodyBuild"][] = ["average", "athletic", "slim", "broad"];
   const hair = gender === "female" ? femaleHair : maleHair;
   return deepFreeze({
-    skinTone: skinTones[index % skinTones.length],
-    hairStyle: hair[index % hair.length],
-    hairColor: hairColors[(index * 3 + 1) % hairColors.length],
-    bodyBuild: builds[(index * 5 + 2) % builds.length],
-    accessory: accessories[(index * 7 + 1) % accessories.length],
+    skinTone: skinTones[index % skinTones.length]!,
+    hairStyle: hair[index % hair.length]!,
+    hairColor: hairColors[(index * 3 + 1) % hairColors.length]!,
+    bodyBuild: builds[(index * 5 + 2) % builds.length]!,
+    accessory: accessories[(index * 7 + 1) % accessories.length]!,
   });
 }
 

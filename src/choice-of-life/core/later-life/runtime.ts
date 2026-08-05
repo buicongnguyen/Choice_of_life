@@ -65,7 +65,7 @@ function generatedPersonFor(
     optionId === "legacy-family-stories-v1";
   const poolId = isCommunity ? "community" : isFriend ? "friend" : "colleague";
   const pool = NAME_POOLS[poolId];
-  const name = pool[stableIndex(state.runSeed, optionId, pool.length)];
+  const name = pool[stableIndex(state.runSeed, optionId, pool.length)]!;
   const role = isCommunity
     ? "Community organizer"
     : isFriend
@@ -114,7 +114,7 @@ export function getPresentingLaterLifeCallback(
 ): SceneCallbackRecord | null {
   for (let index = state.callbacks.length - 1; index >= 0; index -= 1) {
     const callback = state.callbacks[index];
-    if (callback.status === "presenting") return callback;
+    if (callback?.status === "presenting") return callback;
   }
   return null;
 }

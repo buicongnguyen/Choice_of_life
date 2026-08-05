@@ -111,7 +111,7 @@ export function createDefaultPriorChapters(
       return {
         stageId,
         title: copy.title,
-        ageStartMonths: PRIOR_AGE_BOUNDARIES[index],
+        ageStartMonths: PRIOR_AGE_BOUNDARIES[index]!,
         ageEndMonths: chapterEnd(index, laterLifeStartAgeMonths),
         summary: copy.summary,
         majorDecisionId: copy.decisionId,

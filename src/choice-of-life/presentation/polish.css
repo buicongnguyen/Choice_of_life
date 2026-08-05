@@ -261,7 +261,6 @@
   white-space: nowrap;
 }
 
-/* Reusable, side-on life-stage scene. The horizon never changes the ground plane. */
 .col-polish-life-scene {
   --col-scene-sky: #ccebea;
   --col-scene-sky-light: #f5eacb;
@@ -441,7 +440,6 @@
   transform-origin: 50% 100% !important;
 }
 
-/* Character geometry keeps the root box fixed; only limbs animate while walking. */
 .col-polish-actor--character .col-character {
   block-size: var(--col-character-height, 9rem);
   display: block;
@@ -597,7 +595,6 @@
   z-index: 4;
 }
 
-/* Opaque overlap seals the torso/waist seam on every palette and background. */
 .col-polish-actor--character .col-character__torso::after {
   background-color: var(--col-character-primary, #4d8f8c);
   bottom: -.28rem;
@@ -673,7 +670,6 @@
   transform: rotate(7deg);
 }
 
-/* Compact pets share the same fixed bottom-centre ground contract. */
 .col-polish-actor--pet .col-companion {
   block-size: 4.6rem;
   display: block;

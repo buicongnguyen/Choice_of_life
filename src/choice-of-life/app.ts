@@ -927,6 +927,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
         "col-button col-button--quiet",
       );
       runnerButton.setAttribute("data-runner-enter", "");
+      runnerButton.setAttribute("aria-label", "Open runner laboratory");
       runnerButton.disabled = state.pending !== null;
       listen(runnerButton, "click", enterRunnerLaboratory);
       actions.append(runnerButton);

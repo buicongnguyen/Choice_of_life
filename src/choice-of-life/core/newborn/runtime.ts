@@ -48,11 +48,29 @@ function createEmptyAttribution(): NewbornSourceAttribution {
 }
 
 function assertSetup(setup: NewbornSetup): void {
+  if (typeof setup.runId !== "string") {
+    throw new TypeError("Newborn runId must be a string");
+  }
   if (setup.runId.trim().length === 0) {
     throw new TypeError("Newborn runId must not be empty");
   }
+  if (typeof setup.runSeed !== "string") {
+    throw new TypeError("Newborn runSeed must be a string");
+  }
   if (setup.runSeed.trim().length === 0) {
     throw new TypeError("Newborn runSeed must not be empty");
+  }
+  if (
+    setup.difficulty !== undefined
+    && !["story", "normal", "challenge"].includes(setup.difficulty)
+  ) {
+    throw new TypeError("Newborn difficulty must be story, normal, or challenge");
+  }
+  if (
+    setup.initialLane !== undefined
+    && (!Number.isInteger(setup.initialLane) || setup.initialLane < 0 || setup.initialLane > 2)
+  ) {
+    throw new RangeError("Newborn initialLane must be 0, 1, or 2");
   }
 }
 

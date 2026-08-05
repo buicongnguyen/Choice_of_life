@@ -12,11 +12,6 @@ import {
   type PlayerTextScale,
 } from "../core/player-preferences";
 import {
-  createAudioCueManager,
-  type AudioCueManager,
-  type AudioCueStatus,
-} from "../platform/audio-cues";
-import {
   createCharacterElement,
   createCompanionElement,
   type CharacterModel,
@@ -24,19 +19,33 @@ import {
 } from "./character-system";
 import "./polish.css";
 
+type PreferencesAudioStatus =
+  | "disabled"
+  | "unsupported"
+  | "locked"
+  | "ready"
+  | "disposed";
+
+interface PreferencesAudioManager {
+  readonly status: PreferencesAudioStatus;
+  setEnabled(enabled: boolean): void;
+  enableFromUserGesture(): Promise<PreferencesAudioStatus>;
+  play(cueId: "choice-confirm" | "notification"): unknown;
+}
+
 export interface PreferencesPanelCallbacks {
   readonly onPreferencesChange?: (
     preferences: PlayerPreferences,
     patch: PlayerPreferencePatch,
   ) => void;
-  readonly onAudioStatusChange?: (status: AudioCueStatus) => void;
+  readonly onAudioStatusChange?: (status: PreferencesAudioStatus) => void;
   readonly onAnnouncement?: (message: string) => void;
   readonly onOpenChange?: (open: boolean) => void;
 }
 
 export interface PreferencesPanelOptions extends PreferencesPanelCallbacks {
   readonly preferences?: PlayerPreferences;
-  readonly audioManager?: AudioCueManager;
+  readonly audioManager: PreferencesAudioManager;
   /** Preferences are reflected here so every life-stage view inherits them. */
   readonly presentationRoot?: HTMLElement;
   readonly title?: string;
@@ -45,7 +54,7 @@ export interface PreferencesPanelOptions extends PreferencesPanelCallbacks {
 
 export interface PreferencesPanel {
   readonly element: HTMLElement;
-  readonly audioManager: AudioCueManager;
+  readonly audioManager: PreferencesAudioManager;
   getPreferences(): PlayerPreferences;
   render(preferences: PlayerPreferences): void;
   setOpen(open: boolean): void;
@@ -240,7 +249,7 @@ export function createPolishedCompanionActor(
 
 export function mountPreferencesPanel(
   container: HTMLElement,
-  options: PreferencesPanelOptions = {},
+  options: PreferencesPanelOptions,
 ): PreferencesPanel {
   const document = container.ownerDocument;
   const panelId = `col-preferences-${panelSequence += 1}`;
@@ -249,10 +258,8 @@ export function mountPreferencesPanel(
     options.preferences ?? DEFAULT_PLAYER_PREFERENCES,
   );
   const presentationRoot = options.presentationRoot ?? container;
-  const ownsAudioManager = options.audioManager === undefined;
-  const audioManager = options.audioManager ?? createAudioCueManager({
-    enabled: current.audioCuesEnabled,
-  });
+  const audioManager = options.audioManager;
+  let announcementTimer: number | undefined;
 
   const section = document.createElement("section");
   section.className = "col-preferences-panel";
@@ -414,7 +421,9 @@ export function mountPreferencesPanel(
     options.onAnnouncement?.(message);
     if (!current.screenReaderAnnouncements) return;
     liveRegion.textContent = "";
-    globalThis.setTimeout(() => {
+    if (announcementTimer !== undefined) document.defaultView?.clearTimeout(announcementTimer);
+    announcementTimer = document.defaultView?.setTimeout(() => {
+      announcementTimer = undefined;
       if (!disposed && current.screenReaderAnnouncements) {
         liveRegion.textContent = message;
       }
@@ -553,8 +562,8 @@ export function mountPreferencesPanel(
       toggle.removeEventListener("click", onToggle);
       body.removeEventListener("change", onChange);
       body.removeEventListener("click", onClick);
+      if (announcementTimer !== undefined) document.defaultView?.clearTimeout(announcementTimer);
       section.remove();
-      if (ownsAudioManager) void audioManager.dispose();
     },
   });
 }

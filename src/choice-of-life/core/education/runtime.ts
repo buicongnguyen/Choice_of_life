@@ -537,7 +537,7 @@ export function retrainEducation(
   state: EducationState,
   targetRouteId: PrimaryEducationRouteId,
 ): EducationState {
-  if (state.phase !== "qualified" && state.qualificationRouteId === null) {
+  if (state.phase !== "qualified" || state.qualificationRouteId === null) {
     throw new Error("Complete an education route before retraining");
   }
   if (!retrainingTargetIds(state).includes(targetRouteId)) {

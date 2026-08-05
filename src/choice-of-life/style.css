@@ -3,7 +3,6 @@ body {
   min-block-size: 100%;
 }
 
-/* Phase 6: compact first-career chapter */
 .col-career-shell,
 .col-career-host,
 .col-career-view {
@@ -1401,7 +1400,6 @@ body {
   }
 }
 
-/* Phase 3: Newborn nursery. This is intentionally isolated from the runner. */
 .col-newborn-view {
   --col-newborn-ink: #34424b;
   --col-newborn-outline: #543d3a;
@@ -2428,7 +2426,6 @@ body {
   }
 }
 
-/* Encounters & consequences chapter */
 .col-encounter-shell {
   inline-size: min(100%, 76rem);
 }
@@ -3185,7 +3182,6 @@ body {
   }
 }
 
-/* Phase 5: High School & Education */
 .col-education-shell {
   inline-size: min(100%, 76rem);
 }

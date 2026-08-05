@@ -316,7 +316,7 @@ export function createCareerOfferSet(
     );
     if (priorityIndex > 0) {
       const [priority] = ranked.splice(priorityIndex, 1);
-      ranked.unshift(priority);
+      ranked.unshift(priority!);
     }
   }
 
@@ -371,7 +371,7 @@ export function createCareerState(
         runSeed: setup.runSeed,
         profile,
         scores,
-        offerCount: setup.offerCount,
+        ...(setup.offerCount === undefined ? {} : { offerCount: setup.offerCount }),
       },
       catalog,
     ),
@@ -396,7 +396,7 @@ function deterministicColleague(
     COLLEAGUE_NAMES.length;
   return immutable({
     personId: `career-colleague-${definition.careerId}-v1`,
-    name: COLLEAGUE_NAMES[index],
+    name: COLLEAGUE_NAMES[index]!,
     role: definition.pressureStory.supportRole,
     relationship: "colleague" as const,
   });
@@ -698,7 +698,7 @@ function variableIncomeDelta(state: CareerState, careerId: CareerId, cycle: numb
     return 0;
   }
   const outcomes = [-2, 0, 3] as const;
-  return outcomes[stableHash(`${state.runSeed}:income:${careerId}:${cycle}`) % outcomes.length];
+  return outcomes[stableHash(`${state.runSeed}:income:${careerId}:${cycle}`) % outcomes.length]!;
 }
 
 function hasResolvedCallback(state: CareerState, callbackId: string): boolean {
@@ -966,6 +966,9 @@ export function setCareerSeason(
   state: CareerState,
   season: CareerState["season"],
 ): CareerState {
+  if (season !== "standard" && season !== "summer") {
+    throw new TypeError("Career season must be standard or summer");
+  }
   return state.season === season ? state : immutable({ ...state, season });
 }
 

@@ -118,7 +118,7 @@ function createFriendRoster(seed: string): readonly ChildhoodFriendRelationship[
       const person =
         candidates[
           seededNumber(seed, `friend:${stage.stageId}`) % candidates.length
-        ];
+        ]!;
       const identity: ChildhoodFriendIdentity = Object.freeze({
         ...person,
         introductionStageId: stage.stageId,
@@ -156,7 +156,7 @@ function selectCompanion(
   const candidates = CHILDHOOD_COMPANION_CATALOG.filter(
     (candidate) => candidate.kind === kind,
   );
-  return candidates[seededNumber(seed, `companion:${kind}`) % candidates.length];
+  return candidates[seededNumber(seed, `companion:${kind}`) % candidates.length] ?? null;
 }
 
 function friendForStage(
@@ -480,7 +480,7 @@ export function createChildhoodState(setup: ChildhoodSetup): ChildhoodState {
     throw new TypeError("Childhood runSeed must not be empty");
   }
   const scores = createCoreScores(setup.scores ?? DEFAULT_CHILDHOOD_SCORES);
-  const firstStage = CHILDHOOD_STAGE_DEFINITIONS[0];
+  const firstStage = CHILDHOOD_STAGE_DEFINITIONS[0]!;
   return immutable({
     schemaVersion: 1 as const,
     contentVersion: "childhood-continuity-v1" as const,
@@ -618,7 +618,7 @@ export function continueChildhoodStage(state: ChildhoodState): ChildhoodState {
       }),
     });
   }
-  const definition = CHILDHOOD_STAGE_DEFINITIONS[nextStageIndex];
+  const definition = CHILDHOOD_STAGE_DEFINITIONS[nextStageIndex]!;
   return immutable({
     ...state,
     phase: "active" as const,

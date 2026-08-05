@@ -34,8 +34,18 @@ export const PROTECTED_MECHANICS_READ_ALLOWLIST = Object.freeze([
   "src/choice-of-life/core/run-state-codec.ts",
   "src/choice-of-life/core/run-state-fixtures.ts",
   "src/choice-of-life/core/run-state-hash.ts",
+  "src/choice-of-life/core/player-preferences.ts",
+  "src/choice-of-life/core/adult/content.ts",
+  "src/choice-of-life/core/adult/runtime.ts",
+  "src/choice-of-life/core/childhood/runtime.ts",
+  "src/choice-of-life/platform/adult-session.ts",
   "src/choice-of-life/platform/browser-shell.ts",
+  "src/choice-of-life/presentation/adult-view.ts",
+  "src/choice-of-life/presentation/character-gallery.ts",
+  "src/choice-of-life/presentation/character-system.ts",
+  "src/choice-of-life/presentation/childhood-view.ts",
   "src/choice-of-life/presentation/model.ts",
+  "src/choice-of-life/presentation/preferences-panel.ts",
 ]);
 const PROTECTED_MECHANICS_READ_ALLOWED = new Set(PROTECTED_MECHANICS_READ_ALLOWLIST);
 const FORBIDDEN_PURE_IDENTIFIERS = new Set([
@@ -854,7 +864,13 @@ function resolveLocalReference(fromFile, specifier, root) {
       candidates.push(path.join(base, `index${extension}`));
     }
   }
-  return candidates.find((candidate) => fs.existsSync(candidate)) ?? base;
+  return candidates.find((candidate) => {
+    try {
+      return fs.statSync(candidate).isFile();
+    } catch {
+      return false;
+    }
+  }) ?? base;
 }
 
 function readAliases(root) {
@@ -913,6 +929,7 @@ function isAllowedProductionPath(relative) {
   return (
     relative === "src/main.ts" ||
     relative === "src/choice-of-life/style.css" ||
+    relative.startsWith("src/choice-of-life/presentation/") && relative.endsWith(".css") ||
     (relative.startsWith("src/choice-of-life/") &&
       isSourceModule(relative) &&
       !isTestSource(relative))
@@ -923,7 +940,10 @@ function isClassifiedChoicePath(relative) {
   return (
     relative === "src/choice-of-life/app.ts" ||
     relative === "src/choice-of-life/style.css" ||
-    (layerOf(relative) !== null && isSourceModule(relative))
+    (layerOf(relative) !== null && (
+      isSourceModule(relative)
+      || (layerOf(relative) === "presentation" && relative.endsWith(".css"))
+    ))
   );
 }
 
@@ -979,7 +999,12 @@ export function auditChoiceBoundaries(root = process.cwd()) {
     .map((file) => normalize(path.relative(publicDirectory, file)))
     .sort();
   const unexpectedPublic = publicFiles.filter(
-    (file) => !["favicon.svg", "release.json"].includes(file)
+    (file) => ![
+      "404.html",
+      "assets/newborn-nursery-v1.png",
+      "favicon.svg",
+      "release.json",
+    ].includes(file)
   );
   if (unexpectedPublic.length) {
     errors.push(`Unexpected public files: ${unexpectedPublic.join(", ")}`);

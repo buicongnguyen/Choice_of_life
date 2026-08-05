@@ -80,10 +80,10 @@ function roleNpc(
     throw new Error(`Cannot generate a ${role} for attraction '${attraction}'`);
   }
   const nameOffset = stableHash(`${runSeed}:${role}:names`) % names.length;
-  const record = names[(nameOffset + index * 5) % names.length];
+  const record = names[(nameOffset + index * 5) % names.length]!;
   const jobs = Object.keys(ADULT_JOB_CATALOG) as AdultJobId[];
   const jobOffset = stableHash(`${runSeed}:${role}:jobs`) % jobs.length;
-  const jobId = jobs[(jobOffset + index * 7) % jobs.length];
+  const jobId = jobs[(jobOffset + index * 7) % jobs.length]!;
   const appearanceIndex = stableHash(`${runSeed}:${role}:${record.name}:${index}`);
   return immutable({
     personId: `${role}-${record.gender}-${record.name.toLowerCase()}-${appearanceIndex.toString(36)}`,
@@ -193,6 +193,18 @@ function createCareerState(jobId: AdultJobId): AdultCareerState {
 }
 
 export function createAdultState(setup: AdultSetup): AdultState {
+  if (typeof setup.runId !== "string" || setup.runId.trim().length === 0) {
+    throw new TypeError("Adult runId must be a non-empty string");
+  }
+  if (typeof setup.runSeed !== "string" || setup.runSeed.trim().length === 0) {
+    throw new TypeError("Adult runSeed must be a non-empty string");
+  }
+  if (setup.player.gender !== "female" && setup.player.gender !== "male") {
+    throw new TypeError("Adult player gender must be female or male");
+  }
+  if (setup.season !== undefined && setup.season !== "standard" && setup.season !== "summer") {
+    throw new TypeError("Adult season must be standard or summer");
+  }
   const ageYears = normalizeAge(setup.ageYears ?? 28);
   const player = immutable({
     ...setup.player,
@@ -250,7 +262,9 @@ export function chooseAdultRoute(
       ? generatePartnerCandidates({
           runSeed: state.runSeed,
           playerGender: state.player.gender,
-          attraction: state.player.attraction,
+          ...(state.player.attraction === undefined
+            ? {}
+            : { attraction: state.player.attraction }),
           playerAgeYears: state.ageYears,
           count: 4,
         })
@@ -524,7 +538,7 @@ function createChildren(
       const hash = stableHash(`${state.runSeed}:child:${index}`);
       return {
         personId: `child-${index + 1}-${hash.toString(36)}`,
-        name: names[hash % names.length],
+        name: names[hash % names.length]!,
         gender: (hash % 2 === 0 ? "female" : "male") as AdultGender,
         ageYears: 0,
       };
@@ -870,6 +884,9 @@ export function setAdultSeason(
   state: AdultState,
   season: AdultSeason,
 ): AdultState {
+  if (season !== "standard" && season !== "summer") {
+    throw new TypeError("Adult season must be standard or summer");
+  }
   return state.season === season ? state : immutable({ ...state, season });
 }
 

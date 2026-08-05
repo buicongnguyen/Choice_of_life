@@ -518,7 +518,8 @@ export function mountCharacterGallery(
     status.textContent = `Showing ${state.direction}-facing, ${state.mode} characters in ${state.season} outfits.`;
   }, { signal: abortController.signal });
 
-  const walkTimer = globalThis.setInterval(() => {
+  const ownerWindow = host.ownerDocument.defaultView;
+  const walkTimer = ownerWindow?.setInterval(() => {
     if (state.mode !== "walk") return;
     state.walkFrame = state.walkFrame === 0 ? 1 : 0;
     updateWalkFrames(root, state);
@@ -526,7 +527,7 @@ export function mountCharacterGallery(
 
   return Object.freeze({
     dispose(): void {
-      globalThis.clearInterval(walkTimer);
+      if (walkTimer !== undefined) ownerWindow?.clearInterval(walkTimer);
       abortController.abort();
       root.remove();
     },

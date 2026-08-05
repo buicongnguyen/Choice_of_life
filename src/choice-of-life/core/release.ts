@@ -157,7 +157,7 @@ export type SaveEnvelopeDecodeResult<TPayload> =
 export interface CreateSaveEnvelopeOptions {
   readonly schemaVersion: number;
   readonly contentVersion: string;
-  readonly savedAt?: string;
+  readonly savedAt: string;
   readonly release?: ReleaseManifest | null;
 }
 
@@ -194,9 +194,19 @@ function quarantine(
 }
 
 function isIsoTimestamp(value: unknown): value is string {
-  return typeof value === "string"
-    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)
-    && Number.isFinite(Date.parse(value));
+  if (typeof value !== "string") return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{3})?Z$/.exec(value);
+  if (match === null) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+  if (month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59) return false;
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day >= 1 && day <= daysInMonth[month - 1]!;
 }
 
 function parsedEnvelope(value: unknown): SaveEnvelopeV1<unknown> | null {
@@ -243,7 +253,7 @@ export function createSaveEnvelope<TPayload>(
   ) {
     throw new TypeError("Save envelope version metadata is invalid");
   }
-  const savedAt = options.savedAt ?? new Date().toISOString();
+  const savedAt = options.savedAt;
   if (!isIsoTimestamp(savedAt)) throw new TypeError("Save envelope timestamp is invalid");
   const release = options.release ?? null;
   if (release !== null && parseReleaseManifest(release) === null) {
