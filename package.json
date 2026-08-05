@@ -1,6 +1,6 @@
 {
   "name": "choice-of-life",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Choice of Life — a three-score side-scrolling life runner where every decision shapes the future.",

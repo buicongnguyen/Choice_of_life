@@ -14,8 +14,8 @@ Active plan: [CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md](../CHOICE_OF_LIFE_IMPLEM
 | 7 — Childhood continuity | Complete; verification deferred by user | `41101ed69517ba4cbd015c24255adc1a1752c1ec` | Four continuous childhood stages, stable friends, pets, choices, and callbacks | [deploy run 31010882392](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31010882392) succeeded |
 | 8 — Adult routes | Complete; verification deferred by user | `648f1259e23c3d94806dac7545d4262a89cac9f0` | Relationships, spouse choice, optional marriage/children, home, caregiving, and midlife | [deploy run 31011540620](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31011540620) succeeded |
 | 9 — Later life and full ending | Complete; verification deferred by user | `d1af51714f6b43bd98a12ffbbf65f86e6133fafc` | Later Career, retirement, legacy, 12-stage biography, and multi-factor ending | [deploy run 31012112816](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31012112816) succeeded |
-| 10 — Art, audio, accessibility, and balance | Implementation complete; audits/balance verification deferred by user | pending | Character/outfit gallery, pets, audio cues, Assist, contrast, motion, and text preferences | Deployment pending |
-| 11 — Release hardening | Pending | — | — | — |
+| 10 — Art, audio, accessibility, and balance | Complete; audits/balance verification deferred by user | `ac85c28938aeca1abe3cb322c314609c775c2666` | Character/outfit gallery, pets, audio cues, Assist, contrast, motion, and text preferences | [deploy run 31012826256](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31012826256) succeeded |
+| 11 — Release hardening | Implementation complete; verification deferred by user | pending | v1.0.0 metadata, safe quarantine helpers, Pages fallback, and release documentation | Deployment pending |
 
 From Phase 3 onward, the user requested an implementation-first workflow: make
 each phase runnable with a production build, then commit, push, and deploy it.
