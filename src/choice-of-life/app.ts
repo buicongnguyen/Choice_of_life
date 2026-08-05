@@ -9,10 +9,12 @@ import {
 import type { RunStateV1 } from "./core/run-state";
 import type {
   CareerChapterAction,
+  ChildhoodChapterState,
   EducationChapterAction,
   EncounterChapterAction,
   EncounterChapterState,
 } from "./core/shell-contracts";
+import type { ChildhoodAction } from "./core/childhood/index";
 import type { EducationState } from "./core/education/index";
 import type { CareerState } from "./core/career/index";
 import { createBrowserDependencies } from "./platform/browser-shell";
@@ -68,6 +70,7 @@ import { mountNewbornView, type NewbornView } from "./presentation/newborn-view"
 import { mountEncounterView, type EncounterView } from "./presentation/encounter-view";
 import { mountEducationView, type EducationView } from "./presentation/education-view";
 import { mountCareerView, type CareerView } from "./presentation/career-view";
+import { mountChildhoodView, type ChildhoodView } from "./presentation/childhood-view";
 
 export type { BrowserDependencies, ChoiceOfLifeShellPort } from "./presentation/contracts";
 export type { SetupSelection, VisualSettings } from "./presentation/model";
@@ -80,7 +83,7 @@ export function mountChoiceOfLifeInBrowser(root: HTMLElement): ChoiceOfLifeApp {
   return mountChoiceOfLife(root, createBrowserDependencies());
 }
 
-type Screen = "title" | "setup" | "ready" | "newborn" | "encounters" | "education" | "career" | "runner";
+type Screen = "title" | "setup" | "ready" | "newborn" | "encounters" | "childhood" | "education" | "career" | "runner";
 
 interface LocalState {
   screen: Screen;
@@ -107,6 +110,10 @@ interface MountedNewborn {
 interface MountedEncounter {
   readonly view: EncounterView;
   readonly stopClock: () => void;
+}
+
+interface MountedChildhood {
+  readonly view: ChildhoodView;
 }
 
 interface MountedEducation {
@@ -199,10 +206,12 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   let mountedRunner: MountedRunner | null = null;
   let mountedNewborn: MountedNewborn | null = null;
   let mountedEncounter: MountedEncounter | null = null;
+  let mountedChildhood: MountedChildhood | null = null;
   let mountedEducation: MountedEducation | null = null;
   let mountedCareer: MountedCareer | null = null;
   let newbornActionInProgress = false;
   let encounterActionInProgress = false;
+  let childhoodActionInProgress = false;
   let educationActionInProgress = false;
   let careerActionInProgress = false;
   let runnerActionInProgress = false;
@@ -295,6 +304,11 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       snapshot = safeSnapshot(dependencies.shell);
       state.settings = cloneSettings(snapshot.settings);
     }
+    if (state.screen === "childhood" && screen !== "childhood") {
+      disposeMountedChildhood();
+      snapshot = safeSnapshot(dependencies.shell);
+      state.settings = cloneSettings(snapshot.settings);
+    }
     if (state.screen === "education" && screen !== "education") {
       disposeMountedEducation();
       snapshot = safeSnapshot(dependencies.shell);
@@ -317,11 +331,13 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
             ? "newborn-stage-heading"
             : screen === "encounters"
               ? "encounter-stage-heading"
+              : screen === "childhood"
+                ? "childhood-heading"
               : screen === "education"
-              ? "education-stage-heading"
-              : screen === "career"
-                ? "career-stage-heading"
-              : "runner-status-heading";
+                ? "education-stage-heading"
+                : screen === "career"
+                  ? "career-stage-heading"
+                  : "runner-status-heading";
     render();
   };
 
@@ -687,8 +703,28 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       }
     }
     if (
-      dependencies.education &&
+      dependencies.childhood &&
       dependencies.encounters?.currentEncounterState()?.phase === "complete"
+    ) {
+      const childhoodProgress = dependencies.childhood.currentChildhoodState();
+      const childhoodButton = createButton(
+        childhoodProgress?.childhood.phase === "complete"
+          ? "Review childhood adventures"
+          : childhoodProgress
+            ? "Continue childhood adventures"
+            : "Continue to Childhood",
+        childhoodProgress?.childhood.phase === "complete"
+          ? "col-button col-button--quiet"
+          : "col-button col-button--primary",
+      );
+      childhoodButton.setAttribute("data-childhood-enter", "");
+      childhoodButton.disabled = state.pending !== null;
+      listen(childhoodButton, "click", enterChildhood);
+      actions.append(childhoodButton);
+    }
+    if (
+      dependencies.education &&
+      dependencies.childhood?.currentChildhoodState()?.childhood.phase === "complete"
     ) {
       const educationProgress = dependencies.education.currentEducationState();
       const educationButton = createButton(
@@ -802,6 +838,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     disposeMountedRunner();
     disposeMountedNewborn();
     disposeMountedEncounter();
+    disposeMountedChildhood();
     disposeMountedEducation();
     disposeMountedCareer();
     renderLifetime.dispose();
@@ -962,7 +999,9 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     disposeMountedRunner();
     disposeMountedNewborn();
     disposeMountedEncounter();
+    disposeMountedChildhood();
     disposeMountedEducation();
+    disposeMountedCareer();
     renderLifetime.dispose();
     renderLifetime = new CleanupBag();
     state.screen = "encounters";
@@ -1046,15 +1085,15 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
 
   function continueFromEncounters(): void {
     if (disposed) return;
-    if (dependencies.education !== undefined) {
-      enterEducation();
+    if (dependencies.childhood !== undefined) {
+      enterChildhood();
       return;
     }
     disposeMountedEncounter();
     state.screen = "ready";
     state.notice = {
       tone: "status",
-      message: "Encounters and consequences are complete. Education can now begin with these facts, memories, and relationships.",
+      message: "Encounters and consequences are complete. Childhood can now begin with these scores and relationships.",
     };
     focusAfterRenderId = NOTICE_ID;
     render();
@@ -1063,6 +1102,138 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   function returnFromEncountersToReady(): void {
     if (disposed) return;
     setScreen("ready");
+  }
+
+  function disposeMountedChildhood(): void {
+    const runtime = mountedChildhood;
+    mountedChildhood = null;
+    runtime?.view.dispose();
+  }
+
+  function childhoodActionFailure(notice: ShellNotice): void {
+    disposeMountedChildhood();
+    state.screen = "ready";
+    state.notice = notice;
+    focusAfterRenderId = NOTICE_ID;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    render();
+  }
+
+  function dispatchChildhood(action: ChildhoodAction): void {
+    if (
+      disposed || childhoodActionInProgress ||
+      dependencies.childhood === undefined || mountedChildhood === null
+    ) return;
+    childhoodActionInProgress = true;
+    let result: ReturnType<typeof dependencies.childhood.dispatchChildhood>;
+    try {
+      result = dependencies.childhood.dispatchChildhood(action);
+    } catch {
+      childhoodActionInProgress = false;
+      childhoodActionFailure(errorNotice(
+        "That childhood choice could not be applied. Your completed encounters are unchanged.",
+      ));
+      return;
+    }
+    childhoodActionInProgress = false;
+    if (result.kind === "invalid") {
+      childhoodActionFailure(result.notice);
+      return;
+    }
+    state.notice = result.notice ?? null;
+    mountedChildhood?.view.render(result.state.childhood);
+  }
+
+  function mountEnteredChildhood(
+    enteredState: ChildhoodChapterState,
+    enteredNotice: ShellNotice | null,
+  ): void {
+    disposeMountedRunner();
+    disposeMountedNewborn();
+    disposeMountedEncounter();
+    disposeMountedChildhood();
+    disposeMountedEducation();
+    disposeMountedCareer();
+    renderLifetime.dispose();
+    renderLifetime = new CleanupBag();
+    state.screen = "childhood";
+    state.notice = enteredNotice;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    applySettings();
+
+    const main = createElement(document, "main", {
+      className: "col-shell col-childhood-shell",
+      attributes: { "aria-labelledby": "choice-life-title", "aria-busy": "false" },
+    });
+    renderHeader(main);
+    renderNotice(main);
+    const host = createElement(document, "div", {
+      className: "col-childhood-host",
+      attributes: { "data-childhood-host": "" },
+    });
+    main.append(host);
+    root.replaceChildren(main);
+
+    let view: ChildhoodView | null = null;
+    try {
+      view = mountChildhoodView(host, {
+        dispatch: dispatchChildhood,
+        onContinueToNextChapter: continueFromChildhood,
+        onReturnToTitle: returnFromChildhoodToTitle,
+      });
+      mountedChildhood = Object.freeze({ view });
+      view.render(enteredState.childhood);
+      root.querySelector<HTMLElement>("#childhood-heading")?.focus();
+    } catch {
+      view?.dispose();
+      childhoodActionFailure(errorNotice(
+        "Childhood adventures could not be displayed. Your completed encounters are still available.",
+      ));
+    }
+  }
+
+  function enterChildhood(): void {
+    if (disposed || childhoodActionInProgress || dependencies.childhood === undefined) return;
+    childhoodActionInProgress = true;
+    let result: ReturnType<typeof dependencies.childhood.enterChildhood>;
+    try {
+      result = dependencies.childhood.enterChildhood();
+    } catch {
+      childhoodActionInProgress = false;
+      childhoodActionFailure(errorNotice(
+        "Childhood adventures could not be opened. Your encounter result is unchanged.",
+      ));
+      return;
+    }
+    childhoodActionInProgress = false;
+    if (result.kind === "invalid") {
+      childhoodActionFailure(result.notice);
+      return;
+    }
+    mountEnteredChildhood(result.state, result.notice ?? null);
+  }
+
+  function continueFromChildhood(): void {
+    if (disposed) return;
+    if (dependencies.education !== undefined) {
+      enterEducation();
+      return;
+    }
+    disposeMountedChildhood();
+    state.screen = "ready";
+    state.notice = {
+      tone: "status",
+      message: "Childhood is complete. Education can now begin with these memories, friendships, and scores.",
+    };
+    focusAfterRenderId = NOTICE_ID;
+    render();
+  }
+
+  function returnFromChildhoodToTitle(): void {
+    if (disposed) return;
+    setScreen("title");
   }
 
   function disposeMountedEducation(): void {
@@ -1093,7 +1264,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     } catch {
       educationActionInProgress = false;
       educationActionFailure(errorNotice(
-        "That education choice could not be applied. Your completed encounters are unchanged.",
+        "That education choice could not be applied. Your completed childhood is unchanged.",
       ));
       return;
     }
@@ -1113,6 +1284,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     disposeMountedRunner();
     disposeMountedNewborn();
     disposeMountedEncounter();
+    disposeMountedChildhood();
     disposeMountedEducation();
     disposeMountedCareer();
     renderLifetime.dispose();
@@ -1152,7 +1324,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     } catch {
       view?.dispose();
       educationActionFailure(errorNotice(
-        "High school and education could not be displayed. Your completed encounters are still available.",
+        "High school and education could not be displayed. Your completed childhood is still available.",
       ));
     }
   }
@@ -1168,7 +1340,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     } catch {
       educationActionInProgress = false;
       educationActionFailure(errorNotice(
-        "High school and education could not be opened. Your encounter result is unchanged.",
+        "High school and education could not be opened. Your childhood result is unchanged.",
       ));
       return;
     }
@@ -1247,6 +1419,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     disposeMountedRunner();
     disposeMountedNewborn();
     disposeMountedEncounter();
+    disposeMountedChildhood();
     disposeMountedEducation();
     disposeMountedCareer();
     renderLifetime.dispose();
@@ -1311,7 +1484,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     state.screen = "ready";
     state.notice = {
       tone: "status",
-      message: "Your first career reflection is complete. Childhood continuation will open in the next chapter.",
+      message: "Your first career reflection is complete. This is the provisional ending while the next adult-life chapter is prepared.",
     };
     focusAfterRenderId = NOTICE_ID;
     render();
@@ -1365,7 +1538,9 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   ): void {
     disposeMountedRunner();
     disposeMountedEncounter();
+    disposeMountedChildhood();
     disposeMountedEducation();
+    disposeMountedCareer();
     renderLifetime.dispose();
     renderLifetime = new CleanupBag();
     state.screen = "runner";
@@ -1757,6 +1932,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       }
       return;
     }
+    if (state.screen === "childhood" && mountedChildhood !== null) {
+      applySettings();
+      const currentChildhood = dependencies.childhood?.currentChildhoodState() ?? null;
+      if (currentChildhood !== null) {
+        mountedChildhood.view.render(currentChildhood.childhood);
+      }
+      return;
+    }
     if (state.screen === "education" && mountedEducation !== null) {
       applySettings();
       const currentEducation = dependencies.education?.currentEducationState() ?? null;
@@ -1824,7 +2007,8 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     }
     if (
       runnerActionInProgress || runnerCommitInProgress ||
-      encounterActionInProgress || educationActionInProgress || careerActionInProgress
+      encounterActionInProgress || childhoodActionInProgress ||
+      educationActionInProgress || careerActionInProgress
     ) {
       applySettings();
       return;
@@ -1842,6 +2026,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       const currentEncounter = dependencies.encounters?.currentEncounterState() ?? null;
       if (currentEncounter !== null) {
         mountedEncounter.view.render(currentEncounter);
+      }
+      applySettings();
+      return;
+    }
+    if (mountedChildhood !== null) {
+      const currentChildhood = dependencies.childhood?.currentChildhoodState() ?? null;
+      if (currentChildhood !== null) {
+        mountedChildhood.view.render(currentChildhood.childhood);
       }
       applySettings();
       return;
@@ -1875,6 +2067,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       operationVersion += 1;
       disposeMountedNewborn();
       disposeMountedEncounter();
+      disposeMountedChildhood();
       disposeMountedEducation();
       disposeMountedCareer();
       disposeMountedRunner();

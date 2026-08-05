@@ -14,6 +14,7 @@ import type {
   PrimaryEducationRouteId,
 } from "./education/index";
 import type { CareerAction, CareerState } from "./career/index";
+import type { ChildhoodAction, ChildhoodState } from "./childhood/index";
 
 export type Gender = RunStateV1["identity"]["gender"];
 export type AppearanceSelection = RunStateV1["appearance"];
@@ -128,6 +129,23 @@ export type CareerChapterActionResult =
 
 export type CareerChapterAction = CareerAction;
 
+export interface ChildhoodPlayerProfile {
+  readonly startingProfileId: StartingProfileId;
+  readonly difficulty: Difficulty;
+  readonly controlMode: ControlMode;
+  readonly gender: Gender;
+  readonly appearance: AppearanceSelection;
+}
+
+export interface ChildhoodChapterState {
+  readonly childhood: ChildhoodState;
+  readonly player: ChildhoodPlayerProfile;
+}
+
+export type ChildhoodChapterActionResult =
+  | { readonly kind: "ready"; readonly state: ChildhoodChapterState; readonly notice?: ShellNotice }
+  | { readonly kind: "invalid"; readonly notice: ShellNotice };
+
 /**
  * Phase-3 runtime capability. Newborn progress is deliberately session-scoped
  * until it can be incorporated into the versioned run save without weakening
@@ -144,6 +162,13 @@ export interface EncounterChapterShellPort {
   currentEncounterState(): EncounterChapterState | null;
   enterEncounters(): EncounterChapterActionResult;
   dispatchEncounter(action: EncounterChapterAction): EncounterChapterActionResult;
+}
+
+/** Phase-7 toddler-through-middle-school runtime, kept session-scoped for now. */
+export interface ChildhoodChapterShellPort {
+  currentChildhoodState(): ChildhoodChapterState | null;
+  enterChildhood(): ChildhoodChapterActionResult;
+  dispatchChildhood(action: ChildhoodAction): ChildhoodChapterActionResult;
 }
 
 /** Phase-5 high-school and education runtime, kept session-scoped for now. */
@@ -183,6 +208,8 @@ export interface BrowserDependencies {
   readonly newborn?: NewbornShellPort;
   /** Phase-4 encounters-and-consequences capability. */
   readonly encounters?: EncounterChapterShellPort;
+  /** Phase-7 toddler-through-middle-school capability. */
+  readonly childhood?: ChildhoodChapterShellPort;
   /** Phase-5 high-school and education capability. */
   readonly education?: EducationChapterShellPort;
   /** Phase-6 first-career capability. */

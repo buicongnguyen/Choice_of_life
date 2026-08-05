@@ -28,6 +28,10 @@ import {
   type CareerFact,
   type CareerState,
 } from "../core/career/index";
+import {
+  createChildhoodState,
+  reduceChildhood,
+} from "../core/childhood/index";
 import { createRunnerLaboratoryEntryState, RUNNER_LABORATORY_STAGE_ID } from "../core/runner/contract";
 import type { SeedPort } from "../core/seed-port";
 import { STARTING_PROFILE_SCORES, type RunStateV1, type StartingProfileId } from "../core/run-state";
@@ -36,6 +40,9 @@ import type {
   BrowserDependencies,
   CareerChapterActionResult,
   CareerChapterShellPort,
+  ChildhoodChapterActionResult,
+  ChildhoodChapterShellPort,
+  ChildhoodChapterState,
   ChoiceOfLifeShellPort,
   EducationChapterAction,
   EducationChapterActionResult,
@@ -110,7 +117,7 @@ function copyValidSettings(value: unknown): VisualSettings | null {
   };
 }
 
-export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort, EncounterChapterShellPort, EducationChapterShellPort, CareerChapterShellPort {
+export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort, EncounterChapterShellPort, ChildhoodChapterShellPort, EducationChapterShellPort, CareerChapterShellPort {
   startNewLife(selection: SetupSelection): RunActionResult;
   continueLife(): RunActionResult;
   saveSettings(settings: VisualSettings): SettingsActionResult;
@@ -333,6 +340,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
   // into durable saves while still supporting the complete stage in-session.
   let newbornState: NewbornState | null = null;
   let encounterState: EncounterChapterState | null = null;
+  let childhoodState: ChildhoodChapterState | null = null;
   let educationState: EducationState | null = null;
   let careerState: CareerState | null = null;
   let settings: VisualSettings = currentState ? { ...currentState.accessibility } : { ...DEFAULT_SETTINGS };
@@ -437,6 +445,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       currentState = state;
       newbornState = null;
       encounterState = null;
+      childhoodState = null;
       educationState = null;
       careerState = null;
       if (result.kind === "saved") {
@@ -671,14 +680,91 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       publish();
       return { kind: "ready", state: encounterState };
     },
+    currentChildhoodState(): ChildhoodChapterState | null {
+      return childhoodState;
+    },
+    enterChildhood(): ChildhoodChapterActionResult {
+      if (
+        currentState === null ||
+        encounterState === null ||
+        encounterState.phase !== "complete"
+      ) {
+        return {
+          kind: "invalid",
+          notice: warning("Complete encounters and consequences before starting childhood."),
+        };
+      }
+      if (
+        childhoodState !== null &&
+        childhoodState.childhood.runId === currentState.runId
+      ) {
+        return { kind: "ready", state: childhoodState, ...(notice ? { notice } : {}) };
+      }
+      try {
+        const childhood = createChildhoodState({
+          runId: currentState.runId,
+          runSeed: currentState.runSeed,
+          scores: encounterState.engine.scores,
+          companionMode: "seeded",
+        });
+        childhoodState = Object.freeze({
+          childhood,
+          player: Object.freeze({
+            startingProfileId: currentState.startingProfileId,
+            difficulty: currentState.difficulty,
+            controlMode: currentState.controlMode,
+            gender: currentState.identity.gender,
+            appearance: Object.freeze({ ...currentState.appearance }),
+          }),
+        });
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("Childhood could not begin. Your completed encounters are unchanged."),
+        };
+      }
+      notice = {
+        tone: "status",
+        message: "Childhood is active for this browser session, with your earlier scores and player profile carried forward.",
+      };
+      publish();
+      return { kind: "ready", state: childhoodState, notice };
+    },
+    dispatchChildhood(action): ChildhoodChapterActionResult {
+      if (childhoodState === null) {
+        return {
+          kind: "invalid",
+          notice: warning("Start childhood before making this choice."),
+        };
+      }
+      try {
+        childhoodState = Object.freeze({
+          ...childhoodState,
+          childhood: reduceChildhood(childhoodState.childhood, action),
+        });
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("That childhood action is not available. Your latest childhood state was kept."),
+        };
+      }
+      publish();
+      return { kind: "ready", state: childhoodState };
+    },
     currentEducationState(): EducationState | null {
       return educationState;
     },
     enterEducation(): EducationChapterActionResult {
-      if (currentState === null || encounterState === null || encounterState.phase !== "complete") {
+      if (
+        currentState === null ||
+        encounterState === null ||
+        encounterState.phase !== "complete" ||
+        childhoodState === null ||
+        childhoodState.childhood.phase !== "complete"
+      ) {
         return {
           kind: "invalid",
-          notice: warning("Complete encounters and consequences before starting education."),
+          notice: warning("Complete childhood before starting education."),
         };
       }
       if (educationState !== null && educationState.runId === currentState.runId) {
@@ -688,7 +774,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
         educationState = createEducationState({
           runId: currentState.runId,
           ageMonths: 198,
-          scores: encounterState.engine.scores,
+          scores: childhoodState.childhood.scores,
           supportLevel: educationSupportLevel(encounterState),
           priorAchievement: priorEducationAchievement(encounterState),
         });
@@ -864,6 +950,7 @@ export function createBrowserDependencies(): BrowserDependencies {
     runner: shell,
     newborn: shell,
     encounters: shell,
+    childhood: shell,
     education: shell,
     career: shell,
   };
