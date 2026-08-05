@@ -8,6 +8,7 @@ import {
 } from "./core/newborn/index";
 import type { RunStateV1 } from "./core/run-state";
 import type {
+  AdultChapterAction,
   CareerChapterAction,
   ChildhoodChapterState,
   EducationChapterAction,
@@ -17,6 +18,7 @@ import type {
 import type { ChildhoodAction } from "./core/childhood/index";
 import type { EducationState } from "./core/education/index";
 import type { CareerState } from "./core/career/index";
+import type { AdultState } from "./core/adult/index";
 import { createBrowserDependencies } from "./platform/browser-shell";
 import { createBrowserRunnerSession } from "./platform/browser-runner-session";
 import { CleanupBag } from "./platform/lifecycle";
@@ -70,6 +72,7 @@ import { mountNewbornView, type NewbornView } from "./presentation/newborn-view"
 import { mountEncounterView, type EncounterView } from "./presentation/encounter-view";
 import { mountEducationView, type EducationView } from "./presentation/education-view";
 import { mountCareerView, type CareerView } from "./presentation/career-view";
+import { mountAdultView, type AdultView } from "./presentation/adult-view";
 import { mountChildhoodView, type ChildhoodView } from "./presentation/childhood-view";
 
 export type { BrowserDependencies, ChoiceOfLifeShellPort } from "./presentation/contracts";
@@ -83,7 +86,7 @@ export function mountChoiceOfLifeInBrowser(root: HTMLElement): ChoiceOfLifeApp {
   return mountChoiceOfLife(root, createBrowserDependencies());
 }
 
-type Screen = "title" | "setup" | "ready" | "newborn" | "encounters" | "childhood" | "education" | "career" | "runner";
+type Screen = "title" | "setup" | "ready" | "newborn" | "encounters" | "childhood" | "education" | "career" | "adult" | "runner";
 
 interface LocalState {
   screen: Screen;
@@ -122,6 +125,10 @@ interface MountedEducation {
 
 interface MountedCareer {
   readonly view: CareerView;
+}
+
+interface MountedAdult {
+  readonly view: AdultView;
 }
 
 const mountedRoots = new WeakMap<HTMLElement, ChoiceOfLifeApp>();
@@ -209,11 +216,13 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   let mountedChildhood: MountedChildhood | null = null;
   let mountedEducation: MountedEducation | null = null;
   let mountedCareer: MountedCareer | null = null;
+  let mountedAdult: MountedAdult | null = null;
   let newbornActionInProgress = false;
   let encounterActionInProgress = false;
   let childhoodActionInProgress = false;
   let educationActionInProgress = false;
   let careerActionInProgress = false;
+  let adultActionInProgress = false;
   let runnerActionInProgress = false;
   let runnerCommitInProgress = false;
   let snapshot = safeSnapshot(dependencies.shell);
@@ -319,6 +328,11 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       snapshot = safeSnapshot(dependencies.shell);
       state.settings = cloneSettings(snapshot.settings);
     }
+    if (state.screen === "adult" && screen !== "adult") {
+      disposeMountedAdult();
+      snapshot = safeSnapshot(dependencies.shell);
+      state.settings = cloneSettings(snapshot.settings);
+    }
     state.screen = screen;
     state.notice = null;
     focusAfterRenderId = screen === "title"
@@ -337,7 +351,9 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
                 ? "education-stage-heading"
                 : screen === "career"
                   ? "career-stage-heading"
-                  : "runner-status-heading";
+                  : screen === "adult"
+                    ? "adult-stage-heading"
+                    : "runner-status-heading";
     render();
   };
 
@@ -761,6 +777,26 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       careerButton.disabled = state.pending !== null;
       listen(careerButton, "click", enterCareer);
       actions.append(careerButton);
+    }
+    if (
+      dependencies.adult &&
+      dependencies.career?.currentCareerState()?.phase === "complete"
+    ) {
+      const adultProgress = dependencies.adult.currentAdultState();
+      const adultButton = createButton(
+        adultProgress?.phase === "complete"
+          ? "Review relationships, home & midlife"
+          : adultProgress
+            ? "Continue adult life"
+            : "Continue to Adult Life",
+        adultProgress?.phase === "complete"
+          ? "col-button col-button--quiet"
+          : "col-button col-button--primary",
+      );
+      adultButton.setAttribute("data-adult-enter", "");
+      adultButton.disabled = state.pending !== null;
+      listen(adultButton, "click", enterAdult);
+      actions.append(adultButton);
     }
     if (dependencies.runner) {
       const runnerButton = createButton(
@@ -1480,6 +1516,10 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
 
   function continueFromCareer(): void {
     if (disposed) return;
+    if (dependencies.adult !== undefined) {
+      enterAdult();
+      return;
+    }
     disposeMountedCareer();
     state.screen = "ready";
     state.notice = {
@@ -1491,6 +1531,129 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   }
 
   function returnFromCareerToReady(): void {
+    if (disposed) return;
+    setScreen("ready");
+  }
+
+  function disposeMountedAdult(): void {
+    const runtime = mountedAdult;
+    mountedAdult = null;
+    runtime?.view.dispose();
+  }
+
+  function adultActionFailure(notice: ShellNotice): void {
+    disposeMountedAdult();
+    state.screen = "ready";
+    state.notice = notice;
+    focusAfterRenderId = NOTICE_ID;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    render();
+  }
+
+  function dispatchAdult(action: AdultChapterAction): void {
+    if (
+      disposed || adultActionInProgress ||
+      dependencies.adult === undefined || mountedAdult === null
+    ) return;
+    adultActionInProgress = true;
+    let result: ReturnType<typeof dependencies.adult.dispatchAdult>;
+    try {
+      result = dependencies.adult.dispatchAdult(action);
+    } catch {
+      adultActionInProgress = false;
+      adultActionFailure(errorNotice("That adult-life choice could not be applied. Your completed career is unchanged."));
+      return;
+    }
+    adultActionInProgress = false;
+    if (result.kind === "invalid") {
+      adultActionFailure(result.notice);
+      return;
+    }
+    state.notice = result.notice ?? null;
+    mountedAdult?.view.render(result.state);
+  }
+
+  function mountEnteredAdult(
+    enteredState: AdultState,
+    enteredNotice: ShellNotice | null,
+  ): void {
+    disposeMountedRunner();
+    disposeMountedNewborn();
+    disposeMountedEncounter();
+    disposeMountedChildhood();
+    disposeMountedEducation();
+    disposeMountedCareer();
+    disposeMountedAdult();
+    renderLifetime.dispose();
+    renderLifetime = new CleanupBag();
+    state.screen = "adult";
+    state.notice = enteredNotice;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    applySettings();
+
+    const main = createElement(document, "main", {
+      className: "col-shell col-adult-shell",
+      attributes: { "aria-labelledby": "choice-life-title", "aria-busy": "false" },
+    });
+    renderHeader(main);
+    renderNotice(main);
+    const host = createElement(document, "div", {
+      className: "col-adult-host",
+      attributes: { "data-adult-host": "" },
+    });
+    main.append(host);
+    root.replaceChildren(main);
+
+    let view: AdultView | null = null;
+    try {
+      view = mountAdultView(host, {
+        dispatch: dispatchAdult,
+        onContinueToLaterCareer: continueFromAdult,
+        onReturnToReady: returnFromAdultToReady,
+      });
+      mountedAdult = Object.freeze({ view });
+      view.render(enteredState);
+      root.querySelector<HTMLElement>("#adult-stage-heading")?.focus();
+    } catch {
+      view?.dispose();
+      adultActionFailure(errorNotice("Adult life could not be displayed. Your completed career is still available."));
+    }
+  }
+
+  function enterAdult(): void {
+    if (disposed || adultActionInProgress || dependencies.adult === undefined) return;
+    adultActionInProgress = true;
+    let result: ReturnType<typeof dependencies.adult.enterAdult>;
+    try {
+      result = dependencies.adult.enterAdult();
+    } catch {
+      adultActionInProgress = false;
+      adultActionFailure(errorNotice("Adult life could not be opened. Your completed career is unchanged."));
+      return;
+    }
+    adultActionInProgress = false;
+    if (result.kind === "invalid") {
+      adultActionFailure(result.notice);
+      return;
+    }
+    mountEnteredAdult(result.state, result.notice ?? null);
+  }
+
+  function continueFromAdult(): void {
+    if (disposed) return;
+    disposeMountedAdult();
+    state.screen = "ready";
+    state.notice = {
+      tone: "status",
+      message: "Adult life is complete. Later Career will continue from these relationships, family, and work choices in the next chapter.",
+    };
+    focusAfterRenderId = NOTICE_ID;
+    render();
+  }
+
+  function returnFromAdultToReady(): void {
     if (disposed) return;
     setScreen("ready");
   }
@@ -1956,6 +2119,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       }
       return;
     }
+    if (state.screen === "adult" && mountedAdult !== null) {
+      applySettings();
+      const currentAdult = dependencies.adult?.currentAdultState() ?? null;
+      if (currentAdult !== null) {
+        mountedAdult.view.render(currentAdult);
+      }
+      return;
+    }
     if (state.screen === "runner" && mountedRunner !== null) {
       applySettings();
       mountedRunner.view.updateVisualOptions(runnerVisualOptions(
@@ -2008,7 +2179,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     if (
       runnerActionInProgress || runnerCommitInProgress ||
       encounterActionInProgress || childhoodActionInProgress ||
-      educationActionInProgress || careerActionInProgress
+      educationActionInProgress || careerActionInProgress || adultActionInProgress
     ) {
       applySettings();
       return;
@@ -2054,6 +2225,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       applySettings();
       return;
     }
+    if (mountedAdult !== null) {
+      const currentAdult = dependencies.adult?.currentAdultState() ?? null;
+      if (currentAdult !== null) {
+        mountedAdult.view.render(currentAdult);
+      }
+      applySettings();
+      return;
+    }
     render();
   });
   lifetime.add(unsubscribe);
@@ -2070,6 +2249,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       disposeMountedChildhood();
       disposeMountedEducation();
       disposeMountedCareer();
+      disposeMountedAdult();
       disposeMountedRunner();
       renderLifetime.dispose();
       lifetime.dispose();

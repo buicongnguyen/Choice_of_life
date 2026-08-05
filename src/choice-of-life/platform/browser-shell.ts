@@ -32,12 +32,15 @@ import {
   createChildhoodState,
   reduceChildhood,
 } from "../core/childhood/index";
+import type { AdultState } from "../core/adult/index";
 import { createRunnerLaboratoryEntryState, RUNNER_LABORATORY_STAGE_ID } from "../core/runner/contract";
 import type { SeedPort } from "../core/seed-port";
 import { STARTING_PROFILE_SCORES, type RunStateV1, type StartingProfileId } from "../core/run-state";
 import { stateHashV1 } from "../core/run-state-hash";
 import type {
   BrowserDependencies,
+  AdultChapterActionResult,
+  AdultChapterShellPort,
   CareerChapterActionResult,
   CareerChapterShellPort,
   ChildhoodChapterActionResult,
@@ -72,6 +75,10 @@ import {
 import { createSaveStore, type LoadResult, type SaveStore } from "../persistence/save-store";
 import type { StoragePort } from "../persistence/storage-port";
 import { createBrowserSeedPort, createBrowserStoragePort } from "./browser-ports";
+import {
+  createAdultChapterSession,
+  type AdultChapterSession,
+} from "./adult-session";
 
 const DEFAULT_SETTINGS: VisualSettings = {
   highContrast: false,
@@ -117,7 +124,7 @@ function copyValidSettings(value: unknown): VisualSettings | null {
   };
 }
 
-export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort, EncounterChapterShellPort, ChildhoodChapterShellPort, EducationChapterShellPort, CareerChapterShellPort {
+export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort, EncounterChapterShellPort, ChildhoodChapterShellPort, EducationChapterShellPort, CareerChapterShellPort, AdultChapterShellPort {
   startNewLife(selection: SetupSelection): RunActionResult;
   continueLife(): RunActionResult;
   saveSettings(settings: VisualSettings): SettingsActionResult;
@@ -343,6 +350,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
   let childhoodState: ChildhoodChapterState | null = null;
   let educationState: EducationState | null = null;
   let careerState: CareerState | null = null;
+  let adultSession: AdultChapterSession | null = null;
   let settings: VisualSettings = currentState ? { ...currentState.accessibility } : { ...DEFAULT_SETTINGS };
   let notice = noticeForLoad(initialLoad);
   const listeners = new Set<() => void>();
@@ -448,6 +456,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       childhoodState = null;
       educationState = null;
       careerState = null;
+      adultSession = null;
       if (result.kind === "saved") {
         notice = null;
       } else if (result.kind === "unavailable") {
@@ -884,6 +893,65 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       publish();
       return { kind: "ready", state: careerState };
     },
+    currentAdultState(): AdultState | null {
+      return adultSession?.getState() ?? null;
+    },
+    enterAdult(): AdultChapterActionResult {
+      if (
+        currentState === null ||
+        careerState === null ||
+        careerState.phase !== "complete"
+      ) {
+        return {
+          kind: "invalid",
+          notice: warning("Complete your first career chapter before starting adult life."),
+        };
+      }
+      if (adultSession !== null && adultSession.getState().runId === currentState.runId) {
+        return { kind: "ready", state: adultSession.getState(), ...(notice ? { notice } : {}) };
+      }
+      try {
+        adultSession = createAdultChapterSession({
+          run: {
+            runId: currentState.runId,
+            runSeed: currentState.runSeed,
+            scores: careerState.scores,
+            identity: { gender: currentState.identity.gender },
+            appearance: { heritageStyleId: currentState.appearance.heritageStyleId },
+          },
+          player: {
+            gender: currentState.identity.gender,
+            appearance: { heritageStyleId: currentState.appearance.heritageStyleId },
+          },
+          career: careerState,
+        });
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("Adult life could not begin. Your completed career is unchanged."),
+        };
+      }
+      notice = {
+        tone: "status",
+        message: "Relationships, home, and midlife are active for this browser session.",
+      };
+      publish();
+      return { kind: "ready", state: adultSession.getState(), notice };
+    },
+    dispatchAdult(action): AdultChapterActionResult {
+      if (adultSession === null) {
+        return {
+          kind: "invalid",
+          notice: warning("Start adult life before making this choice."),
+        };
+      }
+      const result = adultSession.dispatch(action);
+      if (result.kind === "invalid") {
+        return { kind: "invalid", notice: warning(result.message) };
+      }
+      publish();
+      return { kind: "ready", state: result.state };
+    },
     enterRunnerLaboratory(): RunnerLaboratoryActionResult {
       if (currentState === null) {
         return { kind: "invalid", notice: runnerNotice("Create a life before opening the runner laboratory.") };
@@ -953,5 +1021,6 @@ export function createBrowserDependencies(): BrowserDependencies {
     childhood: shell,
     education: shell,
     career: shell,
+    adult: shell,
   };
 }

@@ -14,6 +14,7 @@ import type {
   PrimaryEducationRouteId,
 } from "./education/index";
 import type { CareerAction, CareerState } from "./career/index";
+import type { AdultAction, AdultState } from "./adult/index";
 import type { ChildhoodAction, ChildhoodState } from "./childhood/index";
 
 export type Gender = RunStateV1["identity"]["gender"];
@@ -129,6 +130,12 @@ export type CareerChapterActionResult =
 
 export type CareerChapterAction = CareerAction;
 
+export type AdultChapterActionResult =
+  | { readonly kind: "ready"; readonly state: AdultState; readonly notice?: ShellNotice }
+  | { readonly kind: "invalid"; readonly notice: ShellNotice };
+
+export type AdultChapterAction = AdultAction;
+
 export interface ChildhoodPlayerProfile {
   readonly startingProfileId: StartingProfileId;
   readonly difficulty: Difficulty;
@@ -185,6 +192,13 @@ export interface CareerChapterShellPort {
   dispatchCareer(action: CareerAction): CareerChapterActionResult;
 }
 
+/** Phase-8 relationships, home, and midlife runtime, kept session-scoped for now. */
+export interface AdultChapterShellPort {
+  currentAdultState(): AdultState | null;
+  enterAdult(): AdultChapterActionResult;
+  dispatchAdult(action: AdultAction): AdultChapterActionResult;
+}
+
 export interface RunnerLaboratoryShellPort {
   currentRunState(): RunStateV1 | null;
   enterRunnerLaboratory(): RunnerLaboratoryActionResult;
@@ -214,4 +228,6 @@ export interface BrowserDependencies {
   readonly education?: EducationChapterShellPort;
   /** Phase-6 first-career capability. */
   readonly career?: CareerChapterShellPort;
+  /** Phase-8 relationships, home, and midlife capability. */
+  readonly adult?: AdultChapterShellPort;
 }
