@@ -23,6 +23,7 @@ import type { AdultState } from "./core/adult/index";
 import type { LaterLifeState } from "./core/later-life/index";
 import { createBrowserDependencies } from "./platform/browser-shell";
 import { createBrowserRunnerSession } from "./platform/browser-runner-session";
+import { createAudioCueManager } from "./platform/audio-cues";
 import { CleanupBag } from "./platform/lifecycle";
 import {
   mountRunnerInputDom,
@@ -77,6 +78,20 @@ import { mountCareerView, type CareerView } from "./presentation/career-view";
 import { mountAdultView, type AdultView } from "./presentation/adult-view";
 import { mountLaterLifeView, type LaterLifeView } from "./presentation/later-life-view";
 import { mountChildhoodView, type ChildhoodView } from "./presentation/childhood-view";
+import {
+  createPlayerPreferenceStore,
+  normalizePlayerPreferences,
+  type PlayerPreferences,
+} from "./core/player-preferences";
+import {
+  applyPlayerPreferences,
+  mountPreferencesPanel,
+} from "./presentation/preferences-panel";
+import {
+  createCharacterElement,
+  createCharacterModel,
+} from "./presentation/character-system";
+import { mountCharacterGallery } from "./presentation/character-gallery";
 
 export type { BrowserDependencies, ChoiceOfLifeShellPort } from "./presentation/contracts";
 export type { SetupSelection, VisualSettings } from "./presentation/model";
@@ -89,7 +104,7 @@ export function mountChoiceOfLifeInBrowser(root: HTMLElement): ChoiceOfLifeApp {
   return mountChoiceOfLife(root, createBrowserDependencies());
 }
 
-type Screen = "title" | "setup" | "ready" | "newborn" | "encounters" | "childhood" | "education" | "career" | "adult" | "later-life" | "runner";
+type Screen = "title" | "setup" | "ready" | "preferences" | "gallery" | "newborn" | "encounters" | "childhood" | "education" | "career" | "adult" | "later-life" | "runner";
 
 interface LocalState {
   screen: Screen;
@@ -99,6 +114,7 @@ interface LocalState {
   settingsOpen: boolean;
   pending: "start" | "continue" | "settings" | null;
   notice: ShellNotice | null;
+  utilityReturnScreen: "title" | "ready";
 }
 
 interface MountedRunner {
@@ -234,15 +250,37 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   let laterLifeActionInProgress = false;
   let runnerActionInProgress = false;
   let runnerCommitInProgress = false;
+  let preferenceSyncInProgress = false;
   let snapshot = safeSnapshot(dependencies.shell);
+  let preferenceStorage: Storage | null = null;
+  try {
+    preferenceStorage = document.defaultView?.localStorage ?? null;
+  } catch {
+    preferenceStorage = null;
+  }
+  const preferenceStore = createPlayerPreferenceStore(preferenceStorage);
+  let playerPreferences = normalizePlayerPreferences({
+    ...preferenceStore.load(),
+    ...snapshot.settings,
+  });
+  const audioManager = createAudioCueManager({
+    enabled: playerPreferences.audioCuesEnabled,
+  });
+  lifetime.add(() => {
+    void audioManager.dispose();
+  });
   const state: LocalState = {
     screen: "title",
-    setup: cloneSetup(),
+    setup: {
+      ...cloneSetup(),
+      controlMode: playerPreferences.assistMode,
+    },
     readyRun: null,
-    settings: cloneSettings(snapshot.settings),
+    settings: cloneSettings(playerPreferences),
     settingsOpen: false,
     pending: null,
     notice: null,
+    utilityReturnScreen: "title",
   };
 
   root.classList.add("choice-life-root");
@@ -254,9 +292,29 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   ): void => renderLifetime.listen(target, type, listener);
 
   const applySettings = (): void => {
-    root.dataset.contrast = state.settings.highContrast ? "high" : "standard";
-    root.dataset.reducedMotion = state.settings.reducedMotion ? "true" : "false";
-    root.style.setProperty("--col-text-scale", String(state.settings.textScale / 100));
+    playerPreferences = normalizePlayerPreferences({
+      ...playerPreferences,
+      ...state.settings,
+    });
+    applyPlayerPreferences(root, playerPreferences);
+  };
+
+  const savePlayerPreferences = (preferences: PlayerPreferences): void => {
+    playerPreferences = preferenceStore.save(preferences);
+    state.settings = cloneSettings(playerPreferences);
+    state.setup = {
+      ...state.setup,
+      controlMode: playerPreferences.assistMode,
+    };
+    applySettings();
+    preferenceSyncInProgress = true;
+    try {
+      dependencies.shell.saveSettings(state.settings);
+    } catch {
+      // Local preferences remain active when the life save is unavailable.
+    } finally {
+      preferenceSyncInProgress = false;
+    }
   };
 
   const renderNotice = (parent: HTMLElement): void => {
@@ -355,22 +413,31 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
         ? "setup-heading"
         : screen === "ready"
           ? "ready-heading"
-          : screen === "newborn"
-            ? "newborn-stage-heading"
-            : screen === "encounters"
-              ? "encounter-stage-heading"
-              : screen === "childhood"
-                ? "childhood-heading"
-              : screen === "education"
-                ? "education-stage-heading"
-                : screen === "career"
-                  ? "career-stage-heading"
-                  : screen === "adult"
-                    ? "adult-stage-heading"
-                    : screen === "later-life"
-                      ? "later-life-stage-heading"
-                      : "runner-status-heading";
+          : screen === "preferences"
+            ? "accessibility-heading"
+            : screen === "gallery"
+              ? "character-gallery-route-heading"
+              : screen === "newborn"
+                ? "newborn-stage-heading"
+                : screen === "encounters"
+                  ? "encounter-stage-heading"
+                  : screen === "childhood"
+                    ? "childhood-heading"
+                  : screen === "education"
+                    ? "education-stage-heading"
+                    : screen === "career"
+                      ? "career-stage-heading"
+                      : screen === "adult"
+                        ? "adult-stage-heading"
+                        : screen === "later-life"
+                          ? "later-life-stage-heading"
+                          : "runner-status-heading";
     render();
+  };
+
+  const openUtilityScreen = (screen: "preferences" | "gallery"): void => {
+    state.utilityReturnScreen = state.screen === "ready" ? "ready" : "title";
+    setScreen(screen);
   };
 
   const createButton = (label: string, className = "col-button"): HTMLButtonElement => {
@@ -446,6 +513,25 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     return button;
   };
 
+  const appendUtilityButtons = (actions: HTMLElement): void => {
+    const accessibility = createButton(
+      "Accessibility & Assist",
+      "col-button col-button--quiet",
+    );
+    accessibility.setAttribute("data-open-preferences", "");
+    accessibility.disabled = state.pending !== null;
+    listen(accessibility, "click", () => openUtilityScreen("preferences"));
+
+    const gallery = createButton(
+      "Character & Outfit Gallery",
+      "col-button col-button--quiet",
+    );
+    gallery.setAttribute("data-open-character-gallery", "");
+    gallery.disabled = state.pending !== null;
+    listen(gallery, "click", () => openUtilityScreen("gallery"));
+    actions.append(accessibility, gallery);
+  };
+
   const renderHeader = (main: HTMLElement): void => {
     const header = createElement(document, "header", { className: "col-header" });
     const eyebrow = createElement(document, "p", { className: "col-eyebrow", text: "A life shaped by small choices" });
@@ -491,6 +577,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       actions.append(continueButton);
     }
     actions.append(createSettingsButton());
+    appendUtilityButtons(actions);
     panel.append(actions);
     renderPendingStatus(panel);
     renderNotice(panel);
@@ -848,10 +935,110 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     titleButton.disabled = state.pending !== null;
     listen(titleButton, "click", () => setScreen("title"));
     actions.append(titleButton, createSettingsButton());
+    appendUtilityButtons(actions);
     panel.append(actions);
     renderPendingStatus(panel);
     renderNotice(panel);
     main.append(panel);
+  };
+
+  const closeUtilityScreen = (): void => {
+    setScreen(state.utilityReturnScreen);
+  };
+
+  const renderPreferences = (main: HTMLElement): void => {
+    const panel = createElement(document, "section", {
+      className: "col-panel col-utility-panel",
+      attributes: { "aria-labelledby": "accessibility-heading" },
+    });
+    const intro = createElement(document, "div", {
+      className: "col-utility-intro",
+    });
+    const copy = createElement(document, "div");
+    copy.append(
+      createElement(document, "p", {
+        className: "col-eyebrow",
+        text: "Play your way",
+      }),
+      createElement(document, "h2", {
+        text: "Accessibility & Assist",
+        attributes: { id: "accessibility-heading" },
+      }),
+      createElement(document, "p", {
+        className: "col-supporting-copy",
+        text: "Choose motion, contrast, text, announcements, assistance, and optional audio without changing story rewards.",
+      }),
+    );
+    const guide = createCharacterElement(document, createCharacterModel({
+      characterId: "accessibility-guide",
+      label: "Friendly accessibility guide",
+      gender: "female",
+      heritage: "asian",
+      lifeStage: "young-adult",
+      expression: "smile",
+      seed: "accessibility-guide-v1",
+      appearance: { clothingPaletteId: "meadow" },
+    }));
+    guide.classList.add("col-utility-guide");
+    intro.append(copy, guide);
+
+    const preferencesHost = createElement(document, "div", {
+      className: "col-preferences-route-host",
+      attributes: { "data-preferences-host": "" },
+    });
+    const actions = createElement(document, "div", {
+      className: "col-actions col-actions--end col-utility-actions",
+    });
+    const back = createButton(
+      state.utilityReturnScreen === "ready" ? "Back to life" : "Back to title",
+      "col-button",
+    );
+    listen(back, "click", closeUtilityScreen);
+    actions.append(back);
+    panel.append(intro, preferencesHost, actions);
+    main.append(panel);
+
+    const preferencesPanel = mountPreferencesPanel(preferencesHost, {
+      preferences: playerPreferences,
+      audioManager,
+      presentationRoot: root,
+      title: "Comfort, feedback & assistance",
+      initiallyOpen: true,
+      onPreferencesChange: savePlayerPreferences,
+    });
+    renderLifetime.add(() => preferencesPanel.dispose());
+  };
+
+  const renderCharacterGalleryRoute = (main: HTMLElement): void => {
+    const panel = createElement(document, "section", {
+      className: "col-panel col-utility-panel col-gallery-route",
+      attributes: { "aria-labelledby": "character-gallery-route-heading" },
+    });
+    panel.append(
+      createElement(document, "p", {
+        className: "col-eyebrow",
+        text: "Meet the cast",
+      }),
+      createElement(document, "h2", {
+        text: "Character & Outfit Gallery",
+        attributes: { id: "character-gallery-route-heading" },
+      }),
+      createElement(document, "p", {
+        className: "col-supporting-copy",
+        text: "Explore distinct characters, life stages, careers, seasonal outfits, and companions used across the journey.",
+      }),
+    );
+    const galleryHost = createElement(document, "div", {
+      className: "col-character-gallery-route-host",
+      attributes: { "data-character-gallery-host": "" },
+    });
+    panel.append(galleryHost);
+    main.append(panel);
+
+    const gallery = mountCharacterGallery(galleryHost, {
+      onClose: closeUtilityScreen,
+    });
+    renderLifetime.add(() => gallery.dispose());
   };
 
   function disposeMountedNewborn(): void {
@@ -2222,6 +2409,10 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       settingsOpenerId = null;
       state.settingsOpen = false;
       state.settings = cloneSettings(nextSettings);
+      playerPreferences = preferenceStore.save(normalizePlayerPreferences({
+        ...playerPreferences,
+        ...nextSettings,
+      }));
       state.pending = "settings";
       focusAfterRenderId = PENDING_STATUS_ID;
       applySettings();
@@ -2342,6 +2533,10 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       renderSetup(main);
     } else if (state.screen === "ready") {
       renderReady(main);
+    } else if (state.screen === "preferences") {
+      renderPreferences(main);
+    } else if (state.screen === "gallery") {
+      renderCharacterGalleryRoute(main);
     }
     const settingsDialog = state.settingsOpen ? renderSettingsDialog(main) : null;
     root.replaceChildren(main);
@@ -2369,7 +2564,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       state.settings = cloneSettings(snapshot.settings);
     }
     if (
-      runnerActionInProgress || runnerCommitInProgress ||
+      runnerActionInProgress || runnerCommitInProgress || preferenceSyncInProgress ||
       encounterActionInProgress || childhoodActionInProgress ||
       educationActionInProgress || careerActionInProgress || adultActionInProgress
     ) {
@@ -2450,7 +2645,10 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       root.classList.remove("choice-life-root");
       delete root.dataset.contrast;
       delete root.dataset.reducedMotion;
+      delete root.dataset.textScale;
+      delete root.dataset.assistMode;
       root.style.removeProperty("--col-text-scale");
+      root.style.removeProperty("--col-motion-duration-multiplier");
       if (mountedRoots.get(root) === app) {
         mountedRoots.delete(root);
       }

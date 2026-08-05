@@ -1,0 +1,715 @@
+.col-gallery {
+  --col-gallery-ink: #263b3c;
+  --col-gallery-muted: #657879;
+  --col-gallery-paper: #fffdf7;
+  --col-gallery-soft: #f5eee1;
+  --col-gallery-line: rgba(54, 78, 77, 0.16);
+  --col-gallery-teal: #287f78;
+  --col-gallery-teal-dark: #195e5a;
+  --col-gallery-coral: #e8785d;
+  --col-gallery-gold: #e9b64a;
+  color: var(--col-gallery-ink);
+  display: grid;
+  gap: clamp(0.9rem, 2vw, 1.35rem);
+  inline-size: min(100%, 92rem);
+  margin-inline: auto;
+  padding: clamp(0.8rem, 2.4vw, 1.6rem);
+}
+
+.col-gallery *,
+.col-gallery *::before,
+.col-gallery *::after {
+  box-sizing: border-box;
+}
+
+.col-gallery__header,
+.col-gallery__section,
+.col-gallery__toolbar {
+  background: color-mix(in srgb, var(--col-gallery-paper) 96%, white);
+  border: 1px solid var(--col-gallery-line);
+  border-radius: 1.35rem;
+  box-shadow: 0 0.65rem 1.8rem rgba(47, 67, 65, 0.08);
+}
+
+.col-gallery__header {
+  align-items: flex-start;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(233, 182, 74, 0.24), transparent 28%),
+    radial-gradient(circle at 8% 100%, rgba(232, 120, 93, 0.16), transparent 34%),
+    var(--col-gallery-paper);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: clamp(1rem, 3vw, 1.65rem);
+}
+
+.col-gallery h1,
+.col-gallery h2,
+.col-gallery h3,
+.col-gallery p {
+  margin: 0;
+}
+
+.col-gallery h1 {
+  font-size: clamp(1.5rem, 4vw, 2.45rem);
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  margin-block: 0.25rem 0.5rem;
+  max-inline-size: 22ch;
+}
+
+.col-gallery h2 {
+  font-size: clamp(1.2rem, 2.8vw, 1.62rem);
+  letter-spacing: -0.02em;
+}
+
+.col-gallery h3 {
+  font-size: 0.98rem;
+  line-height: 1.2;
+}
+
+.col-gallery p {
+  color: var(--col-gallery-muted);
+  line-height: 1.48;
+}
+
+.col-gallery__eyebrow {
+  color: var(--col-gallery-teal-dark) !important;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.col-gallery__close {
+  background: #fff;
+  border: 1px solid var(--col-gallery-line);
+  border-radius: 999px;
+  color: var(--col-gallery-teal-dark);
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  font-weight: 800;
+  min-block-size: 2.65rem;
+  padding: 0.55rem 1rem;
+}
+
+.col-gallery__close:hover,
+.col-gallery__close:focus-visible {
+  border-color: var(--col-gallery-teal);
+  box-shadow: 0 0 0 3px rgba(40, 127, 120, 0.15);
+  outline: none;
+}
+
+.col-gallery__toolbar {
+  align-items: end;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0.85rem;
+  position: sticky;
+  top: 0.55rem;
+  z-index: 20;
+}
+
+.col-gallery__control-group {
+  border: 0;
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.col-gallery__control-group legend {
+  color: var(--col-gallery-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin-block-end: 0.35rem;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.col-gallery__segmented {
+  background: var(--col-gallery-soft);
+  border-radius: 0.85rem;
+  display: grid;
+  gap: 0.2rem;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  padding: 0.22rem;
+}
+
+.col-gallery__option {
+  background: transparent;
+  border: 0;
+  border-radius: 0.67rem;
+  color: var(--col-gallery-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  min-block-size: 2.2rem;
+  padding: 0.36rem 0.45rem;
+}
+
+.col-gallery__option[aria-pressed="true"] {
+  background: var(--col-gallery-teal-dark);
+  box-shadow: 0 0.2rem 0.55rem rgba(25, 94, 90, 0.2);
+  color: white;
+}
+
+.col-gallery__option:focus-visible {
+  box-shadow: 0 0 0 3px rgba(232, 120, 93, 0.3);
+  outline: none;
+}
+
+.col-gallery__status {
+  background: rgba(40, 127, 120, 0.08);
+  border-radius: 999px;
+  color: var(--col-gallery-teal-dark) !important;
+  font-size: 0.8rem;
+  font-weight: 750;
+  justify-self: start;
+  padding: 0.42rem 0.75rem;
+}
+
+.col-gallery__content {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.col-gallery__section {
+  display: grid;
+  gap: 1rem;
+  overflow: clip;
+  padding: clamp(0.9rem, 2.5vw, 1.35rem);
+}
+
+.col-gallery__section--gender:first-child {
+  border-block-start: 0.3rem solid #c35d81;
+}
+
+.col-gallery__section--gender:nth-child(2) {
+  border-block-start: 0.3rem solid #3e7dad;
+}
+
+.col-gallery__section-heading {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.col-gallery__section-heading p:not(.col-gallery__eyebrow) {
+  font-size: 0.86rem;
+  margin-block-start: 0.22rem;
+  max-inline-size: 68ch;
+}
+
+.col-gallery__gender-badge,
+.col-gallery__count-badge {
+  border: 1px solid var(--col-gallery-line);
+  border-radius: 999px;
+  flex: none;
+  font-size: 0.75rem;
+  font-weight: 850;
+  padding: 0.42rem 0.72rem;
+}
+
+.col-gallery__gender-badge--female {
+  background: #fde8ef;
+  color: #8a3457;
+}
+
+.col-gallery__gender-badge--male {
+  background: #e4f1fb;
+  color: #295d84;
+}
+
+.col-gallery__count-badge {
+  background: #fff3cf;
+  color: #785c16;
+}
+
+.col-gallery__stage-grid,
+.col-gallery__job-grid,
+.col-gallery__npc-grid,
+.col-gallery__companion-grid {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.col-gallery__stage-grid {
+  grid-template-columns: repeat(6, minmax(8.5rem, 1fr));
+  overflow-x: auto;
+  padding-block-end: 0.25rem;
+}
+
+.col-gallery__job-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.25rem), 1fr));
+}
+
+.col-gallery__npc-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr));
+}
+
+.col-gallery__companion-grid {
+  grid-template-columns: repeat(4, minmax(8rem, 1fr));
+}
+
+.col-gallery__card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(250, 246, 237, 0.96));
+  border: 1px solid var(--col-gallery-line);
+  border-radius: 1rem;
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
+.col-gallery__card-copy {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem 0.72rem 0.75rem;
+}
+
+.col-gallery__card-copy > p,
+.col-gallery__job-title p {
+  font-size: 0.74rem;
+}
+
+.col-gallery__trait-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.26rem;
+  margin-block-start: 0.2rem;
+}
+
+.col-gallery__trait-row span,
+.col-gallery__pair-label {
+  background: rgba(40, 127, 120, 0.09);
+  border-radius: 999px;
+  color: var(--col-gallery-teal-dark);
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 0.2rem 0.4rem;
+}
+
+.col-gallery__preview {
+  align-items: flex-end;
+  background:
+    radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.94), transparent 44%),
+    linear-gradient(180deg, #e8f2ed 0 74%, #d9b987 74% 78%, #bf9769 78% 100%);
+  block-size: 8.2rem;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0.35rem 0.35rem 0.46rem;
+  position: relative;
+}
+
+.col-gallery__preview::after {
+  background: rgba(74, 61, 48, 0.18);
+  bottom: 0.43rem;
+  content: "";
+  block-size: 1px;
+  inline-size: calc(100% - 1rem);
+  left: 0.5rem;
+  position: absolute;
+}
+
+.col-gallery__actor.col-polish-actor {
+  align-items: flex-end;
+  block-size: 7.25rem;
+  bottom: auto;
+  display: flex;
+  flex: none;
+  inline-size: 5rem;
+  justify-content: center;
+  left: auto;
+  position: relative;
+  transform: none;
+  transform-origin: 50% 100%;
+  z-index: 2;
+}
+
+.col-gallery__actor.col-polish-actor > [data-foot-anchor="bottom-center"] {
+  flex: none;
+  margin-block-start: auto !important;
+}
+
+.col-gallery__preview--pair {
+  block-size: 8.7rem;
+  gap: 0.25rem;
+  justify-content: space-evenly;
+}
+
+.col-gallery__paired-character {
+  align-items: center;
+  block-size: 100%;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-inline-size: 0;
+  position: relative;
+}
+
+.col-gallery__pair-label {
+  inset-block-start: 0.15rem;
+  position: absolute;
+  z-index: 4;
+}
+
+.col-gallery__actor--compact.col-polish-actor {
+  block-size: 7.35rem;
+  inline-size: 4.35rem;
+}
+
+.col-gallery__job-title {
+  align-items: center;
+  display: flex;
+  gap: 0.52rem;
+  min-block-size: 3.55rem;
+  padding: 0.65rem 0.72rem 0.45rem;
+}
+
+.col-gallery__job-title > span {
+  align-items: center;
+  background: #fff1c8;
+  border-radius: 0.7rem;
+  display: flex;
+  flex: none;
+  font-size: 1.2rem;
+  block-size: 2.2rem;
+  justify-content: center;
+  inline-size: 2.2rem;
+}
+
+.col-gallery__preview--pet {
+  block-size: 6.25rem;
+}
+
+.col-gallery__actor--pet.col-polish-actor {
+  block-size: 5.2rem;
+  inline-size: 7rem;
+}
+
+/* Side and back poses stay inside the same fixed root box and foot anchor. */
+.col-gallery .col-character--faces-right .col-character__eye--left,
+.col-gallery .col-character--faces-right .col-character__cheek--left,
+.col-gallery .col-character--faces-left .col-character__eye--left,
+.col-gallery .col-character--faces-left .col-character__cheek--left {
+  opacity: 0;
+}
+
+.col-gallery .col-character--faces-right .col-character__mouth,
+.col-gallery .col-character--faces-left .col-character__mouth {
+  inline-size: 12%;
+  left: 62%;
+}
+
+.col-gallery .col-character--faces-back .col-character__face,
+.col-gallery .col-character--faces-back .col-character__ear {
+  display: none;
+}
+
+.col-gallery .col-character--faces-back .col-character__hair {
+  block-size: 78%;
+  border-radius: 52% 52% 38% 38%;
+}
+
+.col-gallery .col-character--expression-talk .col-character__mouth {
+  background: #7f3e3f;
+  border: 0.08rem solid #6b3437;
+  border-radius: 50%;
+  block-size: 11%;
+  inline-size: 13%;
+  left: 43.5%;
+}
+
+.col-gallery .col-character--expression-smile .col-character__mouth {
+  background: transparent;
+  border: 0;
+  border-block-end: 0.13rem solid #9c4f4b;
+  border-radius: 0 0 999px 999px;
+  block-size: 8%;
+  inline-size: 20%;
+  left: 40%;
+}
+
+/* Gallery-only hairstyle silhouettes make deterministic variants visibly distinct. */
+.col-gallery .col-character--hair-short-soft .col-character__hair,
+.col-gallery .col-character--hair-side-part-crop .col-character__hair,
+.col-gallery .col-character--hair-soft-undercut .col-character__hair {
+  block-size: 32%;
+}
+
+.col-gallery .col-character--hair-side-part-crop .col-character__hair {
+  clip-path: polygon(0 0, 100% 0, 100% 45%, 58% 30%, 28% 68%, 0 52%);
+}
+
+.col-gallery .col-character--hair-soft-undercut .col-character__hair {
+  border-radius: 58% 58% 20% 20%;
+  clip-path: polygon(8% 0, 92% 0, 100% 52%, 74% 38%, 62% 70%, 8% 48%);
+}
+
+.col-gallery .col-character--hair-tousled-crop .col-character__hair {
+  block-size: 38%;
+  clip-path: polygon(0 35%, 10% 5%, 27% 22%, 42% 0, 58% 24%, 78% 3%, 100% 32%, 95% 100%, 3% 100%);
+}
+
+.col-gallery .col-character--hair-curly-crown .col-character__hair,
+.col-gallery .col-character--hair-curly-crop .col-character__hair {
+  background:
+    radial-gradient(circle at 12% 55%, var(--col-character-hair) 0 21%, transparent 22%),
+    radial-gradient(circle at 31% 25%, var(--col-character-hair) 0 27%, transparent 28%),
+    radial-gradient(circle at 55% 20%, var(--col-character-hair) 0 29%, transparent 30%),
+    radial-gradient(circle at 79% 30%, var(--col-character-hair) 0 26%, transparent 27%),
+    radial-gradient(circle at 92% 62%, var(--col-character-hair) 0 22%, transparent 23%);
+  block-size: 47%;
+}
+
+.col-gallery .col-character--hair-wavy-bob .col-character__hair-back,
+.col-gallery .col-character--hair-soft-bob-clip .col-character__hair-back,
+.col-gallery .col-character--hair-silver-wave .col-character__hair-back {
+  block-size: 68%;
+  inline-size: 88%;
+  left: 6%;
+}
+
+.col-gallery .col-character--hair-tied-back .col-character__hair-back::after,
+.col-gallery .col-character--hair-high-ponytail .col-character__hair-back::after {
+  background: var(--col-character-hair);
+  border-radius: 48% 52% 58% 42%;
+  content: "";
+  block-size: 75%;
+  inline-size: 34%;
+  position: absolute;
+  right: -17%;
+  top: 25%;
+  transform: rotate(-12deg);
+}
+
+.col-gallery .col-character--hair-high-ponytail .col-character__hair-back::after {
+  block-size: 98%;
+  right: -26%;
+  top: -16%;
+}
+
+.col-gallery .col-character--hair-twin-buns .col-character__hair::before,
+.col-gallery .col-character--hair-twin-buns .col-character__hair::after,
+.col-gallery .col-character--hair-classic-bun .col-character__hair::after {
+  background: var(--col-character-hair);
+  border-radius: 50%;
+  content: "";
+  block-size: 76%;
+  inline-size: 35%;
+  position: absolute;
+  top: -35%;
+}
+
+.col-gallery .col-character--hair-twin-buns .col-character__hair::before {
+  left: -16%;
+}
+
+.col-gallery .col-character--hair-twin-buns .col-character__hair::after {
+  right: -16%;
+}
+
+.col-gallery .col-character--hair-classic-bun .col-character__hair::after {
+  inline-size: 44%;
+  right: 5%;
+  top: -58%;
+}
+
+.col-gallery .col-character--hair-braided-pigtails .col-character__hair-back::before,
+.col-gallery .col-character--hair-braided-pigtails .col-character__hair-back::after {
+  background: repeating-radial-gradient(circle at 50% 16%, var(--col-character-hair) 0 22%, transparent 23% 37%);
+  content: "";
+  block-size: 145%;
+  inline-size: 24%;
+  position: absolute;
+  top: 42%;
+}
+
+.col-gallery .col-character--hair-braided-pigtails .col-character__hair-back::before {
+  left: -18%;
+  transform: rotate(8deg);
+}
+
+.col-gallery .col-character--hair-braided-pigtails .col-character__hair-back::after {
+  right: -18%;
+  transform: rotate(-8deg);
+}
+
+/* Female and male presentations are visibly separate without changing metrics. */
+.col-gallery .col-character--feminine-silhouette .col-character__torso::before {
+  background: linear-gradient(90deg, transparent 8%, rgba(255, 255, 255, 0.2) 50%, transparent 92%);
+  border-radius: 50%;
+  content: "";
+  block-size: 28%;
+  inline-size: 78%;
+  left: 11%;
+  position: absolute;
+  top: 16%;
+}
+
+.col-gallery .col-character--masculine-silhouette .col-character__torso {
+  border-radius: 25% 25% 14% 14%;
+}
+
+/* Summer outfits expose short sleeves and lighter lower garments. */
+.col-gallery .col-character--season-summer .col-character__arm {
+  background: linear-gradient(180deg, var(--col-character-primary) 0 34%, var(--col-character-skin) 35% 100%);
+}
+
+.col-gallery .col-character--season-summer .col-character__bottoms {
+  bottom: 24%;
+  border-radius: 8% 8% 30% 30%;
+  top: 63%;
+}
+
+.col-gallery .col-character--season-summer .col-character__leg {
+  background: linear-gradient(180deg, var(--col-character-skin) 0 70%, var(--col-character-secondary) 71% 100%);
+}
+
+/* Job families get small uniform cues in addition to their wardrobe palettes. */
+.col-gallery .col-outfit--doctor .col-character__torso,
+.col-gallery .col-outfit--nurse .col-character__torso,
+.col-gallery .col-outfit--chef .col-character__torso {
+  background-image: linear-gradient(90deg, transparent 47%, rgba(62, 76, 75, 0.25) 48% 52%, transparent 53%);
+}
+
+.col-gallery .col-outfit--police .col-character__torso,
+.col-gallery .col-outfit--army .col-character__torso,
+.col-gallery .col-outfit--athlete .col-character__torso,
+.col-gallery .col-outfit--gym-trainer .col-character__torso {
+  box-shadow: inset 0.32rem 0 0 rgba(255, 255, 255, 0.18), inset -0.32rem 0 0 rgba(0, 0, 0, 0.08);
+}
+
+.col-gallery .col-outfit--engineer .col-character__torso,
+.col-gallery .col-outfit--farmer .col-character__torso,
+.col-gallery .col-outfit--barista .col-character__torso {
+  background-image: linear-gradient(90deg, transparent 18%, var(--col-character-secondary) 19% 26%, transparent 27% 73%, var(--col-character-secondary) 74% 81%, transparent 82%);
+}
+
+.col-gallery .col-outfit--teacher .col-character__torso,
+.col-gallery .col-outfit--manager .col-character__torso,
+.col-gallery .col-outfit--financial-analyst .col-character__torso,
+.col-gallery .col-outfit--lawyer .col-character__torso,
+.col-gallery .col-outfit--ceo .col-character__torso,
+.col-gallery .col-outfit--entrepreneur .col-character__torso {
+  background-image: linear-gradient(135deg, transparent 38%, var(--col-character-accent) 39% 43%, transparent 44% 56%, var(--col-character-accent) 57% 61%, transparent 62%);
+}
+
+.col-gallery .col-outfit--artist .col-character__torso,
+.col-gallery .col-outfit--dancer .col-character__torso,
+.col-gallery .col-outfit--software-engineer .col-character__torso {
+  background-image: radial-gradient(circle at 66% 30%, var(--col-character-accent) 0 8%, transparent 9%);
+}
+
+.col-gallery .col-character__job-accessory {
+  align-items: center;
+  display: flex;
+  font-size: 0.72rem;
+  justify-content: center;
+  position: absolute;
+  right: -54%;
+  top: -8%;
+  z-index: 8;
+}
+
+.col-gallery .col-character__job-accessory::after { content: "•"; }
+.col-gallery .col-character__job-accessory--book-satchel::after { content: "📚"; }
+.col-gallery .col-character__job-accessory--chef-hat::after,
+.col-gallery .col-character__job-accessory--apron::after { content: "🍳"; }
+.col-gallery .col-character__job-accessory--cafe-apron::after { content: "☕"; }
+.col-gallery .col-character__job-accessory--team-badge::after,
+.col-gallery .col-character__job-accessory--headband::after { content: "🏅"; }
+.col-gallery .col-character__job-accessory--tablet::after { content: "▣"; }
+.col-gallery .col-character__job-accessory--safety-glasses::after { content: "⚙"; }
+.col-gallery .col-character__job-accessory--laptop-bag::after { content: "💻"; }
+.col-gallery .col-character__job-accessory--planner::after { content: "📋"; }
+.col-gallery .col-character__job-accessory--portfolio::after { content: "📈"; }
+.col-gallery .col-character__job-accessory--art-palette::after { content: "🎨"; }
+.col-gallery .col-character__job-accessory--police-cap::after { content: "★"; }
+.col-gallery .col-character__job-accessory--briefcase::after { content: "▰"; }
+.col-gallery .col-character__job-accessory--executive-watch::after { content: "◉"; }
+.col-gallery .col-character__job-accessory--stethoscope::after { content: "🩺"; }
+.col-gallery .col-character__job-accessory--care-badge::after { content: "+"; }
+.col-gallery .col-character__job-accessory--straw-hat::after,
+.col-gallery .col-character__job-accessory--sun-hat::after { content: "🌾"; }
+.col-gallery .col-character__job-accessory--dance-ribbon::after { content: "♪"; }
+.col-gallery .col-character__job-accessory--coach-towel::after { content: "🏋"; }
+.col-gallery .col-character__job-accessory--beret::after { content: "◆"; }
+
+.col-gallery .col-companion--faces-back .col-companion__eye,
+.col-gallery .col-companion--faces-back .col-companion__muzzle {
+  display: none;
+}
+
+.col-gallery .col-companion--expression-happy .col-companion__tail {
+  transform: rotate(-28deg);
+}
+
+@media (max-width: 52rem) {
+  .col-gallery__toolbar {
+    grid-template-columns: 1fr;
+    position: relative;
+    top: auto;
+  }
+
+  .col-gallery__companion-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 34rem) {
+  .col-gallery {
+    padding: 0.55rem;
+  }
+
+  .col-gallery__header,
+  .col-gallery__section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .col-gallery__header .col-gallery__close {
+    align-self: stretch;
+  }
+
+  .col-gallery__segmented {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .col-gallery__job-grid,
+  .col-gallery__npc-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .col-gallery *,
+  .col-gallery *::before,
+  .col-gallery *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+[data-contrast="high"] .col-gallery {
+  --col-gallery-ink: #000;
+  --col-gallery-muted: #111;
+  --col-gallery-paper: #fff;
+  --col-gallery-line: #000;
+  --col-gallery-teal-dark: #004e48;
+}
+
+[data-contrast="high"] .col-gallery__header,
+[data-contrast="high"] .col-gallery__section,
+[data-contrast="high"] .col-gallery__toolbar,
+[data-contrast="high"] .col-gallery__card {
+  border-width: 2px;
+  box-shadow: none;
+}
