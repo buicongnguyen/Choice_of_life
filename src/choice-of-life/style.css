@@ -3,6 +3,172 @@ body {
   min-block-size: 100%;
 }
 
+/* Phase 6: compact first-career chapter */
+.col-career-shell,
+.col-career-host,
+.col-career-view {
+  inline-size: 100%;
+}
+
+.col-career-view {
+  display: grid;
+  gap: 1rem;
+}
+
+.col-career-header,
+.col-career-status,
+.col-career-footer,
+.col-career-season {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.col-career-header,
+.col-career-content {
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid color-mix(in srgb, var(--col-ink) 14%, transparent);
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--col-paper) 94%, white);
+  box-shadow: 0 0.7rem 1.8rem rgba(57, 43, 33, 0.08);
+}
+
+.col-career-heading p,
+.col-career-content > p {
+  max-inline-size: 68ch;
+}
+
+.col-career-status {
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.col-career-age,
+.col-career-kicker {
+  color: var(--col-primary-strong);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.col-career-scores,
+.col-career-ending-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.col-career-score,
+.col-career-ending-grid article {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 1rem;
+  background: var(--col-paper);
+  box-shadow: 0 0.35rem 1rem rgba(57, 43, 33, 0.07);
+}
+
+.col-career-score output {
+  font-size: 1.15em;
+  font-weight: 900;
+}
+
+.col-career-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.col-career-offer-grid,
+.col-career-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.9rem;
+}
+
+.col-career-offer,
+.col-career-choice,
+.col-career-outfit {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--col-ink) 15%, transparent);
+  border-radius: 1rem;
+  background: white;
+  text-align: start;
+}
+
+.col-career-choice {
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.col-career-choice:hover,
+.col-career-choice:focus-visible {
+  border-color: var(--col-primary-strong);
+  transform: translateY(-1px);
+}
+
+.col-career-signals,
+.col-career-signal {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.col-career-signal {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  font-size: 0.82em;
+}
+
+.col-career-signal-dots,
+.col-career-swatches {
+  display: inline-flex;
+  gap: 0.22rem;
+}
+
+.col-career-signal-dots i,
+.col-career-swatches i {
+  inline-size: 0.65rem;
+  block-size: 0.65rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--col-ink) 15%, transparent);
+}
+
+.col-career-signal-dots i.is-filled {
+  background: var(--col-primary-strong);
+}
+
+.col-career-outfit {
+  padding: 0.7rem;
+  background: color-mix(in srgb, var(--col-accent) 18%, white);
+}
+
+.col-career-callout,
+.col-career-economy {
+  padding: 0.8rem 1rem;
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--col-accent) 24%, white);
+}
+
+.col-career-ending-grid article {
+  display: grid;
+}
+
+@media (max-width: 42rem) {
+  .col-career-scores,
+  .col-career-ending-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .col-career-status {
+    align-items: flex-start;
+  }
+}
+
 body {
   margin: 0;
 }

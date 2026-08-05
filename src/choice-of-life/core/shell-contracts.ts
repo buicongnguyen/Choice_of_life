@@ -13,6 +13,7 @@ import type {
   ExamPreparationChoiceId,
   PrimaryEducationRouteId,
 } from "./education/index";
+import type { CareerAction, CareerState } from "./career/index";
 
 export type Gender = RunStateV1["identity"]["gender"];
 export type AppearanceSelection = RunStateV1["appearance"];
@@ -121,6 +122,12 @@ export type EducationChapterActionResult =
   | { readonly kind: "ready"; readonly state: EducationState; readonly notice?: ShellNotice }
   | { readonly kind: "invalid"; readonly notice: ShellNotice };
 
+export type CareerChapterActionResult =
+  | { readonly kind: "ready"; readonly state: CareerState; readonly notice?: ShellNotice }
+  | { readonly kind: "invalid"; readonly notice: ShellNotice };
+
+export type CareerChapterAction = CareerAction;
+
 /**
  * Phase-3 runtime capability. Newborn progress is deliberately session-scoped
  * until it can be incorporated into the versioned run save without weakening
@@ -144,6 +151,13 @@ export interface EducationChapterShellPort {
   currentEducationState(): EducationState | null;
   enterEducation(): EducationChapterActionResult;
   dispatchEducation(action: EducationChapterAction): EducationChapterActionResult;
+}
+
+/** Phase-6 first-career runtime, kept session-scoped until the save schema grows. */
+export interface CareerChapterShellPort {
+  currentCareerState(): CareerState | null;
+  enterCareer(): CareerChapterActionResult;
+  dispatchCareer(action: CareerAction): CareerChapterActionResult;
 }
 
 export interface RunnerLaboratoryShellPort {
@@ -171,4 +185,6 @@ export interface BrowserDependencies {
   readonly encounters?: EncounterChapterShellPort;
   /** Phase-5 high-school and education capability. */
   readonly education?: EducationChapterShellPort;
+  /** Phase-6 first-career capability. */
+  readonly career?: CareerChapterShellPort;
 }

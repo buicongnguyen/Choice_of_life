@@ -8,11 +8,13 @@ import {
 } from "./core/newborn/index";
 import type { RunStateV1 } from "./core/run-state";
 import type {
+  CareerChapterAction,
   EducationChapterAction,
   EncounterChapterAction,
   EncounterChapterState,
 } from "./core/shell-contracts";
 import type { EducationState } from "./core/education/index";
+import type { CareerState } from "./core/career/index";
 import { createBrowserDependencies } from "./platform/browser-shell";
 import { createBrowserRunnerSession } from "./platform/browser-runner-session";
 import { CleanupBag } from "./platform/lifecycle";
@@ -65,6 +67,7 @@ import {
 import { mountNewbornView, type NewbornView } from "./presentation/newborn-view";
 import { mountEncounterView, type EncounterView } from "./presentation/encounter-view";
 import { mountEducationView, type EducationView } from "./presentation/education-view";
+import { mountCareerView, type CareerView } from "./presentation/career-view";
 
 export type { BrowserDependencies, ChoiceOfLifeShellPort } from "./presentation/contracts";
 export type { SetupSelection, VisualSettings } from "./presentation/model";
@@ -77,7 +80,7 @@ export function mountChoiceOfLifeInBrowser(root: HTMLElement): ChoiceOfLifeApp {
   return mountChoiceOfLife(root, createBrowserDependencies());
 }
 
-type Screen = "title" | "setup" | "ready" | "newborn" | "encounters" | "education" | "runner";
+type Screen = "title" | "setup" | "ready" | "newborn" | "encounters" | "education" | "career" | "runner";
 
 interface LocalState {
   screen: Screen;
@@ -108,6 +111,10 @@ interface MountedEncounter {
 
 interface MountedEducation {
   readonly view: EducationView;
+}
+
+interface MountedCareer {
+  readonly view: CareerView;
 }
 
 const mountedRoots = new WeakMap<HTMLElement, ChoiceOfLifeApp>();
@@ -193,9 +200,11 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   let mountedNewborn: MountedNewborn | null = null;
   let mountedEncounter: MountedEncounter | null = null;
   let mountedEducation: MountedEducation | null = null;
+  let mountedCareer: MountedCareer | null = null;
   let newbornActionInProgress = false;
   let encounterActionInProgress = false;
   let educationActionInProgress = false;
+  let careerActionInProgress = false;
   let runnerActionInProgress = false;
   let runnerCommitInProgress = false;
   let snapshot = safeSnapshot(dependencies.shell);
@@ -291,6 +300,11 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       snapshot = safeSnapshot(dependencies.shell);
       state.settings = cloneSettings(snapshot.settings);
     }
+    if (state.screen === "career" && screen !== "career") {
+      disposeMountedCareer();
+      snapshot = safeSnapshot(dependencies.shell);
+      state.settings = cloneSettings(snapshot.settings);
+    }
     state.screen = screen;
     state.notice = null;
     focusAfterRenderId = screen === "title"
@@ -304,7 +318,9 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
             : screen === "encounters"
               ? "encounter-stage-heading"
               : screen === "education"
-                ? "education-stage-heading"
+              ? "education-stage-heading"
+              : screen === "career"
+                ? "career-stage-heading"
               : "runner-status-heading";
     render();
   };
@@ -690,6 +706,26 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       listen(educationButton, "click", enterEducation);
       actions.append(educationButton);
     }
+    if (
+      dependencies.career &&
+      dependencies.education?.currentEducationState()?.phase === "qualified"
+    ) {
+      const careerProgress = dependencies.career.currentCareerState();
+      const careerButton = createButton(
+        careerProgress?.phase === "complete"
+          ? "Review first career"
+          : careerProgress
+            ? "Continue first career"
+            : "Continue to Career",
+        careerProgress?.phase === "complete"
+          ? "col-button col-button--quiet"
+          : "col-button col-button--primary",
+      );
+      careerButton.setAttribute("data-career-enter", "");
+      careerButton.disabled = state.pending !== null;
+      listen(careerButton, "click", enterCareer);
+      actions.append(careerButton);
+    }
     if (dependencies.runner) {
       const runnerButton = createButton(
         "Open runner laboratory (practice)",
@@ -767,6 +803,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     disposeMountedNewborn();
     disposeMountedEncounter();
     disposeMountedEducation();
+    disposeMountedCareer();
     renderLifetime.dispose();
     renderLifetime = new CleanupBag();
     state.screen = "newborn";
@@ -1077,6 +1114,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     disposeMountedNewborn();
     disposeMountedEncounter();
     disposeMountedEducation();
+    disposeMountedCareer();
     renderLifetime.dispose();
     renderLifetime = new CleanupBag();
     state.screen = "education";
@@ -1144,6 +1182,10 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
 
   function continueFromEducation(): void {
     if (disposed) return;
+    if (dependencies.career !== undefined) {
+      enterCareer();
+      return;
+    }
     disposeMountedEducation();
     state.screen = "ready";
     state.notice = {
@@ -1155,6 +1197,127 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   }
 
   function returnFromEducationToReady(): void {
+    if (disposed) return;
+    setScreen("ready");
+  }
+
+  function disposeMountedCareer(): void {
+    const runtime = mountedCareer;
+    mountedCareer = null;
+    runtime?.view.dispose();
+  }
+
+  function careerActionFailure(notice: ShellNotice): void {
+    disposeMountedCareer();
+    state.screen = "ready";
+    state.notice = notice;
+    focusAfterRenderId = NOTICE_ID;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    render();
+  }
+
+  function dispatchCareer(action: CareerChapterAction): void {
+    if (
+      disposed || careerActionInProgress ||
+      dependencies.career === undefined || mountedCareer === null
+    ) return;
+    careerActionInProgress = true;
+    let result: ReturnType<typeof dependencies.career.dispatchCareer>;
+    try {
+      result = dependencies.career.dispatchCareer(action);
+    } catch {
+      careerActionInProgress = false;
+      careerActionFailure(errorNotice("That career choice could not be applied. Your education result is unchanged."));
+      return;
+    }
+    careerActionInProgress = false;
+    if (result.kind === "invalid") {
+      careerActionFailure(result.notice);
+      return;
+    }
+    state.notice = result.notice ?? null;
+    mountedCareer?.view.render(result.state);
+  }
+
+  function mountEnteredCareer(
+    enteredState: CareerState,
+    enteredNotice: ShellNotice | null,
+  ): void {
+    disposeMountedRunner();
+    disposeMountedNewborn();
+    disposeMountedEncounter();
+    disposeMountedEducation();
+    disposeMountedCareer();
+    renderLifetime.dispose();
+    renderLifetime = new CleanupBag();
+    state.screen = "career";
+    state.notice = enteredNotice;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    applySettings();
+
+    const main = createElement(document, "main", {
+      className: "col-shell col-career-shell",
+      attributes: { "aria-labelledby": "choice-life-title", "aria-busy": "false" },
+    });
+    renderHeader(main);
+    renderNotice(main);
+    const host = createElement(document, "div", {
+      className: "col-career-host",
+      attributes: { "data-career-host": "" },
+    });
+    main.append(host);
+    root.replaceChildren(main);
+
+    let view: CareerView | null = null;
+    try {
+      view = mountCareerView(host, {
+        dispatch: dispatchCareer,
+        onContinueToChildhood: continueFromCareer,
+        onReturnToReady: returnFromCareerToReady,
+      });
+      mountedCareer = Object.freeze({ view });
+      view.render(enteredState);
+      root.querySelector<HTMLElement>("#career-stage-heading")?.focus();
+    } catch {
+      view?.dispose();
+      careerActionFailure(errorNotice("The first career chapter could not be displayed. Your education result is still available."));
+    }
+  }
+
+  function enterCareer(): void {
+    if (disposed || careerActionInProgress || dependencies.career === undefined) return;
+    careerActionInProgress = true;
+    let result: ReturnType<typeof dependencies.career.enterCareer>;
+    try {
+      result = dependencies.career.enterCareer();
+    } catch {
+      careerActionInProgress = false;
+      careerActionFailure(errorNotice("The first career chapter could not be opened. Your education result is unchanged."));
+      return;
+    }
+    careerActionInProgress = false;
+    if (result.kind === "invalid") {
+      careerActionFailure(result.notice);
+      return;
+    }
+    mountEnteredCareer(result.state, result.notice ?? null);
+  }
+
+  function continueFromCareer(): void {
+    if (disposed) return;
+    disposeMountedCareer();
+    state.screen = "ready";
+    state.notice = {
+      tone: "status",
+      message: "Your first career reflection is complete. Childhood continuation will open in the next chapter.",
+    };
+    focusAfterRenderId = NOTICE_ID;
+    render();
+  }
+
+  function returnFromCareerToReady(): void {
     if (disposed) return;
     setScreen("ready");
   }
@@ -1602,6 +1765,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       }
       return;
     }
+    if (state.screen === "career" && mountedCareer !== null) {
+      applySettings();
+      const currentCareer = dependencies.career?.currentCareerState() ?? null;
+      if (currentCareer !== null) {
+        mountedCareer.view.render(currentCareer);
+      }
+      return;
+    }
     if (state.screen === "runner" && mountedRunner !== null) {
       applySettings();
       mountedRunner.view.updateVisualOptions(runnerVisualOptions(
@@ -1653,7 +1824,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     }
     if (
       runnerActionInProgress || runnerCommitInProgress ||
-      encounterActionInProgress || educationActionInProgress
+      encounterActionInProgress || educationActionInProgress || careerActionInProgress
     ) {
       applySettings();
       return;
@@ -1683,6 +1854,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       applySettings();
       return;
     }
+    if (mountedCareer !== null) {
+      const currentCareer = dependencies.career?.currentCareerState() ?? null;
+      if (currentCareer !== null) {
+        mountedCareer.view.render(currentCareer);
+      }
+      applySettings();
+      return;
+    }
     render();
   });
   lifetime.add(unsubscribe);
@@ -1697,6 +1876,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       disposeMountedNewborn();
       disposeMountedEncounter();
       disposeMountedEducation();
+      disposeMountedCareer();
       disposeMountedRunner();
       renderLifetime.dispose();
       lifetime.dispose();

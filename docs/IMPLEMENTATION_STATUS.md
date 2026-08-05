@@ -9,8 +9,8 @@ Active plan: [CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md](../CHOICE_OF_LIFE_IMPLEM
 | 2 — Runner laboratory | Complete; exhaustive verification deferred by user | `b4f39435b4104e5338c6a840a3ca23190f9f1d34` | [phase-2 contract](./phase-specs/phase-2.md) | [deploy run 31005473206](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31005473206) succeeded |
 | 3 — Newborn | Complete; verification deferred by user | `4922d7d3c1522cb5d001c035a2f30d4fbce1c6c5` | Generated nursery art and runnable newborn stage | [deploy run 31006486403](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31006486403) succeeded |
 | 4 — Encounters and consequences | Complete; verification deferred by user | `79ba1b86d61717bc1d2963b8d1e8674fbc956d14` | Runnable encounter chapter and consequence engine | [deploy run 31007902362](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31007902362) succeeded |
-| 5 — High School and Education | Implementation complete; verification deferred by user | pending | Runnable education, qualifications, and retraining chapter | Deployment pending |
-| 6 — First Career and provisional ending | Pending | — | — | — |
+| 5 — High School and Education | Complete; verification deferred by user | `20e890958e50b95182d546b80e3f1dd2af0c8cd0` | Runnable education, qualifications, and retraining chapter | [deploy run 31008822061](https://github.com/buicongnguyen/Choice_of_life/actions/runs/31008822061) succeeded |
+| 6 — First Career and provisional ending | Implementation complete; verification deferred by user | pending | Runnable career offers, work cycles, doctor path, and provisional ending | Deployment pending |
 | 7 — Childhood continuity | Pending | — | — | — |
 | 8 — Adult routes | Pending | — | — | — |
 | 9 — Later life and full ending | Pending | — | — | — |

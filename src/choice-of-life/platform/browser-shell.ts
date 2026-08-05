@@ -19,12 +19,23 @@ import {
   type EducationState,
   type EducationSupportLevel,
 } from "../core/education/index";
+import {
+  createCareerState,
+  reduceCareer,
+  type CareerCredentialId,
+  type CareerEducationRoute,
+  type CareerExperienceTag,
+  type CareerFact,
+  type CareerState,
+} from "../core/career/index";
 import { createRunnerLaboratoryEntryState, RUNNER_LABORATORY_STAGE_ID } from "../core/runner/contract";
 import type { SeedPort } from "../core/seed-port";
 import { STARTING_PROFILE_SCORES, type RunStateV1, type StartingProfileId } from "../core/run-state";
 import { stateHashV1 } from "../core/run-state-hash";
 import type {
   BrowserDependencies,
+  CareerChapterActionResult,
+  CareerChapterShellPort,
   ChoiceOfLifeShellPort,
   EducationChapterAction,
   EducationChapterActionResult,
@@ -99,7 +110,7 @@ function copyValidSettings(value: unknown): VisualSettings | null {
   };
 }
 
-export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort, EncounterChapterShellPort, EducationChapterShellPort {
+export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort, NewbornShellPort, EncounterChapterShellPort, EducationChapterShellPort, CareerChapterShellPort {
   startNewLife(selection: SetupSelection): RunActionResult;
   continueLife(): RunActionResult;
   saveSettings(settings: VisualSettings): SettingsActionResult;
@@ -183,6 +194,77 @@ function deterministicExamPerformance(runSeed: string, choiceId: string): number
   return 45 + ((hash >>> 0) % 36);
 }
 
+function careerEducationRoute(state: EducationState): CareerEducationRoute {
+  switch (state.qualificationRouteId) {
+    case "education-route-professional-v1":
+      return "professional";
+    case "education-route-practical-v1":
+      return "practical";
+    case "education-route-direct-work-v1":
+      return "direct-work";
+    default:
+      return "foundation";
+  }
+}
+
+function careerCredentials(state: EducationState): readonly CareerCredentialId[] {
+  const credentials: CareerCredentialId[] = ["high-school-diploma"];
+  const route = careerEducationRoute(state);
+  if (route === "professional") {
+    credentials.push(
+      "bachelor-general",
+      "engineering-degree",
+      "finance-degree",
+      "computer-science-degree",
+      "business-degree",
+    );
+    if (state.gradeResult?.grade === "excellent") {
+      credentials.push("medical-degree");
+    }
+  } else if (route === "practical") {
+    credentials.push(
+      "culinary-certificate",
+      "nursing-license",
+      "fitness-certification",
+      "agriculture-training",
+    );
+  } else if (route === "direct-work") {
+    credentials.push("software-portfolio", "arts-portfolio");
+  }
+  return Object.freeze(credentials);
+}
+
+function careerExperience(state: EducationState): readonly CareerExperienceTag[] {
+  switch (careerEducationRoute(state)) {
+    case "professional":
+      return Object.freeze(["technology", "teamwork"]);
+    case "practical":
+      return Object.freeze(["caregiving", "customer-service", "physical-training", "teamwork"]);
+    case "direct-work":
+      return Object.freeze(["customer-service", "small-business", "creative-practice"]);
+    default:
+      return Object.freeze(["community-service", "teamwork"]);
+  }
+}
+
+function careerHandoffFacts(state: EducationState): readonly CareerFact[] {
+  const routeLabel = careerEducationRoute(state).replace("-", " ");
+  return Object.freeze([
+    {
+      factId: "fact-education-route-v1",
+      label: "Education route",
+      value: routeLabel,
+      source: "prior-life",
+    },
+    {
+      factId: "fact-school-grade-v1",
+      label: "School result",
+      value: state.gradeResult?.grade ?? "basic",
+      source: "prior-life",
+    },
+  ]);
+}
+
 function createEncounterChapterState(
   runId: string,
   scores: RunStateV1["scores"],
@@ -252,6 +334,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
   let newbornState: NewbornState | null = null;
   let encounterState: EncounterChapterState | null = null;
   let educationState: EducationState | null = null;
+  let careerState: CareerState | null = null;
   let settings: VisualSettings = currentState ? { ...currentState.accessibility } : { ...DEFAULT_SETTINGS };
   let notice = noticeForLoad(initialLoad);
   const listeners = new Set<() => void>();
@@ -355,6 +438,7 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       newbornState = null;
       encounterState = null;
       educationState = null;
+      careerState = null;
       if (result.kind === "saved") {
         notice = null;
       } else if (result.kind === "unavailable") {
@@ -652,6 +736,68 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
       publish();
       return { kind: "ready", state: educationState };
     },
+    currentCareerState(): CareerState | null {
+      return careerState;
+    },
+    enterCareer(): CareerChapterActionResult {
+      if (
+        currentState === null ||
+        educationState === null ||
+        educationState.phase !== "qualified"
+      ) {
+        return {
+          kind: "invalid",
+          notice: warning("Complete education before opening your first career chapter."),
+        };
+      }
+      if (careerState !== null && careerState.runId === currentState.runId) {
+        return { kind: "ready", state: careerState, ...(notice ? { notice } : {}) };
+      }
+      try {
+        careerState = createCareerState({
+          runId: currentState.runId,
+          runSeed: currentState.runSeed,
+          scores: educationState.scores,
+          profile: {
+            ageYears: educationState.ageMonths / 12,
+            grade: educationState.gradeResult?.grade ?? "basic",
+            route: careerEducationRoute(educationState),
+            credentials: careerCredentials(educationState),
+            experienceTags: careerExperience(educationState),
+          },
+          facts: careerHandoffFacts(educationState),
+        });
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("Career offers could not be prepared. Your education result is unchanged."),
+        };
+      }
+      notice = {
+        tone: "status",
+        message: "Your first career chapter is active for this browser session.",
+      };
+      publish();
+      return { kind: "ready", state: careerState, notice };
+    },
+    dispatchCareer(action): CareerChapterActionResult {
+      if (careerState === null) {
+        return {
+          kind: "invalid",
+          notice: warning("Open your first career chapter before making a career choice."),
+        };
+      }
+      try {
+        careerState = reduceCareer(careerState, action);
+      } catch {
+        return {
+          kind: "invalid",
+          notice: warning("That career action is not available. Your latest career state was kept."),
+        };
+      }
+      publish();
+      return { kind: "ready", state: careerState };
+    },
     enterRunnerLaboratory(): RunnerLaboratoryActionResult {
       if (currentState === null) {
         return { kind: "invalid", notice: runnerNotice("Create a life before opening the runner laboratory.") };
@@ -719,5 +865,6 @@ export function createBrowserDependencies(): BrowserDependencies {
     newborn: shell,
     encounters: shell,
     education: shell,
+    career: shell,
   };
 }
