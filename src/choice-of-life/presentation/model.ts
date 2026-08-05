@@ -7,14 +7,12 @@ import {
   type StartingProfileId,
 } from "../core/run-state";
 import type {
-  AppearanceSelection,
   ClothingPaletteId,
   Gender,
   HairColorId,
   HairStyleId,
   HeritageStyleId,
   SetupSelection,
-  TextScale,
   VisualSettings,
 } from "../core/shell-contracts";
 

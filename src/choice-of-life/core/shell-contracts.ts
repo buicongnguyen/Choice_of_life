@@ -63,6 +63,22 @@ export type SettingsActionResult =
   | { readonly kind: "invalid"; readonly settings: VisualSettings; readonly notice: ShellNotice }
   | { readonly kind: "unavailable"; readonly settings: VisualSettings; readonly notice: ShellNotice };
 
+export type RunnerLaboratoryActionResult =
+  | { readonly kind: "ready"; readonly state: RunStateV1; readonly notice?: ShellNotice }
+  | { readonly kind: "invalid"; readonly notice: ShellNotice };
+
+export type RunnerLaboratoryCommitResult =
+  | { readonly kind: "saved"; readonly state: RunStateV1 }
+  | { readonly kind: "unavailable"; readonly state: RunStateV1; readonly notice: ShellNotice }
+  | { readonly kind: "invalid"; readonly notice: ShellNotice };
+
+export interface RunnerLaboratoryShellPort {
+  currentRunState(): RunStateV1 | null;
+  enterRunnerLaboratory(): RunnerLaboratoryActionResult;
+  restartRunnerLaboratory(): RunnerLaboratoryActionResult;
+  saveRunnerLaboratoryState(state: RunStateV1): RunnerLaboratoryCommitResult;
+}
+
 export interface ChoiceOfLifeShellPort {
   getSnapshot(): ShellSnapshot;
   subscribe(listener: () => void): () => void;
@@ -73,4 +89,6 @@ export interface ChoiceOfLifeShellPort {
 
 export interface BrowserDependencies {
   readonly shell: ChoiceOfLifeShellPort;
+  /** Phase-2 runtime capability; optional so the Phase-1 shell remains embeddable. */
+  readonly runner?: RunnerLaboratoryShellPort;
 }

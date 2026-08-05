@@ -1,6 +1,15 @@
 import { LOGICAL_TICK_MICROSECONDS, MAX_FRAME_STEPS } from "../core/stage-clock";
 
-export type RuntimePauseReason = "visibility" | "blur" | "user" | "modal";
+export const RUNTIME_PAUSE_REASON_ORDER = Object.freeze([
+  "visibility",
+  "focus-interruption",
+  "user",
+  "modal",
+  "semantic",
+] as const);
+
+export type RuntimePauseReason =
+  (typeof RUNTIME_PAUSE_REASON_ORDER)[number];
 
 export interface FixedStepFrameResult {
   readonly logicalSteps: number;
@@ -10,6 +19,7 @@ export interface FixedStepFrameResult {
 export interface FixedStepDriver {
   advanceFrame(timestampMilliseconds: number): FixedStepFrameResult;
   setPauseReason(reason: RuntimePauseReason, active: boolean): void;
+  activePauseReasons(): readonly RuntimePauseReason[];
   isPaused(): boolean;
   reset(): void;
 }
@@ -61,11 +71,23 @@ export function createFixedStepDriver(): FixedStepDriver {
       return { logicalSteps, droppedLogicalSteps };
     },
     setPauseReason(reason: RuntimePauseReason, active: boolean): void {
+      if (!RUNTIME_PAUSE_REASON_ORDER.includes(reason)) {
+        throw new TypeError("Runtime pause reason is unsupported");
+      }
+      if (typeof active !== "boolean") {
+        throw new TypeError("Runtime pause state must be a boolean");
+      }
       const changed = active ? !pauseReasons.has(reason) : pauseReasons.has(reason);
       if (!changed) return;
       if (active) pauseReasons.add(reason);
       else pauseReasons.delete(reason);
       resetClock();
+    },
+    activePauseReasons(): readonly RuntimePauseReason[] {
+      return Object.freeze(
+        RUNTIME_PAUSE_REASON_ORDER.filter((reason) =>
+          pauseReasons.has(reason)),
+      );
     },
     isPaused(): boolean {
       return pauseReasons.size > 0;

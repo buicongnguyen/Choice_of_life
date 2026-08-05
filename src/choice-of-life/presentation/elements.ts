@@ -57,8 +57,8 @@ export function createScorePreview(
     const meter = createElement(document, "meter", {
       className: "col-score-meter",
       attributes: {
-        min: "0",
-        max: "100",
+        "min": "0",
+        "max": "100",
         value: String(item.value),
         "data-score-meter": item.id,
         "aria-hidden": "true",

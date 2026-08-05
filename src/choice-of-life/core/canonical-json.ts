@@ -7,9 +7,10 @@ export type CanonicalJsonValue =
   | readonly CanonicalJsonValue[]
   | Readonly<{ [key: string]: CanonicalJsonValue }>;
 
-const FNV1A_64_OFFSET = 0xcbf29ce484222325n;
-const FNV1A_64_PRIME = 0x100000001b3n;
-const UINT64_MASK = 0xffffffffffffffffn;
+const FNV1A_64_OFFSET_HIGH = 0xcbf29ce4;
+const FNV1A_64_OFFSET_LOW = 0x84222325;
+const FNV1A_64_PRIME_LOW = 0x1b3;
+const UINT32_MODULUS = 0x1_0000_0000;
 
 function unsupportedValue(value: never): never {
   throw new TypeError(`Unsupported canonical JSON value: ${String(value)}`);
@@ -93,35 +94,23 @@ export function canonicalizeJson(value: CanonicalJsonValue): string {
   return canonicalize(value, new Set<object>());
 }
 
-function updateFnv1a64(hash: bigint, byte: number): bigint {
-  return ((hash ^ BigInt(byte)) * FNV1A_64_PRIME) & UINT64_MASK;
-}
-
-function updateCodePoint(hash: bigint, codePoint: number): bigint {
-  if (codePoint <= 0x7f) {
-    return updateFnv1a64(hash, codePoint);
-  }
-  if (codePoint <= 0x7ff) {
-    let next = updateFnv1a64(hash, 0xc0 | (codePoint >>> 6));
-    next = updateFnv1a64(next, 0x80 | (codePoint & 0x3f));
-    return next;
-  }
-  if (codePoint <= 0xffff) {
-    let next = updateFnv1a64(hash, 0xe0 | (codePoint >>> 12));
-    next = updateFnv1a64(next, 0x80 | ((codePoint >>> 6) & 0x3f));
-    next = updateFnv1a64(next, 0x80 | (codePoint & 0x3f));
-    return next;
-  }
-
-  let next = updateFnv1a64(hash, 0xf0 | (codePoint >>> 18));
-  next = updateFnv1a64(next, 0x80 | ((codePoint >>> 12) & 0x3f));
-  next = updateFnv1a64(next, 0x80 | ((codePoint >>> 6) & 0x3f));
-  next = updateFnv1a64(next, 0x80 | (codePoint & 0x3f));
-  return next;
-}
-
 export function fnv1a64Hex(text: string): string {
-  let hash = FNV1A_64_OFFSET;
+  let high = FNV1A_64_OFFSET_HIGH;
+  let low = FNV1A_64_OFFSET_LOW;
+  const updateByte = (byte: number): void => {
+    low = (low ^ byte) >>> 0;
+    // 0x100000001b3 = 2^40 + 0x1b3. Splitting the unsigned
+    // 64-bit value into high/low words makes the exact modulo-2^64
+    // multiplication browser-safe without one BigInt allocation per byte.
+    const lowProduct = low * FNV1A_64_PRIME_LOW;
+    const carry = Math.floor(lowProduct / UINT32_MODULUS);
+    high = (
+      Math.imul(high, FNV1A_64_PRIME_LOW) +
+      carry +
+      ((low << 8) >>> 0)
+    ) >>> 0;
+    low = lowProduct >>> 0;
+  };
   for (const symbol of text) {
     const rawCodePoint = symbol.codePointAt(0);
     if (rawCodePoint === undefined) {
@@ -131,9 +120,25 @@ export function fnv1a64Hex(text: string): string {
       rawCodePoint >= 0xd800 && rawCodePoint <= 0xdfff
         ? 0xfffd
         : rawCodePoint;
-    hash = updateCodePoint(hash, codePoint);
+    if (codePoint <= 0x7f) {
+      updateByte(codePoint);
+    } else if (codePoint <= 0x7ff) {
+      updateByte(0xc0 | (codePoint >>> 6));
+      updateByte(0x80 | (codePoint & 0x3f));
+    } else if (codePoint <= 0xffff) {
+      updateByte(0xe0 | (codePoint >>> 12));
+      updateByte(0x80 | ((codePoint >>> 6) & 0x3f));
+      updateByte(0x80 | (codePoint & 0x3f));
+    } else {
+      updateByte(0xf0 | (codePoint >>> 18));
+      updateByte(0x80 | ((codePoint >>> 12) & 0x3f));
+      updateByte(0x80 | ((codePoint >>> 6) & 0x3f));
+      updateByte(0x80 | (codePoint & 0x3f));
+    }
   }
-  return hash.toString(16).padStart(16, "0");
+  return `${high.toString(16).padStart(8, "0")}${
+    low.toString(16).padStart(8, "0")
+  }`;
 }
 
 export const canonicalJson = canonicalizeJson;

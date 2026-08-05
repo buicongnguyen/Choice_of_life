@@ -1,7 +1,15 @@
 import "./style.css";
 
+import { generateRunnerLaboratoryCourse } from "./core/runner/course-generator";
+import type { RunStateV1 } from "./core/run-state";
 import { createBrowserDependencies } from "./platform/browser-shell";
+import { createBrowserRunnerSession } from "./platform/browser-runner-session";
 import { CleanupBag } from "./platform/lifecycle";
+import {
+  mountRunnerInputDom,
+  type RunnerInputDomAdapter,
+} from "./platform/runner-input-dom";
+import type { RunnerSession } from "./platform/runner-session";
 import type {
   BrowserDependencies,
   ChoiceOfLifeShellPort,
@@ -37,6 +45,12 @@ import {
   type TextScale,
   type VisualSettings,
 } from "./presentation/model";
+import {
+  mountRunnerView,
+  type RunnerView,
+  type RunnerViewCharacterToken,
+  type RunnerViewVisualOptions,
+} from "./presentation/runner-view";
 
 export type { BrowserDependencies, ChoiceOfLifeShellPort } from "./presentation/contracts";
 export type { SetupSelection, VisualSettings } from "./presentation/model";
@@ -49,7 +63,7 @@ export function mountChoiceOfLifeInBrowser(root: HTMLElement): ChoiceOfLifeApp {
   return mountChoiceOfLife(root, createBrowserDependencies());
 }
 
-type Screen = "title" | "setup" | "ready";
+type Screen = "title" | "setup" | "ready" | "runner";
 
 interface LocalState {
   screen: Screen;
@@ -59,6 +73,13 @@ interface LocalState {
   settingsOpen: boolean;
   pending: "start" | "continue" | "settings" | null;
   notice: ShellNotice | null;
+}
+
+interface MountedRunner {
+  readonly session: RunnerSession;
+  readonly view: RunnerView;
+  readonly input: RunnerInputDomAdapter;
+  readonly unsubscribeInputGate: () => void;
 }
 
 const mountedRoots = new WeakMap<HTMLElement, ChoiceOfLifeApp>();
@@ -98,6 +119,31 @@ function cloneAppearance(appearance: AppearanceSelection): AppearanceSelection {
   return { ...appearance };
 }
 
+function runnerCharacterToken(state: RunStateV1): RunnerViewCharacterToken {
+  return Object.freeze({
+    bodySet: state.identity.gender === "female" ? "feminine" : "masculine",
+    artSet: state.appearance.heritageStyleId,
+    hairShape: state.appearance.hairStyleId,
+    hairTone: state.appearance.hairColorId,
+    clothingTone: state.appearance.clothingPaletteId,
+  });
+}
+
+function runnerVisualOptions(settings: VisualSettings): RunnerViewVisualOptions {
+  const textScaleMultiplier = ({
+    100: 1,
+    125: 1.25,
+    150: 1.5,
+    200: 2,
+  } as const)[settings.textScale];
+  return Object.freeze({
+    contrastMode: settings.highContrast ? "high" : "standard",
+    motionReduced: settings.reducedMotion,
+    textScaleMultiplier,
+    announceOptional: settings.screenReaderAnnouncements,
+  });
+}
+
 export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDependencies): ChoiceOfLifeApp {
   mountedRoots.get(root)?.dispose();
 
@@ -108,6 +154,9 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   let operationVersion = 0;
   let settingsOpenerId: string | null = null;
   let focusAfterRenderId: string | null = null;
+  let mountedRunner: MountedRunner | null = null;
+  let runnerActionInProgress = false;
+  let runnerCommitInProgress = false;
   let snapshot = safeSnapshot(dependencies.shell);
   const state: LocalState = {
     screen: "title",
@@ -144,8 +193,8 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
         className: `col-notice col-notice--${notice.tone}`,
         text: notice.message,
         attributes: {
-          id: NOTICE_ID,
-          role: shouldAnnounce ? (notice.tone === "error" ? "alert" : "status") : "note",
+          "id": NOTICE_ID,
+          "role": shouldAnnounce ? (notice.tone === "error" ? "alert" : "status") : "note",
           "aria-live": shouldAnnounce ? (notice.tone === "error" ? "assertive" : "polite") : "off",
         },
       }),
@@ -167,9 +216,9 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
         className: "col-pending-status",
         text: message,
         attributes: {
-          id: PENDING_STATUS_ID,
-          tabindex: "-1",
-          role: shouldAnnounce ? "status" : "note",
+          "id": PENDING_STATUS_ID,
+          "tabindex": "-1",
+          "role": shouldAnnounce ? "status" : "note",
           "aria-live": shouldAnnounce ? "polite" : "off",
           "aria-atomic": "true",
         },
@@ -181,9 +230,20 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     if (state.pending) {
       return;
     }
+    if (state.screen === "runner" && screen !== "runner") {
+      disposeMountedRunner();
+      snapshot = safeSnapshot(dependencies.shell);
+      state.settings = cloneSettings(snapshot.settings);
+    }
     state.screen = screen;
     state.notice = null;
-    focusAfterRenderId = screen === "title" ? "title-actions-heading" : screen === "setup" ? "setup-heading" : "ready-heading";
+    focusAfterRenderId = screen === "title"
+      ? "title-actions-heading"
+      : screen === "setup"
+        ? "setup-heading"
+        : screen === "ready"
+          ? "ready-heading"
+          : "runner-status-heading";
     render();
   };
 
@@ -263,7 +323,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
   const renderHeader = (main: HTMLElement): void => {
     const header = createElement(document, "header", { className: "col-header" });
     const eyebrow = createElement(document, "p", { className: "col-eyebrow", text: "A life shaped by small choices" });
-    const title = createElement(document, "h1", { text: "Choice of Life", attributes: { id: "choice-life-title" } });
+    const title = createElement(document, "h1", { text: "Choice of Life", attributes: { "id": "choice-life-title" } });
     const subtitle = createElement(document, "p", {
       className: "col-subtitle",
       text: "Move through time, care for what matters, and see how decisions echo forward.",
@@ -277,7 +337,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       className: "col-panel col-title-panel",
       attributes: { "aria-labelledby": "title-actions-heading" },
     });
-    panel.append(createElement(document, "h2", { text: "Begin your journey", attributes: { id: "title-actions-heading" } }));
+    panel.append(createElement(document, "h2", { text: "Begin your journey", attributes: { "id": "title-actions-heading" } }));
     panel.append(
       createElement(document, "p", {
         text: "There is no single perfect life. Health, happiness, and financial security create different possibilities—not a moral ranking.",
@@ -350,7 +410,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     onChange: (value: T) => void,
   ): HTMLElement => {
     const wrapper = createElement(document, "div", { className: "col-field" });
-    const label = createElement(document, "label", { text: labelText, attributes: { for: id } });
+    const label = createElement(document, "label", { text: labelText, attributes: { "for": id } });
     const select = createElement(document, "select", { attributes: { id } });
     for (const option of options) {
       const item = createElement(document, "option", { text: option.label });
@@ -388,7 +448,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       className: "col-panel",
       attributes: { "aria-labelledby": "setup-heading" },
     });
-    panel.append(createElement(document, "h2", { text: "Set up this life", attributes: { id: "setup-heading" } }));
+    panel.append(createElement(document, "h2", { text: "Set up this life", attributes: { "id": "setup-heading" } }));
     panel.append(
       createElement(document, "p", {
         className: "col-supporting-copy",
@@ -495,7 +555,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     });
     panel.append(
       createElement(document, "p", { className: "col-success-mark", text: "Ready" }),
-      createElement(document, "h2", { text: "Your life is ready", attributes: { id: "ready-heading" } }),
+      createElement(document, "h2", { text: "Your life is ready", attributes: { "id": "ready-heading" } }),
       createElement(document, "p", {
         text: "The deterministic starting state is saved. The first playable room will continue from exactly this point.",
       }),
@@ -516,6 +576,16 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       );
     }
     const actions = createElement(document, "div", { className: "col-actions" });
+    if (dependencies.runner) {
+      const runnerButton = createButton(
+        "Open runner laboratory",
+        "col-button col-button--primary",
+      );
+      runnerButton.setAttribute("data-runner-enter", "");
+      runnerButton.disabled = state.pending !== null;
+      listen(runnerButton, "click", enterRunnerLaboratory);
+      actions.append(runnerButton);
+    }
     const titleButton = createButton("Return to title");
     titleButton.disabled = state.pending !== null;
     listen(titleButton, "click", () => setScreen("title"));
@@ -525,6 +595,197 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     renderNotice(panel);
     main.append(panel);
   };
+
+  function disposeRunnerParts(
+    input: RunnerInputDomAdapter | null,
+    view: RunnerView | null,
+    session: RunnerSession | null,
+  ): void {
+    try {
+      input?.dispose();
+    } finally {
+      try {
+        view?.dispose();
+      } finally {
+        session?.dispose();
+      }
+    }
+  }
+
+  function disposeMountedRunner(): void {
+    const runtime = mountedRunner;
+    mountedRunner = null;
+    if (runtime === null) return;
+    try {
+      runtime.unsubscribeInputGate();
+    } finally {
+      disposeRunnerParts(runtime.input, runtime.view, runtime.session);
+    }
+  }
+
+  function runnerActionFailure(notice: ShellNotice): void {
+    disposeMountedRunner();
+    state.screen = "ready";
+    state.notice = notice;
+    focusAfterRenderId = NOTICE_ID;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(snapshot.settings);
+    render();
+  }
+
+  function mountEnteredRunner(
+    enteredState: RunStateV1,
+    enteredNotice: ShellNotice | null,
+  ): void {
+    disposeMountedRunner();
+    renderLifetime.dispose();
+    renderLifetime = new CleanupBag();
+    state.screen = "runner";
+    state.notice = enteredNotice;
+    snapshot = safeSnapshot(dependencies.shell);
+    state.settings = cloneSettings(enteredState.accessibility);
+    applySettings();
+
+    const main = createElement(document, "main", {
+      className: "col-shell col-runner-shell",
+      attributes: {
+        "aria-labelledby": "choice-life-title",
+        "aria-busy": "false",
+      },
+    });
+    renderHeader(main);
+    renderNotice(main);
+    const runnerHost = createElement(document, "div", {
+      className: "col-runner-host",
+      attributes: { "data-runner-host": "" },
+    });
+    main.append(runnerHost);
+    root.replaceChildren(main);
+
+    let session: RunnerSession | null = null;
+    let view: RunnerView | null = null;
+    let input: RunnerInputDomAdapter | null = null;
+    let unsubscribeInputGate = (): void => undefined;
+    try {
+      const runnerShell = dependencies.runner;
+      if (runnerShell === undefined) {
+        throw new TypeError("runner capability is unavailable");
+      }
+      const ownerWindow = document.defaultView;
+      if (ownerWindow === null) {
+        throw new TypeError("runner document has no owning window");
+      }
+      const course = generateRunnerLaboratoryCourse(
+        enteredState.runSeed,
+        enteredState.difficulty,
+      );
+      const sessionShell = {
+        currentRunState: () => runnerShell.currentRunState(),
+        enterRunnerLaboratory: () => runnerShell.enterRunnerLaboratory(),
+        restartRunnerLaboratory: () => runnerShell.restartRunnerLaboratory(),
+        saveRunnerLaboratoryState: (candidate: RunStateV1) => {
+          runnerCommitInProgress = true;
+          try {
+            return runnerShell.saveRunnerLaboratoryState(candidate);
+          } finally {
+            runnerCommitInProgress = false;
+          }
+        },
+      };
+      session = createBrowserRunnerSession(sessionShell, document);
+      view = mountRunnerView({
+        dom: document,
+        root: runnerHost,
+        session,
+        course,
+        characterToken: runnerCharacterToken(enteredState),
+        visualOptions: runnerVisualOptions(state.settings),
+        onPracticeAgain: practiceRunnerAgain,
+        onReturnToTitle: returnFromRunnerToTitle,
+      });
+      input = mountRunnerInputDom({
+        root: view.section,
+        playSurface: view.playSurface,
+        laneUpButton: view.laneUpButton,
+        laneDownButton: view.laneDownButton,
+        window: ownerWindow,
+        document,
+        gate: view.getInputGateSnapshot,
+        accept: (intent) => session?.requestLaneIntent(intent) ?? false,
+        onEscape: () => session?.setUserPaused(true) === true,
+        onBindingsChanged: view.updateBindings,
+      });
+      view.attachBindingController(input);
+      const mountedInput = input;
+      unsubscribeInputGate = session.subscribe(() => mountedInput.syncGate());
+      mountedRunner = Object.freeze({
+        session,
+        view,
+        input,
+        unsubscribeInputGate,
+      });
+    } catch {
+      try {
+        unsubscribeInputGate();
+      } finally {
+        disposeRunnerParts(input, view, session);
+      }
+      runnerActionFailure(errorNotice(
+        "The runner laboratory could not be displayed. Your latest runner checkpoint was kept; return to the title and continue your life to retry.",
+      ));
+    }
+  }
+
+  function enterRunnerLaboratory(): void {
+    if (disposed || runnerActionInProgress || dependencies.runner === undefined) {
+      return;
+    }
+    runnerActionInProgress = true;
+    let result: ReturnType<typeof dependencies.runner.enterRunnerLaboratory>;
+    try {
+      result = dependencies.runner.enterRunnerLaboratory();
+    } catch {
+      runnerActionInProgress = false;
+      runnerActionFailure(errorNotice(
+        "The runner laboratory could not be opened. Your saved life was not changed.",
+      ));
+      return;
+    }
+    runnerActionInProgress = false;
+    if (result.kind === "invalid") {
+      runnerActionFailure(result.notice);
+      return;
+    }
+    mountEnteredRunner(result.state, result.notice ?? null);
+  }
+
+  function practiceRunnerAgain(): void {
+    if (disposed || runnerActionInProgress || dependencies.runner === undefined) {
+      return;
+    }
+    runnerActionInProgress = true;
+    let result: ReturnType<typeof dependencies.runner.restartRunnerLaboratory>;
+    try {
+      result = dependencies.runner.restartRunnerLaboratory();
+    } catch {
+      runnerActionInProgress = false;
+      runnerActionFailure(errorNotice(
+        "The runner laboratory could not be restarted. Return to the title and continue your saved life.",
+      ));
+      return;
+    }
+    runnerActionInProgress = false;
+    if (result.kind === "invalid") {
+      runnerActionFailure(result.notice);
+      return;
+    }
+    mountEnteredRunner(result.state, result.notice ?? null);
+  }
+
+  function returnFromRunnerToTitle(): void {
+    if (disposed) return;
+    setScreen("title");
+  }
 
   const restoreSettingsFocus = (id: string | null): void => {
     if (!id) {
@@ -644,12 +905,12 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     const form = createElement(document, "form", { className: "col-settings-form" });
     form.noValidate = true;
     form.append(
-      createElement(document, "h2", { text: "Settings", attributes: { id: "settings-heading" } }),
+      createElement(document, "h2", { text: "Settings", attributes: { "id": "settings-heading" } }),
       createElement(document, "p", { text: "Display settings never change the outcome of a life." }),
     );
 
     const checkbox = (id: string, labelText: string, checked: boolean): HTMLInputElement => {
-      const label = createElement(document, "label", { className: "col-check-row", attributes: { for: id } });
+      const label = createElement(document, "label", { className: "col-check-row", attributes: { "for": id } });
       const input = createElement(document, "input", { attributes: { id } });
       input.type = "checkbox";
       input.checked = checked;
@@ -666,8 +927,8 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       state.settings.screenReaderAnnouncements,
     );
     const scaleField = createElement(document, "div", { className: "col-field" });
-    const scaleLabel = createElement(document, "label", { text: "Text size", attributes: { for: "setting-text-scale" } });
-    const scale = createElement(document, "select", { attributes: { id: "setting-text-scale" } });
+    const scaleLabel = createElement(document, "label", { text: "Text size", attributes: { "for": "setting-text-scale" } });
+    const scale = createElement(document, "select", { attributes: { "id": "setting-text-scale" } });
     for (const value of [100, 125, 150, 200] as const) {
       const option = createElement(document, "option", { text: `${value}%` });
       option.value = String(value);
@@ -752,6 +1013,14 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     if (disposed) {
       return;
     }
+    if (state.screen === "runner" && mountedRunner !== null) {
+      applySettings();
+      mountedRunner.view.updateVisualOptions(runnerVisualOptions(
+        mountedRunner.session.getSnapshot().state.accessibility,
+      ));
+      mountedRunner.input.syncGate();
+      return;
+    }
     renderLifetime.dispose();
     renderLifetime = new CleanupBag();
     applySettings();
@@ -765,7 +1034,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       renderTitle(main);
     } else if (state.screen === "setup") {
       renderSetup(main);
-    } else {
+    } else if (state.screen === "ready") {
       renderReady(main);
     }
     const settingsDialog = state.settingsOpen ? renderSettingsDialog(main) : null;
@@ -793,6 +1062,19 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     if (state.pending !== "settings") {
       state.settings = cloneSettings(snapshot.settings);
     }
+    if (runnerActionInProgress || runnerCommitInProgress) {
+      applySettings();
+      return;
+    }
+    if (mountedRunner !== null) {
+      mountedRunner.session.refreshPresentationState();
+      applySettings();
+      mountedRunner.view.updateVisualOptions(runnerVisualOptions(
+        mountedRunner.session.getSnapshot().state.accessibility,
+      ));
+      mountedRunner.input.syncGate();
+      return;
+    }
     render();
   });
   lifetime.add(unsubscribe);
@@ -804,6 +1086,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       }
       disposed = true;
       operationVersion += 1;
+      disposeMountedRunner();
       renderLifetime.dispose();
       lifetime.dispose();
       root.replaceChildren();

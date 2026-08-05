@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { stateHashV1 } from "../core/run-state-hash";
 import { decodeRunState } from "../core/run-state-codec";
-import { PHASE_1_CATALOG } from "../core/catalog";
+import { PHASE_1_CATALOG, RUNNER_LABORATORY_CATALOG } from "../core/catalog";
+import type { RunStateV1 } from "../core/run-state";
+import {
+  advanceRunnerLaboratory,
+  createRunnerSimulationContext,
+  startRunnerLaboratory,
+} from "../core/runner/simulation";
+import { applyLabSettlement } from "../core/runner/settlement";
 import { ACTIVE_RUN_STORAGE_KEY, QUARANTINE_STORAGE_KEY } from "../persistence/save-store";
 import type { StoragePort } from "../persistence/storage-port";
 import { DEFAULT_SETUP } from "../presentation/model";
@@ -31,6 +38,17 @@ class MemoryStorage implements StoragePort {
 }
 
 const seed = { nextSeed: () => "000000000000002a" as const };
+
+function finishManualLaboratory(entry: RunStateV1): RunStateV1 {
+  const context = createRunnerSimulationContext(entry.runSeed, entry.difficulty);
+  let state = startRunnerLaboratory(context, entry).state;
+  while (state.simulationTick < 3000) {
+    const result = advanceRunnerLaboratory(context, state);
+    expect(result.advanced).toBe(true);
+    state = result.state;
+  }
+  return applyLabSettlement(state);
+}
 
 describe("browser shell port", () => {
   it("creates, saves, reloads, and resumes the exact deterministic state hash", () => {
@@ -107,5 +125,110 @@ describe("browser shell port", () => {
     expect(result).toMatchObject({ kind: "invalid", notice: { tone: "warning" } });
     expect(shell.getSnapshot().settings).toEqual(beforeSettings);
     expect(shell.currentStateHash()).toBe(beforeHash);
+  });
+
+  it("enters, checkpoints, and reloads the exact immutable runner state", () => {
+    const storage = new MemoryStorage();
+    const shell = createBrowserShellPort({ storage, seed });
+    shell.startNewLife(DEFAULT_SETUP);
+
+    const entered = shell.enterRunnerLaboratory();
+    expect(entered).toMatchObject({
+      kind: "ready",
+      state: {
+        runStatus: "active",
+        simulationTick: 0,
+        stage: { stageId: "runner-lab-v1", phase: "active" },
+        runner: { userPaused: true },
+      },
+    });
+    if (entered.kind !== "ready") throw new Error("runner entry failed");
+    expect(Object.isFrozen(entered.state)).toBe(true);
+    expect(Object.isFrozen(entered.state.runner)).toBe(true);
+
+    const context = createRunnerSimulationContext(entered.state.runSeed, entered.state.difficulty);
+    const started = startRunnerLaboratory(context, entered.state).state;
+    expect(shell.saveRunnerLaboratoryState(started)).toMatchObject({ kind: "saved" });
+
+    const persisted = storage.values.get(ACTIVE_RUN_STORAGE_KEY);
+    const decoded = decodeRunState(persisted ?? "", RUNNER_LABORATORY_CATALOG);
+    expect(decoded.kind).toBe("ready");
+    if (decoded.kind === "ready") expect(stateHashV1(decoded.state)).toBe(stateHashV1(started));
+
+    const reloaded = createBrowserShellPort({ storage, seed });
+    const continued = reloaded.enterRunnerLaboratory();
+    expect(continued.kind).toBe("ready");
+    if (continued.kind === "ready") expect(stateHashV1(continued.state)).toBe(stateHashV1(started));
+  });
+
+  it("keeps a runner entry playable in memory when checkpoint storage is unavailable", () => {
+    const storage = new MemoryStorage();
+    storage.failWrites = true;
+    const shell = createBrowserShellPort({ storage, seed });
+    shell.startNewLife(DEFAULT_SETUP);
+    const entered = shell.enterRunnerLaboratory();
+    expect(entered).toMatchObject({ kind: "ready", notice: { tone: "warning" } });
+    expect(shell.currentRunState()?.stage.stageId).toBe("runner-lab-v1");
+  });
+
+  it("rejects cross-life runner checkpoints without replacing the active life", () => {
+    const storage = new MemoryStorage();
+    const shell = createBrowserShellPort({ storage, seed });
+    shell.startNewLife(DEFAULT_SETUP);
+    const entered = shell.enterRunnerLaboratory();
+    if (entered.kind !== "ready") throw new Error("runner entry failed");
+    const beforeHash = shell.currentStateHash();
+    const forged = { ...entered.state, runId: "run-ffffffffffffffff" } as RunStateV1;
+
+    expect(shell.saveRunnerLaboratoryState(forged)).toMatchObject({
+      kind: "invalid",
+      notice: { tone: "warning" },
+    });
+    expect(shell.currentStateHash()).toBe(beforeHash);
+  });
+
+  it("keeps active runner settings deeply immutable", () => {
+    const storage = new MemoryStorage();
+    const shell = createBrowserShellPort({ storage, seed });
+    shell.startNewLife(DEFAULT_SETUP);
+    expect(shell.enterRunnerLaboratory().kind).toBe("ready");
+
+    expect(shell.saveSettings({
+      highContrast: true,
+      reducedMotion: true,
+      textScale: 150,
+      screenReaderAnnouncements: false,
+    })).toMatchObject({ kind: "saved" });
+    const current = shell.currentRunState();
+    expect(current).not.toBeNull();
+    expect(Object.isFrozen(current)).toBe(true);
+    expect(Object.isFrozen(current?.accessibility)).toBe(true);
+  });
+
+  it("restarts only a completed runner laboratory and restores the exact entry projection", () => {
+    const storage = new MemoryStorage();
+    const shell = createBrowserShellPort({ storage, seed });
+    shell.startNewLife(DEFAULT_SETUP);
+    const entered = shell.enterRunnerLaboratory();
+    if (entered.kind !== "ready") throw new Error("runner entry failed");
+    expect(shell.restartRunnerLaboratory()).toMatchObject({ kind: "invalid" });
+
+    const completed = finishManualLaboratory(entered.state);
+    expect(shell.saveRunnerLaboratoryState(completed)).toMatchObject({ kind: "saved" });
+    const restarted = shell.restartRunnerLaboratory();
+    expect(restarted).toMatchObject({
+      kind: "ready",
+      state: {
+        runStatus: "active",
+        simulationTick: 0,
+        scores: entered.state.scores,
+        runner: { userPaused: true, activeEntities: [] },
+      },
+    });
+    if (restarted.kind === "ready") {
+      expect(restarted.state.runId).toBe(entered.state.runId);
+      expect(restarted.state.stage.settlement).toBeNull();
+      expect(restarted.state.storyState.facts).toEqual([]);
+    }
   });
 });

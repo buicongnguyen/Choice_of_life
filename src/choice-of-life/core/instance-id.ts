@@ -26,12 +26,12 @@ export function deriveEntityInstanceIdV1(coordinates: EntityInstanceCoordinates)
     throw new TypeError("Invalid entity slot index");
   }
   const payload = canonicalizeJson({
-    contentId: coordinates.contentId,
-    patternIndex: coordinates.patternIndex,
-    runSeed: coordinates.runSeed,
-    slotIndex: coordinates.slotIndex,
-    stageId: coordinates.stageId,
-    version: ENTITY_INSTANCE_ID_VERSION,
+    "contentId": coordinates.contentId,
+    "patternIndex": coordinates.patternIndex,
+    "runSeed": coordinates.runSeed,
+    "slotIndex": coordinates.slotIndex,
+    "stageId": coordinates.stageId,
+    "version": ENTITY_INSTANCE_ID_VERSION,
   });
   return `entity-${fnv1a64Hex(payload)}`;
 }

@@ -3,9 +3,20 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { mountChoiceOfLife } from "./app";
+import { createRunnerLaboratoryEntryState } from "./core/runner/contract";
+import {
+  advanceRunnerLaboratory,
+  createRunnerSimulationContext,
+  startRunnerLaboratory,
+} from "./core/runner/simulation";
+import { applyLabSettlement } from "./core/runner/settlement";
+import type { RunStateV1 } from "./core/run-state";
 import type {
   ChoiceOfLifeShellPort,
   ReadyRun,
+  RunnerLaboratoryActionResult,
+  RunnerLaboratoryCommitResult,
+  RunnerLaboratoryShellPort,
   RunActionResult,
   SettingsActionResult,
   ShellSnapshot,
@@ -19,6 +30,38 @@ const READY_RUN: ReadyRun = {
   controlMode: "manual",
   scores: { health: 65, happiness: 60, money: 35 },
 };
+
+const RUNNER_ENTRY = createRunnerLaboratoryEntryState("0000000000000001", {
+  startingProfileId: "steady-mix-v1",
+  difficulty: "normal",
+  controlMode: "manual",
+  identity: { gender: "female" },
+  appearance: {
+    heritageStyleId: "asian",
+    hairStyleId: "tied-back",
+    hairColorId: "dark-brown",
+    clothingPaletteId: "meadow",
+  },
+  accessibility: DEFAULT_SETTINGS,
+});
+
+let cachedCompletedRunner: RunStateV1 | null = null;
+
+function completedRunnerState(): RunStateV1 {
+  if (cachedCompletedRunner !== null) return cachedCompletedRunner;
+  const context = createRunnerSimulationContext(
+    RUNNER_ENTRY.runSeed,
+    RUNNER_ENTRY.difficulty,
+  );
+  let state = startRunnerLaboratory(context, RUNNER_ENTRY).state;
+  while (state.stage.phase === "active") {
+    const result = advanceRunnerLaboratory(context, state);
+    if (!result.stateChanged) throw new Error("runner completion fixture stalled");
+    state = result.state;
+  }
+  cachedCompletedRunner = applyLabSettlement(state, null);
+  return cachedCompletedRunner;
+}
 
 function deferred<T>(): { readonly promise: Promise<T>; resolve(value: T): void; reject(reason: unknown): void } {
   let resolve!: (value: T) => void;
@@ -57,10 +100,113 @@ class FakeShell implements ChoiceOfLifeShellPort {
       this.listeners.delete(listener);
     };
   }
+
+  publish(): void {
+    for (const listener of [...this.listeners]) listener();
+  }
+}
+
+class FakeRunnerCapability implements RunnerLaboratoryShellPort {
+  state: RunStateV1;
+  beforeEnter: (() => void) | null = null;
+  beforeRestart: (() => void) | null = null;
+  beforeSave: (() => void) | null = null;
+  readonly enterRunnerLaboratory = vi.fn<() => RunnerLaboratoryActionResult>();
+  readonly restartRunnerLaboratory = vi.fn<() => RunnerLaboratoryActionResult>();
+  readonly savedStates: RunStateV1[] = [];
+
+  constructor(initialState: RunStateV1 = RUNNER_ENTRY) {
+    this.state = initialState;
+    this.enterRunnerLaboratory.mockImplementation(() => {
+      this.beforeEnter?.();
+      return {
+        kind: "ready",
+        state: this.state,
+      };
+    });
+    this.restartRunnerLaboratory.mockImplementation(() => {
+      this.beforeRestart?.();
+      if (this.state.runStatus !== "completed") {
+        return {
+          kind: "invalid",
+          notice: { tone: "warning", message: "Finish the current practice first." },
+        };
+      }
+      this.state = createRunnerLaboratoryEntryState(this.state.runSeed, {
+        startingProfileId: this.state.startingProfileId,
+        difficulty: this.state.difficulty,
+        controlMode: this.state.controlMode,
+        identity: { ...this.state.identity },
+        appearance: { ...this.state.appearance },
+        accessibility: { ...this.state.accessibility },
+      });
+      return { kind: "ready", state: this.state };
+    });
+  }
+
+  currentRunState(): RunStateV1 {
+    return this.state;
+  }
+
+  saveRunnerLaboratoryState(state: RunStateV1): RunnerLaboratoryCommitResult {
+    this.state = state;
+    this.savedStates.push(state);
+    this.beforeSave?.();
+    return { kind: "saved", state };
+  }
+
+  replaceSettings(settings: VisualSettings): void {
+    this.state = {
+      ...this.state,
+      accessibility: { ...settings },
+    };
+  }
+}
+
+function installAnimationFrameHarness(): {
+  readonly callbacks: Map<number, FrameRequestCallback>;
+  step(now: number): void;
+  restore(): void;
+} {
+  const callbacks = new Map<number, FrameRequestCallback>();
+  let nextHandle = 1;
+  let now = 0;
+  const request = vi.spyOn(window, "requestAnimationFrame")
+    .mockImplementation((callback) => {
+      const handle = nextHandle++;
+      callbacks.set(handle, callback);
+      return handle;
+    });
+  const cancel = vi.spyOn(window, "cancelAnimationFrame")
+    .mockImplementation((handle) => {
+      callbacks.delete(handle);
+    });
+  const clock = vi.spyOn(window.performance, "now")
+    .mockImplementation(() => now);
+  const focus = vi.spyOn(document, "hasFocus").mockReturnValue(true);
+  return {
+    callbacks,
+    step(nextNow: number): void {
+      now = nextNow;
+      const next = callbacks.entries().next().value as
+        | [number, FrameRequestCallback]
+        | undefined;
+      if (next === undefined) throw new Error("Missing animation frame callback");
+      callbacks.delete(next[0]);
+      next[1](nextNow);
+    },
+    restore(): void {
+      request.mockRestore();
+      cancel.mockRestore();
+      clock.mockRestore();
+      focus.mockRestore();
+    },
+  };
 }
 
 function button(root: HTMLElement, name: string): HTMLButtonElement {
-  const match = [...root.querySelectorAll("button")].find((item) => item.textContent?.trim() === name);
+  const match = [...root.querySelectorAll("button")].find((item) =>
+    (item.getAttribute("aria-label") ?? item.textContent ?? "").trim() === name);
   if (!(match instanceof HTMLButtonElement)) throw new Error(`Missing button: ${name}`);
   return match;
 }
@@ -332,5 +478,316 @@ describe("Choice of Life DOM application", () => {
     await Promise.resolve();
     expect(root.childElementCount).toBe(0);
     expect(shell.unsubscribeCount).toBe(1);
+  });
+
+  it("mounts one deterministic runner tree and updates ticks without replacing the root", async () => {
+    const animation = installAnimationFrameHarness();
+    const root = createRoot();
+    const shell = new FakeShell();
+    const runner = new FakeRunnerCapability();
+    runner.beforeSave = () => shell.publish();
+    let app: ReturnType<typeof mountChoiceOfLife> | null = null;
+    try {
+      app = mountChoiceOfLife(root, { shell, runner });
+      button(root, "New life").click();
+      button(root, "Create this life").click();
+      await Promise.resolve();
+      button(root, "Open runner laboratory").click();
+
+      expect(runner.enterRunnerLaboratory).toHaveBeenCalledOnce();
+      const section = root.querySelector<HTMLElement>("[data-runner-view]");
+      const status = root.querySelector<HTMLElement>("[data-runner-live-status]");
+      const player = root.querySelector<HTMLElement>("[data-runner-player]");
+      if (!section || !status || !player) throw new Error("Runner view did not mount");
+      expect(player.dataset).toMatchObject({
+        bodySet: "feminine",
+        artSet: "asian",
+        hairShape: "tied-back",
+        hairTone: "dark-brown",
+        clothingTone: "meadow",
+      });
+      const replaceChildren = vi.spyOn(root, "replaceChildren");
+
+      button(root, "Start runner").click();
+      animation.step(0);
+      animation.step(20);
+
+      expect(runner.state.simulationTick).toBe(1);
+      expect(root.querySelector("[data-runner-view]")).toBe(section);
+      expect(root.querySelector("[data-runner-live-status]")).toBe(status);
+      expect(replaceChildren).not.toHaveBeenCalled();
+      replaceChildren.mockRestore();
+
+      app.dispose();
+      app = null;
+      expect(animation.callbacks.size).toBe(0);
+      expect(root.childElementCount).toBe(0);
+    } finally {
+      app?.dispose();
+      animation.restore();
+    }
+  });
+
+  it("persists Escape pause, focuses Resume, and resumes with zero catch-up", async () => {
+    const animation = installAnimationFrameHarness();
+    const root = createRoot();
+    const shell = new FakeShell();
+    const runner = new FakeRunnerCapability();
+    runner.beforeSave = () => shell.publish();
+    let app: ReturnType<typeof mountChoiceOfLife> | null = null;
+    try {
+      app = mountChoiceOfLife(root, { shell, runner });
+      button(root, "New life").click();
+      button(root, "Create this life").click();
+      await Promise.resolve();
+      button(root, "Open runner laboratory").click();
+      button(root, "Start runner").click();
+      animation.step(0);
+      animation.step(20);
+      expect(runner.state.simulationTick).toBe(1);
+
+      const escape = new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        key: "Escape",
+        code: "Escape",
+      });
+      window.dispatchEvent(escape);
+      expect(escape.defaultPrevented).toBe(true);
+      expect(runner.state.runner?.userPaused).toBe(true);
+      const resume = root.querySelector<HTMLButtonElement>(
+        "[data-runner-resume='user']",
+      );
+      expect(resume?.textContent).toBe("Resume");
+      expect(document.activeElement).toBe(resume);
+
+      animation.step(2_000);
+      expect(runner.state.simulationTick).toBe(1);
+      resume?.click();
+      animation.step(2_020);
+      expect(runner.state.simulationTick).toBe(1);
+      animation.step(2_040);
+      expect(runner.state.simulationTick).toBe(2);
+    } finally {
+      app?.dispose();
+      animation.restore();
+    }
+  });
+
+  it("refreshes runner display settings in place without committing gameplay", async () => {
+    const animation = installAnimationFrameHarness();
+    const root = createRoot();
+    const shell = new FakeShell();
+    const runner = new FakeRunnerCapability();
+    let app: ReturnType<typeof mountChoiceOfLife> | null = null;
+    try {
+      app = mountChoiceOfLife(root, { shell, runner });
+      button(root, "New life").click();
+      button(root, "Create this life").click();
+      await Promise.resolve();
+      button(root, "Open runner laboratory").click();
+
+      const section = root.querySelector<HTMLElement>("[data-runner-view]");
+      if (!section) throw new Error("Runner view did not mount");
+      const replaceChildren = vi.spyOn(root, "replaceChildren");
+      const saveCount = runner.savedStates.length;
+      const tick = runner.state.simulationTick;
+      const settings: VisualSettings = {
+        highContrast: true,
+        reducedMotion: true,
+        textScale: 200,
+        screenReaderAnnouncements: false,
+      };
+      shell.snapshot = { ...shell.snapshot, settings };
+      runner.replaceSettings(settings);
+      shell.publish();
+
+      expect(root.querySelector("[data-runner-view]")).toBe(section);
+      expect(section.dataset.contrast).toBe("high");
+      expect(section.dataset.motionReduced).toBe("true");
+      expect(section.style.getPropertyValue("--col-runner-text-scale")).toBe("2");
+      expect(root.dataset.contrast).toBe("high");
+      expect(root.dataset.reducedMotion).toBe("true");
+      expect(runner.state.simulationTick).toBe(tick);
+      expect(runner.savedStates).toHaveLength(saveCount);
+      expect(replaceChildren).not.toHaveBeenCalled();
+      replaceChildren.mockRestore();
+    } finally {
+      app?.dispose();
+      animation.restore();
+    }
+  });
+
+  it("rolls back a partial runner mount and releases ownership for a clean retry", async () => {
+    const animation = installAnimationFrameHarness();
+    const root = createRoot();
+    const shell = new FakeShell();
+    const otherEntry = createRunnerLaboratoryEntryState("0000000000000002", {
+      startingProfileId: "steady-mix-v1",
+      difficulty: "normal",
+      controlMode: "manual",
+      identity: { gender: "female" },
+      appearance: { ...RUNNER_ENTRY.appearance },
+      accessibility: DEFAULT_SETTINGS,
+    });
+    const runner = new FakeRunnerCapability(otherEntry);
+    runner.enterRunnerLaboratory.mockReturnValue({
+      kind: "ready",
+      state: RUNNER_ENTRY,
+    });
+    let app: ReturnType<typeof mountChoiceOfLife> | null = null;
+    try {
+      app = mountChoiceOfLife(root, { shell, runner });
+      button(root, "New life").click();
+      button(root, "Create this life").click();
+      await Promise.resolve();
+      button(root, "Open runner laboratory").click();
+
+      expect(root.querySelector("[data-runner-view]")).toBeNull();
+      expect(root.querySelector("#choice-life-notice")?.getAttribute("role"))
+        .toBe("alert");
+      expect(root.querySelector("#choice-life-notice")?.textContent).toContain(
+        "Your latest runner checkpoint was kept",
+      );
+      expect(animation.callbacks.size).toBe(0);
+
+      runner.enterRunnerLaboratory.mockImplementation(() => ({
+        kind: "ready",
+        state: runner.state,
+      }));
+      button(root, "Open runner laboratory").click();
+      expect(root.querySelector("[data-runner-view]")).not.toBeNull();
+      expect(animation.callbacks.size).toBe(1);
+    } finally {
+      app?.dispose();
+      animation.restore();
+    }
+  });
+
+  it("shares one remapping controller and restores W/S after an app remount", async () => {
+    const animation = installAnimationFrameHarness();
+    const shell = new FakeShell();
+    const runner = new FakeRunnerCapability();
+    let app: ReturnType<typeof mountChoiceOfLife> | null = null;
+    try {
+      const firstRoot = createRoot();
+      app = mountChoiceOfLife(firstRoot, { shell, runner });
+      button(firstRoot, "New life").click();
+      button(firstRoot, "Create this life").click();
+      await Promise.resolve();
+      button(firstRoot, "Open runner laboratory").click();
+
+      const configure = button(firstRoot, "Configure supplemental keys");
+      expect(configure.disabled).toBe(false);
+      configure.click();
+      const dialog = firstRoot.querySelector<HTMLDialogElement>(
+        "[data-runner-binding-dialog]",
+      );
+      if (!dialog) throw new Error("Binding dialog did not mount");
+      button(firstRoot, "Change up key").click();
+      dialog.dispatchEvent(new KeyboardEvent("keydown", {
+        key: "i",
+        code: "KeyI",
+        bubbles: true,
+        cancelable: true,
+      }));
+      button(firstRoot, "Close").click();
+      expect(button(firstRoot, "Move up").getAttribute("aria-keyshortcuts"))
+        .toBe("ArrowUp I");
+      const firstSurface = firstRoot.querySelector<HTMLElement>(
+        "[data-runner-play-surface]",
+      );
+      expect(firstSurface?.style.getPropertyValue("touch-action")).toBe("pan-x");
+
+      app.dispose();
+      app = null;
+      expect(firstSurface?.style.getPropertyValue("touch-action")).toBe("");
+      expect(animation.callbacks.size).toBe(0);
+
+      const secondRoot = createRoot();
+      app = mountChoiceOfLife(secondRoot, { shell, runner });
+      button(secondRoot, "New life").click();
+      button(secondRoot, "Create this life").click();
+      await Promise.resolve();
+      button(secondRoot, "Open runner laboratory").click();
+      expect(button(secondRoot, "Move up").getAttribute("aria-keyshortcuts"))
+        .toBe("ArrowUp W");
+    } finally {
+      app?.dispose();
+      animation.restore();
+    }
+  });
+
+  it("opens a continued completed run at its recap and returns to the title", async () => {
+    const animation = installAnimationFrameHarness();
+    const root = createRoot();
+    const shell = new FakeShell();
+    shell.snapshot = {
+      canContinue: true,
+      savedRun: {
+        runId: READY_RUN.runId,
+        label: "Steady mix",
+        startingProfileId: READY_RUN.startingProfileId,
+        difficulty: READY_RUN.difficulty,
+        controlMode: READY_RUN.controlMode,
+      },
+      settings: DEFAULT_SETTINGS,
+      notice: null,
+    };
+    const runner = new FakeRunnerCapability(completedRunnerState());
+    let app: ReturnType<typeof mountChoiceOfLife> | null = null;
+    try {
+      app = mountChoiceOfLife(root, { shell, runner });
+      button(root, "Continue life").click();
+      await Promise.resolve();
+      button(root, "Open runner laboratory").click();
+
+      const completion = root.querySelector<HTMLElement>("[data-runner-completion]");
+      expect(completion?.hidden).toBe(false);
+      expect(root.querySelector("#runner-completion-heading")?.textContent)
+        .toBe("Runner laboratory complete");
+      expect(document.activeElement).toBe(root.querySelector("#runner-completion-heading"));
+      expect(root.querySelector("[data-runner-completion-summary]")?.textContent)
+        .toMatch(/Practice scores: Health \d+, Happiness \d+, Financial security \d+\..*do not affect/i);
+      expect(animation.callbacks.size).toBe(0);
+
+      button(root, "Return to title").click();
+      expect(root.querySelector("[data-runner-view]")).toBeNull();
+      expect(document.activeElement).toBe(root.querySelector("#title-actions-heading"));
+    } finally {
+      app?.dispose();
+      animation.restore();
+    }
+  });
+
+  it("restarts completed practice with a fresh current-session input mount", async () => {
+    const animation = installAnimationFrameHarness();
+    const root = createRoot();
+    const shell = new FakeShell();
+    const runner = new FakeRunnerCapability(completedRunnerState());
+    runner.beforeEnter = () => shell.publish();
+    runner.beforeRestart = () => shell.publish();
+    let app: ReturnType<typeof mountChoiceOfLife> | null = null;
+    try {
+      app = mountChoiceOfLife(root, { shell, runner });
+      button(root, "New life").click();
+      button(root, "Create this life").click();
+      await Promise.resolve();
+      button(root, "Open runner laboratory").click();
+      const completedSection = root.querySelector("[data-runner-view]");
+
+      button(root, "Practice again").click();
+
+      expect(runner.restartRunnerLaboratory).toHaveBeenCalledOnce();
+      expect(root.querySelector("[data-runner-view]")).not.toBe(completedSection);
+      expect(root.querySelector<HTMLElement>("[data-runner-entry]")?.hidden).toBe(false);
+      expect(document.activeElement).toBe(root.querySelector("#runner-start-button"));
+      expect(animation.callbacks.size).toBe(1);
+      expect(runner.state.simulationTick).toBe(0);
+      expect(runner.state.runner?.userPaused).toBe(true);
+    } finally {
+      app?.dispose();
+      animation.restore();
+    }
   });
 });

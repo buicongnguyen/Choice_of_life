@@ -1,5 +1,7 @@
-import { PHASE_1_CATALOG } from "../core/catalog";
+import { RUNNER_LABORATORY_CATALOG } from "../core/catalog";
+import { deepFreeze } from "../core/immutable";
 import { createInitialRunState } from "../core/run-factory";
+import { createRunnerLaboratoryEntryState, RUNNER_LABORATORY_STAGE_ID } from "../core/runner/contract";
 import type { SeedPort } from "../core/seed-port";
 import type { RunStateV1, StartingProfileId } from "../core/run-state";
 import { stateHashV1 } from "../core/run-state-hash";
@@ -7,6 +9,9 @@ import type {
   BrowserDependencies,
   ChoiceOfLifeShellPort,
   ReadyRun,
+  RunnerLaboratoryActionResult,
+  RunnerLaboratoryCommitResult,
+  RunnerLaboratoryShellPort,
   RunActionResult,
   SavedRunSummary,
   SettingsActionResult,
@@ -37,7 +42,16 @@ function copyValidSettings(value: unknown): VisualSettings | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
   const keys = Object.keys(record).sort();
-  if (keys.join(",") !== "highContrast,reducedMotion,screenReaderAnnouncements,textScale") return null;
+  const expectedKeys = Object.keys({
+    highContrast: 0,
+    reducedMotion: 0,
+    screenReaderAnnouncements: 0,
+    textScale: 0,
+  }).sort();
+  if (
+    keys.length !== expectedKeys.length ||
+    keys.some((key, index) => key !== expectedKeys[index])
+  ) return null;
   if (
     typeof record.highContrast !== "boolean"
     || typeof record.reducedMotion !== "boolean"
@@ -54,7 +68,7 @@ function copyValidSettings(value: unknown): VisualSettings | null {
   };
 }
 
-export interface BrowserShellPort extends ChoiceOfLifeShellPort {
+export interface BrowserShellPort extends ChoiceOfLifeShellPort, RunnerLaboratoryShellPort {
   startNewLife(selection: SetupSelection): RunActionResult;
   continueLife(): RunActionResult;
   saveSettings(settings: VisualSettings): SettingsActionResult;
@@ -105,7 +119,7 @@ function noticeForLoad(result: LoadResult): ShellNotice | null {
 }
 
 export function createBrowserShellPort(options: BrowserShellOptions): BrowserShellPort {
-  const store: SaveStore = createSaveStore(options.storage, PHASE_1_CATALOG);
+  const store: SaveStore = createSaveStore(options.storage, RUNNER_LABORATORY_CATALOG);
   const initialLoad = store.load();
   let currentState = initialLoad.kind === "ready" ? initialLoad.state : initialLoad.kind === "unavailable" ? initialLoad.state : null;
   let settings: VisualSettings = currentState ? { ...currentState.accessibility } : { ...DEFAULT_SETTINGS };
@@ -128,6 +142,53 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
     publish();
     return { kind: "unavailable", notice };
   };
+
+  const runnerNotice = (message: string): ShellNotice => warning(message);
+
+  const runnerEntry = (source: RunStateV1): RunStateV1 =>
+    createRunnerLaboratoryEntryState(source.runSeed, {
+      startingProfileId: source.startingProfileId,
+      difficulty: source.difficulty,
+      controlMode: source.controlMode,
+      identity: { ...source.identity },
+      appearance: { ...source.appearance },
+      accessibility: { ...source.accessibility },
+    });
+
+  const saveRunnerEntry = (entry: RunStateV1): RunnerLaboratoryActionResult => {
+    const result = store.save(entry);
+    if (result.kind === "invalid") {
+      const rejected = runnerNotice("The runner laboratory failed validation and was not opened.");
+      notice = rejected;
+      publish();
+      return { kind: "invalid", notice: rejected };
+    }
+    currentState = entry;
+    if (result.kind === "unavailable") {
+      const unavailable = runnerNotice(
+        "Saving is unavailable. The runner laboratory remains playable for this browser session.",
+      );
+      notice = unavailable;
+      publish();
+      return { kind: "ready", state: entry, notice: unavailable };
+    }
+    notice = null;
+    publish();
+    return { kind: "ready", state: entry };
+  };
+
+  const sameRunnerIdentity = (left: RunStateV1, right: RunStateV1): boolean =>
+    left.runId === right.runId &&
+    left.runSeed === right.runSeed &&
+    left.contentVersion === right.contentVersion &&
+    left.difficulty === right.difficulty &&
+    left.controlMode === right.controlMode &&
+    left.startingProfileId === right.startingProfileId &&
+    left.identity.gender === right.identity.gender &&
+    left.appearance.heritageStyleId === right.appearance.heritageStyleId &&
+    left.appearance.hairStyleId === right.appearance.hairStyleId &&
+    left.appearance.hairColorId === right.appearance.hairColorId &&
+    left.appearance.clothingPaletteId === right.appearance.clothingPaletteId;
 
   return {
     getSnapshot: snapshot,
@@ -193,7 +254,10 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
         publish();
         return { kind: "saved", settings: { ...settings }, notice };
       }
-      const candidateState: RunStateV1 = { ...currentState, accessibility: { ...validatedSettings } };
+      const candidateState = deepFreeze<RunStateV1>({
+        ...currentState,
+        accessibility: { ...validatedSettings },
+      });
       const result = store.save(candidateState);
       if (result.kind === "invalid") {
         notice = warning("Those settings were rejected and were not applied.");
@@ -214,14 +278,72 @@ export function createBrowserShellPort(options: BrowserShellOptions): BrowserShe
     currentStateHash(): string | null {
       return currentState ? stateHashV1(currentState) : null;
     },
+    currentRunState(): RunStateV1 | null {
+      return currentState;
+    },
+    enterRunnerLaboratory(): RunnerLaboratoryActionResult {
+      if (currentState === null) {
+        return { kind: "invalid", notice: runnerNotice("Create a life before opening the runner laboratory.") };
+      }
+      if (currentState.stage.stageId === RUNNER_LABORATORY_STAGE_ID) {
+        return { kind: "ready", state: currentState, ...(notice ? { notice } : {}) };
+      }
+      if (
+        currentState.runStatus !== "setup" ||
+        currentState.stage.stageId !== "setup-shell-v1"
+      ) {
+        return { kind: "invalid", notice: runnerNotice("This saved life cannot enter the runner laboratory.") };
+      }
+      return saveRunnerEntry(runnerEntry(currentState));
+    },
+    restartRunnerLaboratory(): RunnerLaboratoryActionResult {
+      if (
+        currentState === null ||
+        currentState.stage.stageId !== RUNNER_LABORATORY_STAGE_ID ||
+        currentState.runStatus !== "completed"
+      ) {
+        return { kind: "invalid", notice: runnerNotice("Finish the current practice run before starting it again.") };
+      }
+      return saveRunnerEntry(runnerEntry(currentState));
+    },
+    saveRunnerLaboratoryState(state: RunStateV1): RunnerLaboratoryCommitResult {
+      if (
+        currentState === null ||
+        state.stage.stageId !== RUNNER_LABORATORY_STAGE_ID ||
+        !sameRunnerIdentity(currentState, state)
+      ) {
+        return {
+          kind: "invalid",
+          notice: runnerNotice("The runner checkpoint did not match the active life and was not saved."),
+        };
+      }
+      const result = store.save(state);
+      if (result.kind === "invalid") {
+        return {
+          kind: "invalid",
+          notice: runnerNotice("The runner checkpoint failed validation and was not saved."),
+        };
+      }
+      currentState = state;
+      if (result.kind === "unavailable") {
+        return {
+          kind: "unavailable",
+          state,
+          notice: runnerNotice("Saving is unavailable. This checkpoint remains active for the browser session."),
+        };
+      }
+      return { kind: "saved", state };
+    },
   };
 }
 
 export function createBrowserDependencies(): BrowserDependencies {
+  const shell = createBrowserShellPort({
+    storage: createBrowserStoragePort(),
+    seed: createBrowserSeedPort(),
+  });
   return {
-    shell: createBrowserShellPort({
-      storage: createBrowserStoragePort(),
-      seed: createBrowserSeedPort(),
-    }),
+    shell,
+    runner: shell,
   };
 }

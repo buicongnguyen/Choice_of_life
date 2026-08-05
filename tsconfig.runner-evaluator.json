@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "allowJs": true,
+    "checkJs": false,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "types": ["node", "vite/client"]
+  },
+  "include": [
+    "scripts/runner-evaluation-capsule.ts",
+    "scripts/runner-laboratory-benchmark.ts",
+    "scripts/runner-laboratory-distributed*.ts",
+    "scripts/runner-laboratory-evaluator*.ts",
+    "scripts/runner-browser-matrix.ts"
+  ],
+  "exclude": [
+    "scripts/**/*.test.ts",
+    "src/**/*.test.ts"
+  ]
+}

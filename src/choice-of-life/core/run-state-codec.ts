@@ -1,4 +1,9 @@
 import type { CatalogDomain, CatalogRegistry } from "./catalog";
+import { deepFreeze as deepFreezeDecodedState } from "./immutable";
+import {
+  fromRunStateWireValue,
+  toRunStateWireValue,
+} from "./run-state-wire";
 import {
   EFFECT_SOURCES,
   RUN_STATE_CONTENT_VERSION,
@@ -14,6 +19,14 @@ import {
 } from "./run-state";
 import { deriveRunIdV1 } from "./run-factory";
 import { deriveEntityInstanceIdV1 } from "./instance-id";
+import { RUNNER_LABORATORY_STAGE_ID } from "./runner/contract";
+import {
+  assertRunnerLaboratorySaveInvariants,
+  assertRunnerLaboratorySaveInvariantsForCourse,
+  provesRunnerLaboratoryFutureInvulnerability,
+  RunnerLaboratorySaveInvariantError,
+} from "./runner/save-invariants";
+import type { RunnerLabGeneratedCourse } from "./runner/course-generator";
 
 export type DecodeErrorCode =
   | "oversized"
@@ -59,7 +72,12 @@ class ValidationFailure extends Error {
   readonly path: string;
 
   constructor(code: ValidationFailure["code"], path: string, message: string) {
-    super(message);
+    // The public validation contract is the stable code/path pair. Detailed
+    // prose is useful while developing and in the test suite, but retaining
+    // every diagnostic in the production bundle duplicates that contract at
+    // considerable cost. Vite folds this branch and Terser drops the unused
+    // message arguments in production builds.
+    super(import.meta.env.DEV ? message : "");
     this.code = code;
     this.path = path;
   }
@@ -71,31 +89,36 @@ const INSTANCE_ID = /^[a-z][a-z0-9-]{0,63}$/;
 const RUN_ID = /^run-[0-9a-f]{16}$/;
 const RUN_SEED = /^[0-9a-f]{16}$/;
 
-const ROOT_KEYS = [
-  "schemaVersion",
-  "contentVersion",
-  "runId",
-  "runSeed",
-  "runStatus",
-  "difficulty",
-  "controlMode",
-  "identity",
-  "appearance",
-  "accessibility",
-  "startingProfileId",
-  "scores",
-  "effectLedger",
-  "storyState",
-  "stage",
-  "runner",
-  "recovery",
-  "encounter",
-  "consequences",
-  "simulationTick",
-] as const;
+// These sentinels deliberately use unquoted properties. Property-mangled
+// production builds therefore derive this build's internal field spelling,
+// while the wire adapter remains responsible for the durable JSON spelling.
+const ROOT_KEYS = Object.keys({
+  schemaVersion: 0,
+  contentVersion: 0,
+  runId: 0,
+  runSeed: 0,
+  runStatus: 0,
+  difficulty: 0,
+  controlMode: 0,
+  identity: 0,
+  appearance: 0,
+  accessibility: 0,
+  startingProfileId: 0,
+  scores: 0,
+  effectLedger: 0,
+  storyState: 0,
+  stage: 0,
+  runner: 0,
+  recovery: 0,
+  encounter: 0,
+  consequences: 0,
+  simulationTick: 0,
+});
+const TERMINAL_STATUS_KEY = Object.keys({ status: 0 })[0]!;
 
 function fail(code: ValidationFailure["code"], path: string, message: string): never {
-  throw new ValidationFailure(code, path, message);
+  if (import.meta.env.DEV) throw new ValidationFailure(code, path, message);
+  throw new ValidationFailure(code, path, "");
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -202,10 +225,6 @@ function instanceIdAt(value: unknown, path: string): string {
   return id;
 }
 
-function nullableInstanceIdAt(value: unknown, path: string): string | null {
-  return value === null ? null : instanceIdAt(value, path);
-}
-
 function uniqueStrings(items: readonly unknown[], path: string, validator: (value: unknown, path: string) => string): void {
   const seen = new Set<string>();
   items.forEach((item, index) => {
@@ -215,220 +234,336 @@ function uniqueStrings(items: readonly unknown[], path: string, validator: (valu
   });
 }
 
-function validateScores(value: unknown, path: string): void {
-  const score = objectAt(value, path, SCORE_IDS);
-  for (const id of SCORE_IDS) integerAt(score[id], `${path}/${id}`, 0, 100);
-}
+const CATALOG_RULE = 0 as const;
+const INSTANCE_RULE = 1 as const;
+const BOOLEAN_RULE = 2 as const;
+const INTEGER_RULE = 3 as const;
+const ENUM_RULE = 4 as const;
+const STRING_RULE = 5 as const;
+const OBJECT_RULE = 6 as const;
+const ARRAY_RULE = 7 as const;
+const NULLABLE_RULE = 8 as const;
 
-function validateScoreTotals(value: unknown, path: string): void {
-  const keys = ["healthPositive", "healthNegative", "happinessPositive", "happinessNegative", "moneyPositive", "moneyNegative"];
-  const totals = objectAt(value, path, keys);
-  for (const key of keys) integerAt(totals[key], `${path}/${key}`, 0, SAFE_INTEGER_MAX);
-}
+type StructureRule =
+  | typeof CATALOG_RULE
+  | typeof INSTANCE_RULE
+  | typeof BOOLEAN_RULE
+  | readonly [typeof INTEGER_RULE, number, number]
+  | readonly [typeof ENUM_RULE, readonly (string | number)[]]
+  | readonly [typeof STRING_RULE, number, number]
+  | readonly [typeof OBJECT_RULE, Readonly<Record<string, StructureRule>>]
+  | readonly [typeof ARRAY_RULE, number, number, StructureRule, boolean?]
+  | readonly [typeof NULLABLE_RULE, StructureRule];
 
-function validateAppliedEffect(value: unknown, path: string): void {
-  const effect = objectAt(value, path, [
-    "effectId", "scoreId", "requestedDelta", "source", "categoryId", "causedByChoiceId", "transactionId",
-    "before", "after", "actualDelta", "simulationTick",
-  ]);
-  instanceIdAt(effect.effectId, `${path}/effectId`);
-  enumAt(effect.scoreId, `${path}/scoreId`, SCORE_IDS);
-  integerAt(effect.requestedDelta, `${path}/requestedDelta`, -100, 100);
-  enumAt(effect.source, `${path}/source`, EFFECT_SOURCES);
-  catalogIdAt(effect.categoryId, `${path}/categoryId`);
-  nullableCatalogIdAt(effect.causedByChoiceId, `${path}/causedByChoiceId`);
-  nullableInstanceIdAt(effect.transactionId, `${path}/transactionId`);
-  integerAt(effect.before, `${path}/before`, 0, 100);
-  integerAt(effect.after, `${path}/after`, 0, 100);
-  integerAt(effect.actualDelta, `${path}/actualDelta`, -100, 100);
-  integerAt(effect.simulationTick, `${path}/simulationTick`, 0, SAFE_INTEGER_MAX);
-}
+const integerRule = (minimum: number, maximum = SAFE_INTEGER_MAX): StructureRule =>
+  [INTEGER_RULE, minimum, maximum];
+const enumRule = (choices: readonly (string | number)[]): StructureRule =>
+  [ENUM_RULE, choices];
+const objectRule = (fields: Readonly<Record<string, StructureRule>>): StructureRule =>
+  [OBJECT_RULE, fields];
+const arrayRule = (
+  maximum: number,
+  item: StructureRule,
+  minimum = 0,
+  unique = false,
+): StructureRule => [ARRAY_RULE, maximum, minimum, item, unique];
+const nullableRule = (rule: StructureRule): StructureRule => [NULLABLE_RULE, rule];
 
-function validateEffectLedger(value: unknown, path: string): void {
-  const ledger = objectAt(value, path, ["recent", "totalsBySource"]);
-  const recent = arrayAt(ledger.recent, `${path}/recent`, 128);
-  recent.forEach((effect, index) => validateAppliedEffect(effect, `${path}/recent/${index}`));
-  const totals = objectAt(ledger.totalsBySource, `${path}/totalsBySource`, EFFECT_SOURCES);
-  for (const source of EFFECT_SOURCES) validateScoreTotals(totals[source], `${path}/totalsBySource/${source}`);
-}
-
-function validateStoryState(value: unknown, path: string): void {
-  const story = objectAt(value, path, ["facts", "memories", "credentials", "relationships", "conditions"]);
-  arrayAt(story.facts, `${path}/facts`, 256).forEach((item, index) => {
-    const factPath = `${path}/facts/${index}`;
-    const fact = objectAt(item, factPath, ["factId", "kind", "valueId", "originChoiceId"]);
-    catalogIdAt(fact.factId, `${factPath}/factId`);
-    enumAt(fact.kind, `${factPath}/kind`, ["learning", "care", "community", "autonomy", "route"] as const);
-    catalogIdAt(fact.valueId, `${factPath}/valueId`);
-    nullableCatalogIdAt(fact.originChoiceId, `${factPath}/originChoiceId`);
-  });
-  arrayAt(story.memories, `${path}/memories`, 128).forEach((item, index) => {
-    const memoryPath = `${path}/memories/${index}`;
-    const memory = objectAt(item, memoryPath, ["memoryId", "kind", "stageId", "summary", "originChoiceId"]);
-    catalogIdAt(memory.memoryId, `${memoryPath}/memoryId`);
-    enumAt(memory.kind, `${memoryPath}/kind`, ["milestone", "relationship", "challenge", "joy"] as const);
-    catalogIdAt(memory.stageId, `${memoryPath}/stageId`);
-    stringAt(memory.summary, `${memoryPath}/summary`, 256, 1);
-    nullableCatalogIdAt(memory.originChoiceId, `${memoryPath}/originChoiceId`);
-  });
-  arrayAt(story.credentials, `${path}/credentials`, 64).forEach((item, index) => {
-    const credentialPath = `${path}/credentials/${index}`;
-    const credential = objectAt(item, credentialPath, ["credentialId", "kind", "level", "earnedStageId"]);
-    catalogIdAt(credential.credentialId, `${credentialPath}/credentialId`);
-    enumAt(credential.kind, `${credentialPath}/kind`, ["education", "training", "license", "experience"] as const);
-    integerAt(credential.level, `${credentialPath}/level`, 0, 10);
-    catalogIdAt(credential.earnedStageId, `${credentialPath}/earnedStageId`);
-  });
-  arrayAt(story.relationships, `${path}/relationships`, 128).forEach((item, index) => {
-    const relationshipPath = `${path}/relationships/${index}`;
-    const relationship = objectAt(item, relationshipPath, ["relationshipId", "personId", "kind", "closeness", "status"]);
-    instanceIdAt(relationship.relationshipId, `${relationshipPath}/relationshipId`);
-    catalogIdAt(relationship.personId, `${relationshipPath}/personId`);
-    enumAt(relationship.kind, `${relationshipPath}/kind`, ["caregiver", "friend", "mentor", "partner", "colleague", "community"] as const);
-    integerAt(relationship.closeness, `${relationshipPath}/closeness`, 0, 100);
-    enumAt(relationship.status, `${relationshipPath}/status`, ["active", "distant", "ended"] as const);
-  });
-  arrayAt(story.conditions, `${path}/conditions`, 64).forEach((item, index) => {
-    const conditionPath = `${path}/conditions/${index}`;
-    const condition = objectAt(item, conditionPath, ["conditionId", "kind", "severity", "startedTick", "expiresTick", "originChoiceId"]);
-    catalogIdAt(condition.conditionId, `${conditionPath}/conditionId`);
-    enumAt(condition.kind, `${conditionPath}/kind`, ["support", "stress", "health", "opportunity", "constraint"] as const);
-    integerAt(condition.severity, `${conditionPath}/severity`, 1, 5);
-    integerAt(condition.startedTick, `${conditionPath}/startedTick`, 0, SAFE_INTEGER_MAX);
-    if (condition.expiresTick !== null) integerAt(condition.expiresTick, `${conditionPath}/expiresTick`, 0, SAFE_INTEGER_MAX);
-    nullableCatalogIdAt(condition.originChoiceId, `${conditionPath}/originChoiceId`);
-  });
-}
-
-function validateSettlement(value: unknown, path: string): void {
-  const settlement = objectAt(value, path, ["settlementId", "status", "startedTick", "completedTick", "effectIds"]);
-  instanceIdAt(settlement.settlementId, `${path}/settlementId`);
-  enumAt(settlement.status, `${path}/status`, ["pending", "applied", "cancelled"] as const);
-  integerAt(settlement.startedTick, `${path}/startedTick`, 0, SAFE_INTEGER_MAX);
-  if (settlement.completedTick !== null) integerAt(settlement.completedTick, `${path}/completedTick`, 0, SAFE_INTEGER_MAX);
-  uniqueStrings(arrayAt(settlement.effectIds, `${path}/effectIds`, 64), `${path}/effectIds`, instanceIdAt);
-}
-
-function validateStage(value: unknown, path: string): void {
-  const stage = objectAt(value, path, ["stageId", "phase", "ageMonths", "activeTicks", "worldDistanceMilli", "durationTicks", "settlement"]);
-  catalogIdAt(stage.stageId, `${path}/stageId`);
-  enumAt(stage.phase, `${path}/phase`, ["shell", "active", "settling", "complete"] as const);
-  integerAt(stage.ageMonths, `${path}/ageMonths`, 0, 1800);
-  integerAt(stage.activeTicks, `${path}/activeTicks`, 0, SAFE_INTEGER_MAX);
-  integerAt(stage.worldDistanceMilli, `${path}/worldDistanceMilli`, 0, SAFE_INTEGER_MAX);
-  integerAt(stage.durationTicks, `${path}/durationTicks`, 0, SAFE_INTEGER_MAX);
-  if (stage.settlement !== null) validateSettlement(stage.settlement, `${path}/settlement`);
-}
-
-function validateRunner(value: unknown, path: string): void {
-  const runner = objectAt(value, path, ["motion", "inputBuffer", "spawn", "activeEntities", "invulnerableUntilTick", "userPaused"]);
-  const motion = objectAt(runner.motion, `${path}/motion`, ["kind", "currentLane", "sourceLane", "targetLane", "elapsedTicks", "totalTicks"]);
-  const kind = enumAt(motion.kind, `${path}/motion/kind`, ["idle", "moving"] as const);
-  integerAt(motion.currentLane, `${path}/motion/currentLane`, 0, 2);
-  integerAt(motion.sourceLane, `${path}/motion/sourceLane`, 0, 2);
-  integerAt(motion.targetLane, `${path}/motion/targetLane`, 0, 2);
-  integerAt(motion.elapsedTicks, `${path}/motion/elapsedTicks`, kind === "idle" ? 0 : 1, kind === "idle" ? 0 : 10);
-  if (motion.totalTicks !== 11) fail("invalid-structure", `${path}/motion/totalTicks`, "Lane tween must be 11 ticks");
-  if (runner.inputBuffer !== null) enumAt(runner.inputBuffer, `${path}/inputBuffer`, ["up", "down"] as const);
-  const spawn = objectAt(runner.spawn, `${path}/spawn`, ["patternIndex", "nextSpawnDistanceMilli", "nextSpawnTick", "resolvedThroughPatternIndex", "resolvedEntityIds"]);
-  integerAt(spawn.patternIndex, `${path}/spawn/patternIndex`, 0, SAFE_INTEGER_MAX);
-  integerAt(spawn.nextSpawnDistanceMilli, `${path}/spawn/nextSpawnDistanceMilli`, 0, SAFE_INTEGER_MAX);
-  integerAt(spawn.nextSpawnTick, `${path}/spawn/nextSpawnTick`, 0, SAFE_INTEGER_MAX);
-  integerAt(spawn.resolvedThroughPatternIndex, `${path}/spawn/resolvedThroughPatternIndex`, 0, SAFE_INTEGER_MAX);
-  uniqueStrings(arrayAt(spawn.resolvedEntityIds, `${path}/spawn/resolvedEntityIds`, 64), `${path}/spawn/resolvedEntityIds`, instanceIdAt);
-  arrayAt(runner.activeEntities, `${path}/activeEntities`, 64).forEach((item, index) => {
-    const entityPath = `${path}/activeEntities/${index}`;
-    const entity = objectAt(item, entityPath, ["instanceId", "contentId", "kind", "patternIndex", "slotIndex", "lane", "xMilli", "widthMilli", "contactState"]);
-    instanceIdAt(entity.instanceId, `${entityPath}/instanceId`);
-    catalogIdAt(entity.contentId, `${entityPath}/contentId`);
-    enumAt(entity.kind, `${entityPath}/kind`, ["benefit", "hazard", "narrative", "opportunity"] as const);
-    integerAt(entity.patternIndex, `${entityPath}/patternIndex`, 0, SAFE_INTEGER_MAX);
-    integerAt(entity.slotIndex, `${entityPath}/slotIndex`, 0, 63);
-    integerAt(entity.lane, `${entityPath}/lane`, 0, 2);
-    integerAt(entity.xMilli, `${entityPath}/xMilli`, 0, SAFE_INTEGER_MAX);
-    integerAt(entity.widthMilli, `${entityPath}/widthMilli`, 1, 1_000_000);
-    enumAt(entity.contactState, `${entityPath}/contactState`, ["pending", "contacted", "passed"] as const);
-  });
-  integerAt(runner.invulnerableUntilTick, `${path}/invulnerableUntilTick`, 0, SAFE_INTEGER_MAX);
-  booleanAt(runner.userPaused, `${path}/userPaused`);
-}
-
-function validateRecovery(value: unknown, path: string): void {
-  const recovery = objectAt(value, path, [
-    "transactionId", "status", "triggerEntityInstanceId", "preTriggerScores", "recoveryTarget", "targetScores",
-    "startedTick", "resolveTick", "invulnerableUntilTick", "cooldownUntilTick",
-  ]);
-  instanceIdAt(recovery.transactionId, `${path}/transactionId`);
-  enumAt(recovery.status, `${path}/status`, ["offered", "accepted", "cooldown"] as const);
-  instanceIdAt(recovery.triggerEntityInstanceId, `${path}/triggerEntityInstanceId`);
-  validateScores(recovery.preTriggerScores, `${path}/preTriggerScores`);
-  integerAt(recovery.recoveryTarget, `${path}/recoveryTarget`, 1, 100);
-  validateScores(recovery.targetScores, `${path}/targetScores`);
-  for (const key of ["startedTick", "resolveTick", "invulnerableUntilTick", "cooldownUntilTick"]) {
-    integerAt(recovery[key], `${path}/${key}`, 0, SAFE_INTEGER_MAX);
+function validateRule(value: unknown, path: string, rule: StructureRule): void {
+  if (rule === CATALOG_RULE) {
+    catalogIdAt(value, path);
+    return;
+  }
+  if (rule === INSTANCE_RULE) {
+    instanceIdAt(value, path);
+    return;
+  }
+  if (rule === BOOLEAN_RULE) {
+    booleanAt(value, path);
+    return;
+  }
+  switch (rule[0]) {
+    case INTEGER_RULE:
+      integerAt(value, path, rule[1], rule[2]);
+      return;
+    case ENUM_RULE:
+      enumAt(value, path, rule[1]);
+      return;
+    case STRING_RULE:
+      stringAt(value, path, rule[1], rule[2]);
+      return;
+    case OBJECT_RULE: {
+      const fields = rule[1];
+      const record = objectAt(value, path, Object.keys(fields));
+      for (const key of Object.keys(fields)) {
+        validateRule(record[key], `${path}/${key}`, fields[key]!);
+      }
+      return;
+    }
+    case ARRAY_RULE: {
+      const items = arrayAt(value, path, rule[1], rule[2]);
+      if (rule[4]) {
+        const itemRule = rule[3];
+        uniqueStrings(
+          items,
+          path,
+          itemRule === CATALOG_RULE ? catalogIdAt : instanceIdAt,
+        );
+      } else {
+        items.forEach((item, index) =>
+          validateRule(item, `${path}/${index}`, rule[3]));
+      }
+      return;
+    }
+    case NULLABLE_RULE:
+      if (value !== null) validateRule(value, path, rule[1]);
   }
 }
 
+const TICK_RULE = integerRule(0);
+const SCORE_RULE = objectRule({
+  health: integerRule(0, 100),
+  happiness: integerRule(0, 100),
+  money: integerRule(0, 100),
+});
+const SCORE_TOTAL_RULE = objectRule({
+  healthPositive: TICK_RULE,
+  healthNegative: TICK_RULE,
+  happinessPositive: TICK_RULE,
+  happinessNegative: TICK_RULE,
+  moneyPositive: TICK_RULE,
+  moneyNegative: TICK_RULE,
+});
+const UNIQUE_CATALOGS = arrayRule(64, CATALOG_RULE, 0, true);
+const UNIQUE_INSTANCES = arrayRule(64, INSTANCE_RULE, 0, true);
+const RESOLUTION_RULE = objectRule({
+  selectedOptionId: CATALOG_RULE,
+  appliedEffectIds: UNIQUE_INSTANCES,
+  factResultIds: UNIQUE_CATALOGS,
+  relationshipResultIds: UNIQUE_INSTANCES,
+  scheduledConsequenceTransactionIds: UNIQUE_INSTANCES,
+  resultTextInputIds: UNIQUE_CATALOGS,
+  resolvedTick: TICK_RULE,
+});
+
+function validateScores(value: unknown, path: string): void {
+  validateRule(value, path, SCORE_RULE);
+}
+
+function validateEffectLedger(value: unknown, path: string): void {
+  const appliedEffect = objectRule({
+    effectId: INSTANCE_RULE,
+    scoreId: enumRule(SCORE_IDS),
+    requestedDelta: integerRule(-100, 100),
+    source: enumRule(EFFECT_SOURCES),
+    categoryId: CATALOG_RULE,
+    causedByChoiceId: nullableRule(CATALOG_RULE),
+    transactionId: nullableRule(INSTANCE_RULE),
+    before: integerRule(0, 100),
+    after: integerRule(0, 100),
+    actualDelta: integerRule(-100, 100),
+    simulationTick: TICK_RULE,
+  });
+  validateRule(value, path, objectRule({
+    recent: arrayRule(128, appliedEffect),
+    totalsBySource: objectRule(Object.fromEntries(
+      EFFECT_SOURCES.map((source) => [source, SCORE_TOTAL_RULE]),
+    )),
+  }));
+}
+
+function validateStoryState(value: unknown, path: string): void {
+  validateRule(value, path, objectRule({
+    facts: arrayRule(256, objectRule({
+      factId: CATALOG_RULE,
+      kind: enumRule(["learning", "care", "community", "autonomy", "route"]),
+      valueId: CATALOG_RULE,
+      originChoiceId: nullableRule(CATALOG_RULE),
+    })),
+    memories: arrayRule(128, objectRule({
+      memoryId: CATALOG_RULE,
+      kind: enumRule(["milestone", "relationship", "challenge", "joy"]),
+      stageId: CATALOG_RULE,
+      summary: [STRING_RULE, 256, 1],
+      originChoiceId: nullableRule(CATALOG_RULE),
+    })),
+    credentials: arrayRule(64, objectRule({
+      credentialId: CATALOG_RULE,
+      kind: enumRule(["education", "training", "license", "experience"]),
+      level: integerRule(0, 10),
+      earnedStageId: CATALOG_RULE,
+    })),
+    relationships: arrayRule(128, objectRule({
+      relationshipId: INSTANCE_RULE,
+      personId: CATALOG_RULE,
+      kind: enumRule(["caregiver", "friend", "mentor", "partner", "colleague", "community"]),
+      closeness: integerRule(0, 100),
+      status: enumRule(["active", "distant", "ended"]),
+    })),
+    conditions: arrayRule(64, objectRule({
+      conditionId: CATALOG_RULE,
+      kind: enumRule(["support", "stress", "health", "opportunity", "constraint"]),
+      severity: integerRule(1, 5),
+      startedTick: TICK_RULE,
+      expiresTick: nullableRule(TICK_RULE),
+      originChoiceId: nullableRule(CATALOG_RULE),
+    })),
+  }));
+}
+
+const SETTLEMENT_RULE = objectRule({
+  settlementId: INSTANCE_RULE,
+  status: enumRule(["pending", "applied", "cancelled"]),
+  startedTick: TICK_RULE,
+  completedTick: nullableRule(TICK_RULE),
+  effectIds: UNIQUE_INSTANCES,
+});
+
+function validateStage(value: unknown, path: string): void {
+  validateRule(value, path, objectRule({
+    stageId: CATALOG_RULE,
+    phase: enumRule(["shell", "active", "settling", "complete"]),
+    ageMonths: integerRule(0, 1800),
+    activeTicks: TICK_RULE,
+    worldDistanceMilli: TICK_RULE,
+    durationTicks: TICK_RULE,
+    settlement: nullableRule(SETTLEMENT_RULE),
+  }));
+}
+
+function validateRunner(value: unknown, path: string): void {
+  const runnerRule = objectRule({
+    motion: objectRule({
+      kind: enumRule(["idle", "moving"]),
+      currentLane: integerRule(0, 2),
+      sourceLane: integerRule(0, 2),
+      targetLane: integerRule(0, 2),
+      elapsedTicks: integerRule(0, 10),
+      totalTicks: enumRule([11]),
+    }),
+    inputBuffer: nullableRule(enumRule(["up", "down"])),
+    spawn: objectRule({
+      patternIndex: TICK_RULE,
+      nextSpawnDistanceMilli: TICK_RULE,
+      nextSpawnTick: TICK_RULE,
+      resolvedThroughPatternIndex: TICK_RULE,
+      resolvedEntityIds: UNIQUE_INSTANCES,
+    }),
+    activeEntities: arrayRule(64, objectRule({
+      instanceId: INSTANCE_RULE,
+      contentId: CATALOG_RULE,
+      kind: enumRule(["benefit", "hazard", "narrative", "opportunity"]),
+      patternIndex: TICK_RULE,
+      slotIndex: integerRule(0, 63),
+      lane: integerRule(0, 2),
+      xMilli: TICK_RULE,
+      widthMilli: integerRule(1, 1_000_000),
+      contactState: enumRule(["pending", "contacted", "passed"]),
+    })),
+    invulnerableUntilTick: TICK_RULE,
+    userPaused: BOOLEAN_RULE,
+  });
+  validateRule(value, path, runnerRule);
+  const runner = value as Record<string, unknown>;
+  const motion = runner.motion as Record<string, unknown>;
+  if (
+    (motion.kind === "idle" && motion.elapsedTicks !== 0) ||
+    (motion.kind === "moving" && (motion.elapsedTicks as number) < 1)
+  ) {
+    fail("invalid-structure", `${path}/motion/elapsedTicks`, "Lane tween elapsed tick is invalid");
+  }
+}
+
+function validateRecovery(value: unknown, path: string): void {
+  validateRule(value, path, objectRule({
+    transactionId: INSTANCE_RULE,
+    status: enumRule(["offered", "accepted", "cooldown"]),
+    triggerEntityInstanceId: INSTANCE_RULE,
+    preTriggerScores: SCORE_RULE,
+    recoveryTarget: integerRule(1, 100),
+    targetScores: SCORE_RULE,
+    startedTick: TICK_RULE,
+    resolveTick: TICK_RULE,
+    invulnerableUntilTick: TICK_RULE,
+    cooldownUntilTick: TICK_RULE,
+  }));
+}
+
 function validateResolution(value: unknown, path: string): void {
-  const resolution = objectAt(value, path, [
-    "selectedOptionId", "appliedEffectIds", "factResultIds", "relationshipResultIds",
-    "scheduledConsequenceTransactionIds", "resultTextInputIds", "resolvedTick",
-  ]);
-  catalogIdAt(resolution.selectedOptionId, `${path}/selectedOptionId`);
-  uniqueStrings(arrayAt(resolution.appliedEffectIds, `${path}/appliedEffectIds`, 64), `${path}/appliedEffectIds`, instanceIdAt);
-  uniqueStrings(arrayAt(resolution.factResultIds, `${path}/factResultIds`, 64), `${path}/factResultIds`, catalogIdAt);
-  uniqueStrings(arrayAt(resolution.relationshipResultIds, `${path}/relationshipResultIds`, 64), `${path}/relationshipResultIds`, instanceIdAt);
-  uniqueStrings(arrayAt(resolution.scheduledConsequenceTransactionIds, `${path}/scheduledConsequenceTransactionIds`, 64), `${path}/scheduledConsequenceTransactionIds`, instanceIdAt);
-  uniqueStrings(arrayAt(resolution.resultTextInputIds, `${path}/resultTextInputIds`, 64), `${path}/resultTextInputIds`, catalogIdAt);
-  integerAt(resolution.resolvedTick, `${path}/resolvedTick`, 0, SAFE_INTEGER_MAX);
+  validateRule(value, path, RESOLUTION_RULE);
 }
 
 function validateEncounter(value: unknown, path: string): void {
-  const encounter = objectAt(value, path, ["transactionId", "encounterId", "kind", "phase", "optionIds", "selectedOptionId", "resolutionTransactionId", "presentationPhase"]);
-  instanceIdAt(encounter.transactionId, `${path}/transactionId`);
-  catalogIdAt(encounter.encounterId, `${path}/encounterId`);
-  enumAt(encounter.kind, `${path}/kind`, ["caregiver", "friend", "mentor", "stranger", "institution", "self-reflection"] as const);
-  enumAt(encounter.phase, `${path}/phase`, ["presenting", "option-selected", "resolving", "resolved"] as const);
-  uniqueStrings(arrayAt(encounter.optionIds, `${path}/optionIds`, 4, 2), `${path}/optionIds`, catalogIdAt);
-  nullableCatalogIdAt(encounter.selectedOptionId, `${path}/selectedOptionId`);
-  nullableInstanceIdAt(encounter.resolutionTransactionId, `${path}/resolutionTransactionId`);
-  enumAt(encounter.presentationPhase, `${path}/presentationPhase`, ["prompt", "choices", "reaction", "summary"] as const);
+  validateRule(value, path, objectRule({
+    transactionId: INSTANCE_RULE,
+    encounterId: CATALOG_RULE,
+    kind: enumRule(["caregiver", "friend", "mentor", "stranger", "institution", "self-reflection"]),
+    phase: enumRule(["presenting", "option-selected", "resolving", "resolved"]),
+    optionIds: arrayRule(4, CATALOG_RULE, 2, true),
+    selectedOptionId: nullableRule(CATALOG_RULE),
+    resolutionTransactionId: nullableRule(INSTANCE_RULE),
+    presentationPhase: enumRule(["prompt", "choices", "reaction", "summary"]),
+  }));
 }
 
 function validatePendingConsequence(value: unknown, path: string): void {
-  const consequence = objectAt(value, path, ["transactionId", "consequenceId", "status", "causedByChoiceId", "dueStageId", "dueTick", "effectIds"]);
-  instanceIdAt(consequence.transactionId, `${path}/transactionId`);
-  catalogIdAt(consequence.consequenceId, `${path}/consequenceId`);
-  if (consequence.status !== "pending") fail("invalid-structure", `${path}/status`, "Expected pending");
-  nullableCatalogIdAt(consequence.causedByChoiceId, `${path}/causedByChoiceId`);
-  catalogIdAt(consequence.dueStageId, `${path}/dueStageId`);
-  integerAt(consequence.dueTick, `${path}/dueTick`, 0, SAFE_INTEGER_MAX);
-  uniqueStrings(arrayAt(consequence.effectIds, `${path}/effectIds`, 64), `${path}/effectIds`, instanceIdAt);
+  validateRule(value, path, objectRule({
+    transactionId: INSTANCE_RULE,
+    consequenceId: CATALOG_RULE,
+    status: enumRule(["pending"]),
+    causedByChoiceId: nullableRule(CATALOG_RULE),
+    dueStageId: CATALOG_RULE,
+    dueTick: TICK_RULE,
+    effectIds: UNIQUE_INSTANCES,
+  }));
 }
 
 function validateResolvedConsequence(value: unknown, path: string): void {
-  const consequence = objectAt(value, path, ["transactionId", "consequenceId", "status", "causedByChoiceId", "resolution", "presentedTick"]);
-  instanceIdAt(consequence.transactionId, `${path}/transactionId`);
-  catalogIdAt(consequence.consequenceId, `${path}/consequenceId`);
-  const status = enumAt(consequence.status, `${path}/status`, ["resolved", "presented"] as const);
-  nullableCatalogIdAt(consequence.causedByChoiceId, `${path}/causedByChoiceId`);
-  validateResolution(consequence.resolution, `${path}/resolution`);
-  if (status === "resolved") {
-    if (consequence.presentedTick !== null) fail("invalid-structure", `${path}/presentedTick`, "Resolved consequence is not presented");
-  } else {
-    integerAt(consequence.presentedTick, `${path}/presentedTick`, 0, SAFE_INTEGER_MAX);
+  const rule = objectRule({
+    transactionId: INSTANCE_RULE,
+    consequenceId: CATALOG_RULE,
+    status: enumRule(["resolved", "presented"]),
+    causedByChoiceId: nullableRule(CATALOG_RULE),
+    resolution: RESOLUTION_RULE,
+    presentedTick: nullableRule(TICK_RULE),
+  });
+  validateRule(value, path, rule);
+  const consequence = value as Record<string, unknown>;
+  if (
+    (consequence.status === "resolved" && consequence.presentedTick !== null) ||
+    (consequence.status === "presented" && consequence.presentedTick === null)
+  ) {
+    fail("invalid-structure", `${path}/presentedTick`, "Consequence presentation tick is invalid");
   }
 }
 
 function validateTerminalConsequence(value: unknown, path: string): void {
   if (!isPlainObject(value)) fail("invalid-structure", path, "Expected terminal consequence");
-  const statusDescriptor = Object.getOwnPropertyDescriptor(value, "status");
+  const statusDescriptor = Object.getOwnPropertyDescriptor(
+    value,
+    TERMINAL_STATUS_KEY,
+  );
   if (statusDescriptor === undefined || !statusDescriptor.enumerable || !("value" in statusDescriptor)) {
     fail("invalid-structure", `${path}/status`, "Terminal status must be an enumerable data property");
   }
   const status = enumAt(statusDescriptor.value, `${path}/status`, ["complete", "expired", "superseded"] as const);
   if (status === "complete") {
-    const consequence = objectAt(value, path, ["transactionId", "consequenceId", "status", "causedByChoiceId", "resolution", "presentedTick", "terminalTick", "terminalReasonId", "supersededByTransactionId", "acknowledgmentId"]);
+    const consequence = objectAt(
+      value,
+      path,
+      Object.keys({
+        transactionId: 0,
+        consequenceId: 0,
+        status: 0,
+        causedByChoiceId: 0,
+        resolution: 0,
+        presentedTick: 0,
+        terminalTick: 0,
+        terminalReasonId: 0,
+        supersededByTransactionId: 0,
+        acknowledgmentId: 0,
+      }),
+    );
     instanceIdAt(consequence.transactionId, `${path}/transactionId`);
     catalogIdAt(consequence.consequenceId, `${path}/consequenceId`);
     nullableCatalogIdAt(consequence.causedByChoiceId, `${path}/causedByChoiceId`);
@@ -440,7 +575,21 @@ function validateTerminalConsequence(value: unknown, path: string): void {
     nullableCatalogIdAt(consequence.acknowledgmentId, `${path}/acknowledgmentId`);
     return;
   }
-  const consequence = objectAt(value, path, ["transactionId", "consequenceId", "status", "causedByChoiceId", "resolution", "terminalTick", "terminalReasonId", "supersededByTransactionId", "acknowledgmentId"]);
+  const consequence = objectAt(
+    value,
+    path,
+    Object.keys({
+      transactionId: 0,
+      consequenceId: 0,
+      status: 0,
+      causedByChoiceId: 0,
+      resolution: 0,
+      terminalTick: 0,
+      terminalReasonId: 0,
+      supersededByTransactionId: 0,
+      acknowledgmentId: 0,
+    }),
+  );
   instanceIdAt(consequence.transactionId, `${path}/transactionId`);
   catalogIdAt(consequence.consequenceId, `${path}/consequenceId`);
   nullableCatalogIdAt(consequence.causedByChoiceId, `${path}/causedByChoiceId`);
@@ -456,7 +605,11 @@ function validateTerminalConsequence(value: unknown, path: string): void {
 }
 
 function validateConsequenceState(value: unknown, path: string): void {
-  const state = objectAt(value, path, ["pending", "resolved", "terminal"]);
+  const state = objectAt(
+    value,
+    path,
+    Object.keys({ pending: 0, resolved: 0, terminal: 0 }),
+  );
   arrayAt(state.pending, `${path}/pending`, 64).forEach((item, index) => validatePendingConsequence(item, `${path}/pending/${index}`));
   arrayAt(state.resolved, `${path}/resolved`, 64).forEach((item, index) => validateResolvedConsequence(item, `${path}/resolved/${index}`));
   arrayAt(state.terminal, `${path}/terminal`, 128).forEach((item, index) => validateTerminalConsequence(item, `${path}/terminal/${index}`));
@@ -473,14 +626,36 @@ function validateStructure(value: unknown): RunStateV1 {
   enumAt(root.runStatus, "/runStatus", ["setup", "active", "completed"] as const);
   enumAt(root.difficulty, "/difficulty", ["story", "normal", "challenge"] as const);
   enumAt(root.controlMode, "/controlMode", ["manual", "semantic-assist", "automatic-assist"] as const);
-  const identity = objectAt(root.identity, "/identity", ["gender"]);
+  const identity = objectAt(
+    root.identity,
+    "/identity",
+    Object.keys({ gender: 0 }),
+  );
   enumAt(identity.gender, "/identity/gender", ["female", "male"] as const);
-  const appearance = objectAt(root.appearance, "/appearance", ["heritageStyleId", "hairStyleId", "hairColorId", "clothingPaletteId"]);
+  const appearance = objectAt(
+    root.appearance,
+    "/appearance",
+    Object.keys({
+      heritageStyleId: 0,
+      hairStyleId: 0,
+      hairColorId: 0,
+      clothingPaletteId: 0,
+    }),
+  );
   enumAt(appearance.heritageStyleId, "/appearance/heritageStyleId", ["asian", "western", "black", "middle-eastern"] as const);
   enumAt(appearance.hairStyleId, "/appearance/hairStyleId", ["short-soft", "wavy-bob", "curly-crown", "tied-back"] as const);
   enumAt(appearance.hairColorId, "/appearance/hairColorId", ["black", "dark-brown", "warm-brown", "silver"] as const);
   enumAt(appearance.clothingPaletteId, "/appearance/clothingPaletteId", ["sunrise", "meadow", "ocean", "berry"] as const);
-  const accessibility = objectAt(root.accessibility, "/accessibility", ["highContrast", "reducedMotion", "textScale", "screenReaderAnnouncements"]);
+  const accessibility = objectAt(
+    root.accessibility,
+    "/accessibility",
+    Object.keys({
+      highContrast: 0,
+      reducedMotion: 0,
+      textScale: 0,
+      screenReaderAnnouncements: 0,
+    }),
+  );
   booleanAt(accessibility.highContrast, "/accessibility/highContrast");
   booleanAt(accessibility.reducedMotion, "/accessibility/reducedMotion");
   enumAt(accessibility.textScale, "/accessibility/textScale", [100, 125, 150, 200] as const);
@@ -601,8 +776,15 @@ function validateResolutionSemantics(
   resolution.resultTextInputIds.forEach((id) => requireCatalog(catalogs, "text-input", id, `${path}/resultTextInputIds`));
 }
 
-function validateCatalogAndSemantics(state: RunStateV1, catalogs: CatalogRegistry): void {
+function validateCatalogAndSemantics(
+  state: RunStateV1,
+  catalogs: CatalogRegistry,
+  runnerLaboratoryCourse?: RunnerLabGeneratedCourse,
+): void {
   if (catalogs.contentVersion !== state.contentVersion) fail("invalid-catalog", "/contentVersion", "Catalog content version mismatch");
+  const validatesRunnerLaboratory =
+    catalogs.hasCapability("runner-laboratory-v1") &&
+    state.stage.stageId === RUNNER_LABORATORY_STAGE_ID;
   const expectedRunId = deriveRunIdV1(state.runSeed, {
     startingProfileId: state.startingProfileId,
     difficulty: state.difficulty,
@@ -1032,8 +1214,15 @@ function validateCatalogAndSemantics(state: RunStateV1, catalogs: CatalogRegistr
       recovery.transactionId,
       "/recovery/transactionId",
     );
-  } else if (state.runner !== null && state.runner.invulnerableUntilTick > state.simulationTick) {
-    fail("invalid-semantics", "/runner/invulnerableUntilTick", "Invulnerability lacks an owning recovery transaction");
+  } else if (
+    state.runner !== null &&
+    state.runner.invulnerableUntilTick > state.simulationTick &&
+    !(
+      validatesRunnerLaboratory &&
+      provesRunnerLaboratoryFutureInvulnerability(state)
+    )
+  ) {
+    fail("invalid-semantics", "/runner/invulnerableUntilTick", "Invulnerability lacks an owning recovery transaction or an authentic laboratory hazard proof");
   }
 
   const pendingIds = state.consequences.pending.map((item) => item.transactionId);
@@ -1250,12 +1439,42 @@ function validateCatalogAndSemantics(state: RunStateV1, catalogs: CatalogRegistr
       );
     }
   });
+
+  if (validatesRunnerLaboratory) {
+    try {
+      if (runnerLaboratoryCourse === undefined) {
+        assertRunnerLaboratorySaveInvariants(state);
+      } else {
+        assertRunnerLaboratorySaveInvariantsForCourse(
+          state,
+          runnerLaboratoryCourse,
+        );
+      }
+    } catch (error) {
+      if (error instanceof RunnerLaboratorySaveInvariantError) {
+        fail("invalid-semantics", error.path, error.message);
+      }
+      throw error;
+    }
+  }
 }
 
-export function validateRunState(value: unknown, catalogs: CatalogRegistry): RunStateValidationResult {
+export interface RunStateValidationOptions {
+  readonly runnerLaboratoryCourse?: RunnerLabGeneratedCourse;
+}
+
+export function validateRunState(
+  value: unknown,
+  catalogs: CatalogRegistry,
+  options?: RunStateValidationOptions,
+): RunStateValidationResult {
   try {
     const state = validateStructure(value);
-    validateCatalogAndSemantics(state, catalogs);
+    validateCatalogAndSemantics(
+      state,
+      catalogs,
+      options?.runnerLaboratoryCourse,
+    );
     return { ok: true, state };
   } catch (error) {
     if (error instanceof ValidationFailure) return { ok: false, code: error.code, path: error.path };
@@ -1265,9 +1484,13 @@ export function validateRunState(value: unknown, catalogs: CatalogRegistry): Run
 
 function readableMetadata(value: unknown): { schemaVersion: number | null; contentVersion: string | null } {
   if (!isPlainObject(value)) return { schemaVersion: null, contentVersion: null };
+  // These quoted lookups intentionally address the durable JSON spelling,
+  // before the wire adapter converts keys to this build's runtime names.
+  const schemaVersion = value["schemaVersion"];
+  const contentVersion = value["contentVersion"];
   return {
-    schemaVersion: typeof value.schemaVersion === "number" && Number.isFinite(value.schemaVersion) ? value.schemaVersion : null,
-    contentVersion: typeof value.contentVersion === "string" ? value.contentVersion : null,
+    schemaVersion: typeof schemaVersion === "number" && Number.isFinite(schemaVersion) ? schemaVersion : null,
+    contentVersion: typeof contentVersion === "string" ? contentVersion : null,
   };
 }
 
@@ -1341,7 +1564,11 @@ export function migrateRunStateValue(
 }
 
 function migrateV0(value: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const accessibility = objectAt(value.accessibility, "/accessibility", ["highContrast", "reducedMotion", "textScale"]);
+  const accessibility = objectAt(
+    value.accessibility,
+    "/accessibility",
+    Object.keys({ highContrast: 0, reducedMotion: 0, textScale: 0 }),
+  );
   return {
     ...value,
     schemaVersion: RUN_STATE_SCHEMA_VERSION,
@@ -1353,38 +1580,58 @@ export const RUN_STATE_MIGRATIONS: readonly RunStateMigrationStep[] = Object.fre
   Object.freeze({ fromVersion: 0, toVersion: 1, migrate: migrateV0 }),
 ]);
 
-export function decodeRunState(text: string, catalogs: CatalogRegistry): DecodeResult {
+export function decodeRunState(
+  text: string,
+  catalogs: CatalogRegistry,
+  options?: RunStateValidationOptions,
+): DecodeResult {
   const byteLength = utf8ByteLength(text);
   if (byteLength > RUN_STATE_MAX_UTF8_BYTES) {
     return { kind: "invalid", code: "oversized", schemaVersion: null, contentVersion: null };
   }
-  let parsed: unknown;
+  let wireValue: unknown;
   try {
-    parsed = JSON.parse(text) as unknown;
+    wireValue = JSON.parse(text) as unknown;
   } catch {
     return { kind: "invalid", code: "malformed-json", schemaVersion: null, contentVersion: null };
   }
-  if (!isPlainObject(parsed)) return { kind: "invalid", code: "invalid-root", schemaVersion: null, contentVersion: null };
-  const metadata = readableMetadata(parsed);
+  if (!isPlainObject(wireValue)) return { kind: "invalid", code: "invalid-root", schemaVersion: null, contentVersion: null };
+  const metadata = readableMetadata(wireValue);
   if (metadata.schemaVersion !== 0 && metadata.schemaVersion !== RUN_STATE_SCHEMA_VERSION) {
     return { kind: "invalid", code: "unsupported-schema", ...metadata };
   }
   if (metadata.contentVersion !== RUN_STATE_CONTENT_VERSION) {
     return { kind: "invalid", code: "unsupported-content", ...metadata };
   }
+  let parsed: unknown;
+  try {
+    parsed = fromRunStateWireValue(wireValue);
+  } catch {
+    return { kind: "invalid", code: "invalid-structure", ...metadata };
+  }
+  if (!isPlainObject(parsed)) {
+    return { kind: "invalid", code: "invalid-root", ...metadata };
+  }
   const migration = migrateRunStateValue(parsed, RUN_STATE_SCHEMA_VERSION, RUN_STATE_MIGRATIONS);
   if (!migration.ok) return { kind: "invalid", code: "migration-failed", ...metadata };
   const candidate: unknown = migration.value;
   const migratedFrom = migration.migratedFrom as 0 | null;
-  const validation = validateRunState(candidate, catalogs);
+  const validation = validateRunState(candidate, catalogs, options);
   if (!validation.ok) return { kind: "invalid", code: validation.code, ...metadata };
-  return { kind: "ready", state: validation.state, migratedFrom };
+  return {
+    kind: "ready",
+    state: deepFreezeDecodedState(validation.state),
+    migratedFrom,
+  };
 }
 
 export function encodeRunState(state: RunStateV1): string {
   let text: string;
   try {
-    text = JSON.stringify(state);
+    // Reject forged in-memory shapes before translating them. Catalog and
+    // semantic validation remain the save-store boundary's responsibility.
+    validateStructure(state);
+    text = JSON.stringify(toRunStateWireValue(state));
   } catch (error) {
     throw new RunStateEncodeError("not-serializable", error instanceof Error ? error.message : "State is not serializable");
   }

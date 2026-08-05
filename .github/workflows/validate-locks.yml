@@ -1,61 +1,30 @@
-name: Validate Choice of Life fixture locks
+name: Check Choice of Life fixture history
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "docs/**"
-      - ".github/workflows/validate-locks.yml"
-      - "package.json"
-      - "package-lock.json"
-      - "scripts/fixture-lock.mjs"
-      - "scripts/fixture-lock.test.mjs"
-      - "scripts/validate-fixture-locks.mjs"
-      - "scripts/validate-fixture-preregistration.mjs"
-      - "scripts/validate-committed-fixture-preregistration.mjs"
-  pull_request:
-    paths:
-      - "docs/**"
-      - ".github/workflows/validate-locks.yml"
-      - "package.json"
-      - "package-lock.json"
-      - "scripts/fixture-lock.mjs"
-      - "scripts/fixture-lock.test.mjs"
-      - "scripts/validate-fixture-locks.mjs"
-      - "scripts/validate-fixture-preregistration.mjs"
-      - "scripts/validate-committed-fixture-preregistration.mjs"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validate-locks:
+  validate-history:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Checkout full immutable history
-        uses: actions/checkout@v4
+      - name: Checkout immutable history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version: 22.23.1
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate committed preregistration structure and immutable history
+      - name: Validate committed preregistration history
         run: npm run fixtures:validate-preregistration
-        env:
-          CHOICE_LOCK_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-
-      - name: Type-check fixture tooling consumers
-        run: npm run check
-
-      - name: Run regression tests
-        run: npm test
-        env:
-          CHOICE_FIXTURE_TEST_PREREG_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}

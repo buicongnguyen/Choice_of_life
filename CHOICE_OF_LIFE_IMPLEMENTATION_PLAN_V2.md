@@ -439,6 +439,51 @@ timing; Phase 4 adds encounter-reload E2E; Phase 10 reruns and audits every prio
 budget plus the final automated accessibility suite rather than introducing a
 measurement after its first required gate.
 
+Phase 2 also keeps a non-normative phase-timing diagnostic. Correctness and
+committed evidence always cover 10,000 seeds × four starting profiles × three
+difficulties (120,000 base entries), all locked reduced-motion pairs and
+appearance witnesses, and the browser matrix; timing may never reduce that
+release population. The diagnostic runs one four-seed warm-up and three
+24-seed, two-OS-worker samples of the base gameplay domain only. It records
+source/input loading, worker wall time, shard reading, fixed global proofs,
+aggregation/closure, total time, Node/OS/CPU metadata, evaluated-source SHA-256,
+and aggregate population SHA-256. All three sample aggregate hashes must agree.
+A conservative linear projection is labelled base-gameplay-only and expressly
+does not estimate the auxiliary or end-to-end `runner:validate` cost. Because no
+evaluator wall-clock limit was preregistered before Phase 2 results were seen,
+the diagnostic has no timing pass/fail threshold. Exact full-population generate
+and validate runs remain release gates. Any future operational SLA must be added
+by a written plan amendment, with its operator/CI rationale and independent
+review, before replacement timing results are observed; it cannot shrink the
+domain or be tuned to make an observed failure pass.
+
+Canonical local release evaluation partitions that unchanged population across
+up to four available OS workers; an explicit worker count may change only the
+shard partition. Aggregate evidence is required to remain byte-identical across
+shard counts. The diagnostic above remains locked to two workers so its samples
+stay comparable and cannot be substituted for release evidence.
+
+**Phase 2 CI execution amendment (2026-08-04).** Clean runtime measurement found
+that four local workers project the base domain alone to approximately 5 hours
+25 minutes, before fixed global proofs, browser evidence, ordinary verification,
+and the production build. That leaves unsafe margin under GitHub-hosted jobs'
+six-hour ceiling. CI therefore evaluates the same immutable population as 16
+global stride-partitioned shards: four isolated matrix jobs each run four OS
+workers, followed by one fail-closed aggregation job. The jobs exchange only
+canonical, source/build/commit-bound shard artifacts. Aggregation requires the
+exact 0–15 shard closure, rejects missing, duplicate, extra, malformed, or
+source-mismatched artifacts, recomputes every global and browser assertion, and
+requires byte-identical recomputation of the same committed canonical evidence
+validated by local `runner:validate` before Pages can deploy. The distributed
+step replaces only the long runner-population computation: deployment remains
+gated on ordinary type and test checks, strict fixture validation, the
+production build, release verification, bundle budgets, and identity of the
+browser-tested `dist` payload. The plan digest is transported independently as
+a preflight-job output and must match the downloaded canonical plan bytes.
+This operational amendment neither changes the locked inputs nor weakens any
+assertion, population, auxiliary domain, manual review, or browser cell. Local
+`npm run verify` remains a complete exact evaluation on one machine.
+
 ## 11A. Normative overrides over the original content bible
 
 | Original topic | V2 rule |
@@ -520,6 +565,11 @@ Deliver:
 - grounded nursery layers and subtle ambient motion;
 - compact newborn/caregiver runtime art;
 - crawl/seated animation, pickups, hazards, stage clock, recap, and settlement;
+- one mandatory caregiver safe corridor with a minimal untimed, reload-safe
+  three-option crossroads outside the playfield; the Newborn stage cannot settle
+  until that transaction is resolved exactly once;
+- one typed Newborn choice fact and memory whose IDs, effects, option goals, and
+  comparison horizon are frozen in the Phase 3 fixture before tuning;
 - source-attribution ledger and atomic deterministic recovery core; Phase 4 adds its story presentation;
 - a preregistered Newborn fixture lock covering runner curves, canonical neutral
   manual/Assist policies, recovery target, profile tolerance, and named contexts;
@@ -532,6 +582,9 @@ Exit:
 - character scale and foot anchor remain fixed;
 - Newborn is completable with keyboard, touch, automatic/semantic Assist, and a
   nonvisual screen reader;
+- every completed `newborn-v1` save contains the resolved caregiver transaction,
+  and Phase 4 may generalize or present callbacks from it but may not reinterpret
+  an already completed Newborn stage;
 - production artifact, critical/Newborn transfer, save, decoded-memory, and render
   budgets pass;
 - Newborn attribution, saturation, monotonicity, pattern mix, recovery-cycle, and
@@ -541,9 +594,11 @@ Exit:
 
 Deliver:
 
-- mandatory Mom safe corridor;
-- responsive semantic choice tray outside the playfield;
-- atomic encounter transactions;
+- generalization of the Phase 3 caregiver crossroads into the reusable encounter
+  catalog and transaction engine without changing completed Newborn outcomes;
+- additional mandatory and optional safe-corridor encounters;
+- responsive semantic choice trays outside the playfield;
+- reusable atomic encounter transactions;
 - typed facts, memories, relationships, scheduled callbacks, and story log;
 - recovery presentation integrated with the Phase 3 atomic core;
 - refresh tests at every transaction state;

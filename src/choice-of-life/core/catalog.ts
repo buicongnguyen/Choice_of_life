@@ -18,9 +18,13 @@ export type CatalogDomain =
   | "terminal-reason"
   | "acknowledgment";
 
+export type CatalogCapability = "runner-laboratory-v1";
+
 export interface CatalogRegistry {
   readonly contentVersion: typeof RUN_STATE_CONTENT_VERSION;
   readonly entityInstanceIdPolicy: "stable-coordinate-v1" | "contract-fixture-v1";
+  readonly capabilities: readonly CatalogCapability[];
+  hasCapability(capability: CatalogCapability): boolean;
   has(domain: CatalogDomain, id: string): boolean;
   metadata(domain: CatalogDomain, id: string): CatalogMetadata | null;
 }
@@ -76,7 +80,10 @@ const KINDS_BY_DOMAIN: Readonly<Partial<Record<CatalogDomain, readonly string[]>
 
 export function createCatalogRegistry(
   entries: CatalogEntries,
-  options: Readonly<{ entityInstanceIdPolicy?: CatalogRegistry["entityInstanceIdPolicy"] }> = {},
+  options: Readonly<{
+    entityInstanceIdPolicy?: CatalogRegistry["entityInstanceIdPolicy"];
+    capabilities?: readonly CatalogCapability[];
+  }> = {},
 ): CatalogRegistry {
   if (typeof entries !== "object" || entries === null || Array.isArray(entries)) {
     throw new Error("Catalog entries must be an object");
@@ -86,11 +93,21 @@ export function createCatalogRegistry(
   if (typeof options !== "object" || options === null || Array.isArray(options)) {
     throw new Error("Catalog options must be an object");
   }
-  const unknownOption = Object.keys(options).find((key) => key !== "entityInstanceIdPolicy");
+  const unknownOption = Object.keys(options).find(
+    (key) => key !== "entityInstanceIdPolicy" && key !== "capabilities",
+  );
   if (unknownOption !== undefined) throw new Error(`Unknown catalog option: ${unknownOption}`);
   const entityInstanceIdPolicy = options.entityInstanceIdPolicy ?? "stable-coordinate-v1";
   if (entityInstanceIdPolicy !== "stable-coordinate-v1" && entityInstanceIdPolicy !== "contract-fixture-v1") {
     throw new Error(`Invalid entity instance ID policy: ${String(entityInstanceIdPolicy)}`);
+  }
+  if (!Array.isArray(options.capabilities ?? [])) {
+    throw new Error("Catalog capabilities must be an array");
+  }
+  const capabilities = [...new Set(options.capabilities ?? [])];
+  const invalidCapability = capabilities.find((capability) => capability !== "runner-laboratory-v1");
+  if (invalidCapability !== undefined) {
+    throw new Error(`Invalid catalog capability: ${String(invalidCapability)}`);
   }
   const records = new Map<CatalogDomain, ReadonlyMap<string, CatalogMetadata>>();
   const idOwners = new Map<string, CatalogDomain>();
@@ -157,6 +174,10 @@ export function createCatalogRegistry(
   return Object.freeze({
     contentVersion: RUN_STATE_CONTENT_VERSION,
     entityInstanceIdPolicy,
+    capabilities: Object.freeze(capabilities),
+    hasCapability(capability: CatalogCapability): boolean {
+      return capabilities.includes(capability);
+    },
     has(domain: CatalogDomain, id: string): boolean {
       return records.get(domain)?.has(id) ?? false;
     },
@@ -166,9 +187,11 @@ export function createCatalogRegistry(
   });
 }
 
-export const PHASE_1_CATALOG = createCatalogRegistry({
+export const PHASE_1_ENTRIES: CatalogEntries = {
   stage: ["setup-shell-v1"],
-});
+};
+
+export const PHASE_1_CATALOG = createCatalogRegistry(PHASE_1_ENTRIES);
 
 export const RUN_STATE_CONTRACT_ENTRIES: CatalogEntries = {
   stage: ["setup-shell-v1", "runner-lab-v1", "newborn-v1"],
@@ -226,3 +249,39 @@ export const RUN_STATE_CONTRACT_FIXTURE_CATALOG = createCatalogRegistry(
 );
 
 export const STRICT_RUN_STATE_CONTRACT_CATALOG = createCatalogRegistry(RUN_STATE_CONTRACT_ENTRIES);
+
+export const RUNNER_LABORATORY_ENTRIES: CatalogEntries = {
+  // The production Phase 2 catalog is additive: every valid Phase 1 setup save
+  // must remain loadable when the browser store switches to this registry.
+  stage: ["setup-shell-v1", "runner-lab-v1"],
+  entity: [
+    { id: "runner-lab-health-token-v1", kind: "benefit" },
+    { id: "runner-lab-happiness-token-v1", kind: "benefit" },
+    { id: "runner-lab-money-token-v1", kind: "benefit" },
+    { id: "runner-lab-clutter-hazard-v1", kind: "hazard" },
+    { id: "runner-lab-pressure-hazard-v1", kind: "hazard" },
+    { id: "runner-lab-start-marker-v1", kind: "opportunity" },
+    { id: "runner-lab-decision-marker-v1", kind: "opportunity" },
+    { id: "runner-lab-finish-marker-v1", kind: "opportunity" },
+  ],
+  "effect-category": [
+    { id: "runner-benefit-v1", allowedEffectSources: ["runner"] },
+    { id: "runner-hazard-v1", allowedEffectSources: ["runner"] },
+    {
+      id: "runner-lab-automatic-settlement-effect-v1",
+      allowedEffectSources: ["system"],
+    },
+  ],
+  fact: [
+    { id: "fact-runner-laboratory-complete-v1", kind: "learning" },
+  ],
+  value: ["value-runner-laboratory-practice-v1"],
+  memory: [
+    { id: "memory-runner-laboratory-complete-v1", kind: "milestone" },
+  ],
+};
+
+export const RUNNER_LABORATORY_CATALOG = createCatalogRegistry(
+  RUNNER_LABORATORY_ENTRIES,
+  { capabilities: ["runner-laboratory-v1"] },
+);

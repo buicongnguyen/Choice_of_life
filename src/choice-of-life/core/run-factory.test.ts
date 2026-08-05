@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import { PHASE_1_CATALOG } from "./catalog";
-import { createInitialRunState, deriveRunIdV1, type InitialRunSetup } from "./run-factory";
+import {
+  createInitialRunState,
+  deriveRunIdFromStateV1,
+  deriveRunIdV1,
+  initialRunSetupFromStateV1,
+  mergeRetainedPresentationSettingsV1,
+  retainedRunIdentityTokenV1,
+  runIdMatchesRetainedIdentityV1,
+  type InitialRunSetup,
+} from "./run-factory";
 import { validateRunState } from "./run-state-codec";
 import { stateHashV1 } from "./run-state-hash";
 
@@ -96,5 +105,78 @@ describe("initial run factory", () => {
     });
     expect(cosmetic.runId).toBe(first.runId);
     expect(stateHashV1(cosmetic)).toBe(stateHashV1(first));
+  });
+
+  it("reconstructs retained setup and authenticates identity without exposing it to mechanics", () => {
+    const automatic = createInitialRunState("0000000000000001", {
+      ...setup,
+      controlMode: "automatic-assist",
+    });
+    const manualSetup = initialRunSetupFromStateV1(automatic, "manual");
+    const manual = createInitialRunState(automatic.runSeed, manualSetup);
+
+    expect(manualSetup).toEqual({ ...setup, controlMode: "manual" });
+    expect(Object.isFrozen(manualSetup)).toBe(true);
+    expect(Object.isFrozen(manualSetup.identity)).toBe(true);
+    expect(deriveRunIdFromStateV1(automatic, "manual")).toBe(manual.runId);
+    expect(runIdMatchesRetainedIdentityV1(automatic)).toBe(true);
+    expect(retainedRunIdentityTokenV1(automatic))
+      .toBe(retainedRunIdentityTokenV1(manual));
+  });
+
+  it("merges cosmetics only when every gameplay and identity field is unchanged", () => {
+    const authoritative = createInitialRunState("0000000000000001", setup);
+    const cosmetic = createInitialRunState("0000000000000001", {
+      ...setup,
+      appearance: {
+        heritageStyleId: "western",
+        hairStyleId: "wavy-bob",
+        hairColorId: "silver",
+        clothingPaletteId: "berry",
+      },
+      accessibility: {
+        highContrast: true,
+        reducedMotion: true,
+        textScale: 200,
+        screenReaderAnnouncements: false,
+      },
+    });
+    const merged = mergeRetainedPresentationSettingsV1(
+      authoritative,
+      cosmetic,
+    );
+    expect(merged.kind).toBe("updated");
+    if (merged.kind !== "updated") return;
+    expect(merged.state.appearance).toEqual(cosmetic.appearance);
+    expect(merged.state.accessibility).toEqual(cosmetic.accessibility);
+    expect(stateHashV1(merged.state)).toBe(stateHashV1(authoritative));
+    expect(Object.isFrozen(merged.state)).toBe(true);
+    expect(mergeRetainedPresentationSettingsV1(
+      merged.state,
+      cosmetic,
+    )).toEqual({ kind: "unchanged", state: merged.state });
+
+    expect(mergeRetainedPresentationSettingsV1(authoritative, {
+      ...authoritative,
+      scores: { ...authoritative.scores, health: authoritative.scores.health + 1 },
+    })).toEqual({ kind: "conflict" });
+    const otherIdentity = createInitialRunState("0000000000000001", {
+      ...setup,
+      identity: { gender: "male" },
+    });
+    expect(mergeRetainedPresentationSettingsV1(
+      authoritative,
+      otherIdentity,
+    )).toEqual({ kind: "conflict" });
+    expect(mergeRetainedPresentationSettingsV1(
+      authoritative,
+      {
+        ...cosmetic,
+        accessibility: {
+          ...cosmetic.accessibility,
+          textScale: 175,
+        },
+      } as unknown as ReturnType<typeof createInitialRunState>,
+    )).toEqual({ kind: "conflict" });
   });
 });

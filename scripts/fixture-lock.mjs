@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { readFile, readdir } from "node:fs/promises";
+import { lstat, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -27,11 +27,13 @@ const CORRECTION_LOCK_FILES = [
   { path: "docs/save/run-state-v1-maximal.fixture-correction-v2.json", sha256: "9566fd1dd85ee3b9305425809f94d30c9cc28e430cd747a24b33d41be83120cf" },
 ];
 const EVALUATION_SOURCE_FILES = [
+  "CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md",
   "index.html",
   "package.json",
   "package-lock.json",
   "tsconfig.json",
   "tsconfig.choice-of-life-core.json",
+  "tsconfig.runner-evaluator.json",
   "vite.config.ts",
   "src/main.ts",
 ];
@@ -54,6 +56,24 @@ const PHASE_2_REQUIRED_PATHS = [
   "docs/balance/runner-fixtures/runner-laboratory-fixture-v1.json",
 ];
 const IMPLEMENTED_ADDITIVE_PHASES = new Set(["phase-2"]);
+const PREREGISTRATION_ONLY_ADDITIVE_PHASES = new Set(["phase-3"]);
+const REGISTERED_ADDITIVE_PHASES = new Set([
+  ...IMPLEMENTED_ADDITIVE_PHASES,
+  ...PREREGISTRATION_ONLY_ADDITIVE_PHASES,
+]);
+const PHASE_3_MANIFEST_PATH = "docs/phase-specs/phase-3-lock-manifest.json";
+const PHASE_3_REQUIRED_PATHS = [
+  "docs/phase-specs/phase-3.md",
+  "docs/balance/locks/newborn-stage-content-lock-v1.json",
+  "docs/balance/newborn-fixture-v1.schema.json",
+  "docs/balance/newborn-fixtures/newborn-stage-fixture-v1.json",
+];
+const PHASE_3_CONTENT_LOCK_ID = "newborn-stage-content-lock-v1";
+const PHASE_3_FIXTURE_ID = "newborn-stage-fixture-v1";
+const PHASE_3_SCHEMA_PATH = "docs/balance/newborn-fixture-v1.schema.json";
+const PHASE_3_FIXTURE_PATH = "docs/balance/newborn-fixtures/newborn-stage-fixture-v1.json";
+const PHASE_3_SCHEMA_ID = "https://choice-of-life.example/schemas/newborn-fixture-v1.schema.json";
+const PHASE_3_PREDECESSOR_MANIFEST_ID = "phase-2-preregistration-lock-v1";
 const PHASE_2_RUNNER_FIXTURE_PATH = "docs/balance/runner-fixtures/runner-laboratory-fixture-v1.json";
 const PHASE_2_RUNNER_SCHEMA_PATH = "docs/balance/runner-fixture-v1.schema.json";
 const PHASE_2_RUNNER_FIXTURE_ID = "runner-laboratory-fixture-v1";
@@ -299,6 +319,7 @@ function runnerManualReviewArtifactSha256(session) {
     browserVersion: session.browserVersion,
     completedAtUtc: session.completedAtUtc,
     completionPathPassed: session.completionPathPassed,
+    evaluatedSourceSha256: session.evaluatedSourceSha256,
     focusTransitionCount: session.focusTransitionCount,
     forcedColorsInspectionPassed: session.forcedColorsInspectionPassed,
     keyboardInspectionPassed: session.keyboardInspectionPassed,
@@ -606,18 +627,20 @@ export async function verifyAdditiveLockManifests(root = process.cwd()) {
     } catch (error) {
       fail(`invalid additive manifest JSON ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`);
     }
-    assertExactKeys(
-      manifest,
-      ["schemaVersion", "manifestId", "phaseId", "status", "hashAlgorithm", "bytePolicy", "files"],
-      `additive manifest ${manifestPath}`
-    );
+    const manifestKeys = [
+      "schemaVersion", "manifestId", "phaseId", "status", "hashAlgorithm", "bytePolicy", "files",
+    ];
+    if (phaseId === "phase-3") {
+      manifestKeys.push("predecessorManifestId", "predecessorManifestSha256");
+    }
+    assertExactKeys(manifest, manifestKeys, `additive manifest ${manifestPath}`);
     assert(manifest.schemaVersion === 1, `additive manifest schema version ${manifestPath}`);
     assert(typeof manifest.manifestId === "string" && ID_PATTERN.test(manifest.manifestId), `additive manifest ID ${manifestPath}`);
     assert(manifest.manifestId === `${phaseId}-preregistration-lock-v1`, `additive manifest canonical ID ${manifestPath}`);
     assert(!manifestIds.has(manifest.manifestId), `duplicate additive manifest ID ${manifest.manifestId}`);
     manifestIds.add(manifest.manifestId);
     assert(manifest.phaseId === phaseId, `additive manifest phase ID ${manifestPath}`);
-    assert(IMPLEMENTED_ADDITIVE_PHASES.has(phaseId), `additive manifest has no registered phase validator ${phaseId}`);
+    assert(REGISTERED_ADDITIVE_PHASES.has(phaseId), `additive manifest has no registered phase validator ${phaseId}`);
     assert(manifest.status === "locked", `additive manifest status ${manifestPath}`);
     assert(manifest.hashAlgorithm === "sha256", `additive manifest hash algorithm ${manifestPath}`);
     assert(manifest.bytePolicy === MANIFEST_BYTE_POLICY, `additive manifest byte policy ${manifestPath}`);
@@ -646,6 +669,29 @@ export async function verifyAdditiveLockManifests(root = process.cwd()) {
       assert(
         deepEqual(sorted(manifestFilePaths), sorted(PHASE_2_REQUIRED_PATHS)),
         `Phase 2 manifest exact protected path set: ${manifestFilePaths.join(",")}`
+      );
+    }
+    if (manifestPath === PHASE_3_MANIFEST_PATH) {
+      const predecessor = records.find(({ manifest: candidate }) =>
+        candidate.manifestId === PHASE_3_PREDECESSOR_MANIFEST_ID
+      );
+      assert(predecessor !== undefined, "Phase 3 manifest requires the registered Phase 2 predecessor");
+      assert(
+        manifest.predecessorManifestId === PHASE_3_PREDECESSOR_MANIFEST_ID,
+        "Phase 3 manifest predecessor ID"
+      );
+      assert(
+        typeof manifest.predecessorManifestSha256 === "string"
+          && SHA_PATTERN.test(manifest.predecessorManifestSha256),
+        "Phase 3 manifest predecessor SHA"
+      );
+      assert(
+        manifest.predecessorManifestSha256 === predecessor.manifestSha256,
+        "Phase 3 manifest predecessor hash does not match the immutable Phase 2 manifest"
+      );
+      assert(
+        deepEqual(sorted(manifestFilePaths), sorted(PHASE_3_REQUIRED_PATHS)),
+        `Phase 3 manifest exact protected path set: ${manifestFilePaths.join(",")}`
       );
     }
     records.push({
@@ -772,6 +818,32 @@ function validateClosedSchema(schema, label) {
     }
   }
   visit(schema, "");
+}
+
+// Structural preregistration only: the future Phase 3 lock owns all gameplay,
+// choice, tuning, evaluator, and evidence semantics.
+export function validatePhase3PreregistrationFixture(fixture, schema, contentLock) {
+  validateClosedSchema(schema, PHASE_3_SCHEMA_PATH);
+  assert(
+    schema?.$schema === "https://json-schema.org/draft/2020-12/schema",
+    "Phase 3 newborn schema draft"
+  );
+  assert(schema?.$id === PHASE_3_SCHEMA_ID, "Phase 3 newborn schema stable ID");
+  validateAgainstSchema(fixture, schema, "Phase 3 newborn fixture");
+  assert(
+    fixture && typeof fixture === "object" && !Array.isArray(fixture),
+    "Phase 3 newborn fixture must be an object"
+  );
+  assert(fixture.schemaVersion === 1, "Phase 3 newborn fixture schema version");
+  assert(fixture.fixtureId === PHASE_3_FIXTURE_ID, "Phase 3 newborn fixture ID");
+  assert(fixture.phaseId === "phase-3", "Phase 3 newborn fixture phase ID");
+  assert(
+    fixture.contentLockId === PHASE_3_CONTENT_LOCK_ID,
+    "Phase 3 newborn fixture content lock ID"
+  );
+  assert(contentLock?.lockId === PHASE_3_CONTENT_LOCK_ID, "Phase 3 newborn content lock ID");
+  assert(contentLock?.content?.phaseId === "phase-3", "Phase 3 newborn content lock phase ID");
+  return fixture;
 }
 
 function assertExactObject(value, expected, label) {
@@ -1903,6 +1975,7 @@ export function validateRunnerEvidence(fixture, evidence, expectedSourceSha256) 
     [
       "sessionId", "reviewerId", "reviewerAttestation", "keyboardOnlyPassed", "keyboardInspectionPassed",
       "screenReader", "screenReaderVersion", "platform", "browser", "browserVersion", "completedAtUtc",
+      "evaluatedSourceSha256",
       "focusTransitionCount", "announcementWitnessCount", "semanticStructurePassed", "semanticDecisionPromptPassed",
       "nonvisualSemanticCompletionPassed", "forcedColorsInspectionPassed", "completionPathPassed",
     ],
@@ -1938,7 +2011,14 @@ export function validateRunnerEvidence(fixture, evidence, expectedSourceSha256) 
       /^[A-Za-z0-9][A-Za-z0-9._ -]{0,31}$/.test(manualSession.browserVersion),
     "runner nonvisual browser version"
   );
-  assert(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(manualSession.completedAtUtc), "runner nonvisual review completion time");
+  const manualCompletedAtMilliseconds = Date.parse(manualSession.completedAtUtc);
+  assert(
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(manualSession.completedAtUtc) &&
+      Number.isFinite(manualCompletedAtMilliseconds) &&
+      new Date(manualCompletedAtMilliseconds).toISOString().replace(".000Z", "Z") === manualSession.completedAtUtc &&
+      manualCompletedAtMilliseconds <= Date.now(),
+    "runner nonvisual review completion time"
+  );
   assert(manualSession.focusTransitionCount === 10, "runner nonvisual focus transition count");
   assert(manualSession.announcementWitnessCount === 9, "runner nonvisual announcement witness count");
   assert(manualSession.semanticStructurePassed === true, "runner nonvisual semantic structure review");
@@ -1946,6 +2026,11 @@ export function validateRunnerEvidence(fixture, evidence, expectedSourceSha256) 
   assert(manualSession.nonvisualSemanticCompletionPassed === true, "runner nonvisual Semantic completion review");
   assert(manualSession.forcedColorsInspectionPassed === true, "runner nonvisual forced-colors inspection");
   assert(manualSession.completionPathPassed === true, "runner nonvisual completion path review");
+  assert(
+    manualSession.evaluatedSourceSha256 === evidence.evaluatedSourceSha256 &&
+      manualSession.evaluatedSourceSha256 === expectedSourceSha256,
+    "runner nonvisual manual review source binding"
+  );
   const manualArtifact = evidence.manualReviewEvidence.artifact;
   assertExactKeys(
     manualArtifact,
@@ -2625,32 +2710,56 @@ async function collectEvaluationSourceFiles(root) {
   }
   for (const relativeDirectory of EVALUATION_SOURCE_DIRECTORIES) await walk(relativeDirectory);
   for (const relativeFile of EVALUATION_SOURCE_FILES) {
-    await readFile(path.join(root, relativeFile)).catch((error) => {
+    const sourceStat = await lstat(path.join(root, relativeFile)).catch((error) => {
       if (error.code === "ENOENT") fail(`missing evaluated source file ${relativeFile}`);
       throw error;
     });
+    if (sourceStat.isSymbolicLink()) fail(`unsupported evaluated source symlink ${relativeFile}`);
+    if (!sourceStat.isFile()) fail(`unsupported evaluated source entry ${relativeFile}`);
     collected.push(relativeFile);
   }
   return sorted(new Set(collected));
 }
 
-export async function evaluationSourceSha256(root = process.cwd()) {
+function canonicalEvaluationSourceBytes(sourceBytes) {
+  let bytes = sourceBytes;
+  try {
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(sourceBytes);
+    bytes = Buffer.from(text.replace(/\r\n?/g, "\n"), "utf8");
+  } catch {
+    // Binary inputs remain byte-exact. Text inputs are newline-canonical so
+    // the digest is identical across Git's Windows and Unix checkouts.
+  }
+  return bytes;
+}
+
+/**
+ * Captures the exact file bytes used to derive an evaluated-source digest.
+ * Callers that build an immutable evaluator capsule must write these same
+ * bytes rather than hashing and copying through two independent reads.
+ */
+export async function captureEvaluationSource(root = process.cwd()) {
   const digest = createHash("sha256");
+  const files = [];
   for (const relative of await collectEvaluationSourceFiles(root)) {
     const sourceBytes = await readFile(path.join(root, relative));
-    let bytes = sourceBytes;
-    try {
-      const text = new TextDecoder("utf-8", { fatal: true }).decode(sourceBytes);
-      bytes = Buffer.from(text.replace(/\r\n?/g, "\n"), "utf8");
-    } catch {
-      // Binary inputs remain byte-exact. Text inputs are newline-canonical so
-      // the digest is identical across Git's Windows and Unix checkouts.
-    }
+    const bytes = canonicalEvaluationSourceBytes(sourceBytes);
     digest.update(Buffer.from(`${relative}\0${bytes.byteLength}\0`, "utf8"));
     digest.update(bytes);
     digest.update(Buffer.from("\0", "utf8"));
+    files.push(Object.freeze({
+      relativePath: relative,
+      bytes: Buffer.from(sourceBytes),
+    }));
   }
-  return digest.digest("hex");
+  return Object.freeze({
+    evaluatedSourceSha256: digest.digest("hex"),
+    files: Object.freeze(files),
+  });
+}
+
+export async function evaluationSourceSha256(root = process.cwd()) {
+  return (await captureEvaluationSource(root)).evaluatedSourceSha256;
 }
 
 async function readContentLockSuiteEvidence(root) {
@@ -2789,6 +2898,91 @@ async function validatePhase2RunnerArtifacts(
   return { runnerFixtures: 1, runnerEvidence: 1 };
 }
 
+async function validatePhase3PreregistrationArtifacts(
+  root,
+  chain,
+  parsedLocks,
+  suiteEvidence,
+  { requireEvidence, verifyHistory, preregistrationBaseRevision }
+) {
+  const phase3Manifest = chain.additiveRecords.find(
+    ({ manifestPath }) => manifestPath === PHASE_3_MANIFEST_PATH
+  );
+  const newbornFixtureDirectory = path.join(root, "docs", "balance", "newborn-fixtures");
+  const newbornFixtureEntries = await readdir(newbornFixtureDirectory, { withFileTypes: true }).catch((error) => {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  });
+  const expectedFixtureNames = phase3Manifest === undefined
+    ? new Set()
+    : new Set([path.posix.basename(PHASE_3_FIXTURE_PATH)]);
+  const unexpectedFixtureEntries = newbornFixtureEntries.filter(
+    (entry) => !entry.isFile() || !expectedFixtureNames.has(entry.name)
+  );
+  assert(
+    unexpectedFixtureEntries.length === 0,
+    `unexpected Phase 3 newborn fixture entries: ${unexpectedFixtureEntries.map(({ name }) => name).join(", ")}`
+  );
+  const balanceEntries = await readdir(path.join(root, "docs", "balance"), { withFileTypes: true });
+  const newbornSchemaEntries = balanceEntries.filter(
+    (entry) => entry.name.startsWith("newborn-") && entry.name.endsWith(".schema.json")
+  );
+  const expectedSchemaNames = phase3Manifest === undefined
+    ? new Set()
+    : new Set([path.posix.basename(PHASE_3_SCHEMA_PATH)]);
+  const unexpectedSchemaEntries = newbornSchemaEntries.filter(
+    (entry) => !entry.isFile() || !expectedSchemaNames.has(entry.name)
+  );
+  assert(
+    unexpectedSchemaEntries.length === 0,
+    `unexpected Phase 3 newborn schema entries: ${unexpectedSchemaEntries.map(({ name }) => name).join(", ")}`
+  );
+  const phase3Evidence = suiteEvidence.filter(({ lockId }) => lockId === PHASE_3_CONTENT_LOCK_ID);
+  if (phase3Manifest === undefined) {
+    for (const filePath of PHASE_3_REQUIRED_PATHS) {
+      assert(!(await pathIsFile(root, filePath)), `${filePath} requires ${PHASE_3_MANIFEST_PATH}`);
+    }
+    assert(phase3Evidence.length === 0, `Phase 3 evidence requires ${PHASE_3_MANIFEST_PATH}`);
+    return { newbornFixtures: 0, newbornEvidence: 0 };
+  }
+
+  const contentLockRecord = parsedLocks.find(({ lock }) => lock.lockId === PHASE_3_CONTENT_LOCK_ID);
+  assert(
+    contentLockRecord?.path === `docs/balance/locks/${PHASE_3_CONTENT_LOCK_ID}.json`,
+    `Phase 3 newborn fixture content lock unavailable ${PHASE_3_CONTENT_LOCK_ID}`
+  );
+  const schema = JSON.parse(
+    await readFile(path.join(root, ...PHASE_3_SCHEMA_PATH.split("/")), "utf8")
+  );
+  const fixture = JSON.parse(
+    await readFile(path.join(root, ...PHASE_3_FIXTURE_PATH.split("/")), "utf8")
+  );
+  validatePhase3PreregistrationFixture(fixture, schema, contentLockRecord.lock);
+
+  assert(
+    phase3Evidence.length === 0,
+    `Phase 3 evidence is premature until an implementation validator is registered for ${PHASE_3_FIXTURE_ID}`
+  );
+  if (requireEvidence) {
+    fail(
+      `Phase 3 implementation validator unavailable for ${PHASE_3_FIXTURE_ID}; `
+        + "strict validation cannot accept preregistration-only artifacts"
+    );
+  }
+  const genuinelyNew = await pathsAreGenuinelyNew(
+    root,
+    [PHASE_3_MANIFEST_PATH, ...PHASE_3_REQUIRED_PATHS],
+    verifyHistory,
+    preregistrationBaseRevision,
+  );
+  assert(
+    genuinelyNew,
+    `Phase 3 preregistration-only fixture ${PHASE_3_FIXTURE_ID} is not genuinely new; `
+      + "register an implementation validator before any later validation"
+  );
+  return { newbornFixtures: 1, newbornEvidence: 0 };
+}
+
 export async function validateFixtureLocks(
   root = process.cwd(),
   {
@@ -2868,6 +3062,17 @@ export async function validateFixtureLocks(
   };
   validateContentLockCollection(parsedLocks, registry, hashes, contentLockSchema);
   const suiteEvidence = await readContentLockSuiteEvidence(root);
+  const phase3 = await validatePhase3PreregistrationArtifacts(
+    root,
+    chain,
+    parsedLocks,
+    suiteEvidence,
+    {
+      requireEvidence: requireSuiteEvidence,
+      verifyHistory,
+      preregistrationBaseRevision,
+    },
+  );
   const allowMissingLockIds = requireSuiteEvidence
     ? new Set()
     : await preregistrationMissingEvidenceLockIds(
@@ -2876,9 +3081,9 @@ export async function validateFixtureLocks(
       verifyHistory,
       preregistrationBaseRevision,
     );
-  const evidenceLockIds = new Set(suiteEvidence.map(({ lockId }) => lockId));
-  const hasNewMissingEvidence = [...allowMissingLockIds].some((lockId) => !evidenceLockIds.has(lockId));
-  const enforceCurrentEvidenceBinding = requireSuiteEvidence || !hasNewMissingEvidence;
+  // A genuinely new lock may omit its own evidence during preregistration, but
+  // every evidence record that already exists remains bound to the complete
+  // current source, including the final bytes of the new docs-only bundle.
   validateContentLockSuiteEvidence(
     parsedLocks,
     registry,
@@ -2886,10 +3091,10 @@ export async function validateFixtureLocks(
     {
       requireAll: requireSuiteEvidence,
       expectedSourceSha256:
-        enforceCurrentEvidenceBinding && suiteEvidence.length > 0
+        suiteEvidence.length > 0
           ? await evaluationSourceSha256(root)
           : null,
-      requireCommonBatch: enforceCurrentEvidenceBinding,
+      requireCommonBatch: suiteEvidence.length > 0,
       allowMissingLockIds,
     }
   );
@@ -2917,6 +3122,7 @@ export async function validateFixtureLocks(
     additiveManifestFiles: chain.additiveManifestFiles,
     contentLocks: parsedLocks.length,
     ...runner,
+    ...phase3,
   };
 }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import lockedCorpus from "../../../docs/save/run-state-v1-fixture-corpus.json";
+import { fnv1a64Hex } from "./canonical-json";
 import { RUN_STATE_CONTRACT_FIXTURE_CATALOG } from "./catalog";
 import { deriveRunIdV1 } from "./run-factory";
 import { decodeRunState, encodeRunState } from "./run-state-codec";
@@ -14,7 +15,14 @@ import {
   createUnpresentedResolutionFixture,
   createUnresolvedRecoveryFixture,
 } from "./run-state-fixtures";
-import { canonicalRunStateJsonV1, canonicalRunStateProjectionV1, stateHashV1 } from "./run-state-hash";
+import {
+  canonicalRunStateIdentityV1,
+  canonicalRunStateJsonV1,
+  canonicalRunStateProjectionV1,
+  RUN_STATE_HASH_EXCLUDED_ACCESSIBILITY_KEYS_V1,
+  RUN_STATE_HASH_EXCLUDED_APPEARANCE_KEYS_V1,
+  stateHashV1,
+} from "./run-state-hash";
 import { zeroSourceTotals, type RunStateV1 } from "./run-state";
 
 type Primitive = null | string | number | boolean;
@@ -567,6 +575,54 @@ describe("run-state canonical hash", () => {
     if (decodedCosmetic === null) return;
     expect(stateHashV1(decodedCosmetic)).toBe(stateHashV1(state));
     expect(canonicalRunStateProjectionV1(state)).toMatchObject({ appearance: {}, accessibility: {} });
+  });
+
+  it("restores all eight excluded leaves in the full canonical identity", () => {
+    const state = decodeReady(createMaximalRunStateFixture(), "identity base");
+    if (state === null) return;
+    expect([
+      ...RUN_STATE_HASH_EXCLUDED_APPEARANCE_KEYS_V1,
+      ...RUN_STATE_HASH_EXCLUDED_ACCESSIBILITY_KEYS_V1,
+    ].sort()).toEqual([
+      "clothingPaletteId",
+      "hairColorId",
+      "hairStyleId",
+      "heritageStyleId",
+      "highContrast",
+      "reducedMotion",
+      "screenReaderAnnouncements",
+      "textScale",
+    ]);
+    const baseIdentity = canonicalRunStateIdentityV1(state);
+    expect(fnv1a64Hex(baseIdentity.gameplayCanonicalJson))
+      .toBe(stateHashV1(state));
+    const mutations = [
+      ["/appearance/heritageStyleId", state.appearance.heritageStyleId === "western" ? "asian" : "western"],
+      ["/appearance/hairStyleId", state.appearance.hairStyleId === "wavy-bob" ? "tied-back" : "wavy-bob"],
+      ["/appearance/hairColorId", state.appearance.hairColorId === "silver" ? "black" : "silver"],
+      ["/appearance/clothingPaletteId", state.appearance.clothingPaletteId === "berry" ? "ocean" : "berry"],
+      ["/accessibility/highContrast", !state.accessibility.highContrast],
+      ["/accessibility/reducedMotion", !state.accessibility.reducedMotion],
+      ["/accessibility/textScale", state.accessibility.textScale === 200 ? 100 : 200],
+      ["/accessibility/screenReaderAnnouncements", !state.accessibility.screenReaderAnnouncements],
+    ] as const;
+    for (const [path, value] of mutations) {
+      const mutant = decodeReady(
+        cloneWithPrimitive(state, path, value),
+        `full canonical identity ${path}`,
+      );
+      if (mutant === null) continue;
+      const mutantIdentity = canonicalRunStateIdentityV1(mutant);
+      expect(mutantIdentity.gameplayCanonicalJson, path)
+        .toBe(baseIdentity.gameplayCanonicalJson);
+      expect(stateHashV1(mutant), path).toBe(stateHashV1(state));
+      expect(fnv1a64Hex(mutantIdentity.gameplayCanonicalJson), path)
+        .toBe(stateHashV1(mutant));
+      expect(mutantIdentity.fullCanonicalIdentity, path)
+        .not.toBe(baseIdentity.fullCanonicalIdentity);
+      expect(fnv1a64Hex(mutantIdentity.fullCanonicalIdentity), path)
+        .not.toBe(fnv1a64Hex(baseIdentity.fullCanonicalIdentity));
+    }
   });
 
   it("includes identity, control mode, difficulty, and transaction state", () => {

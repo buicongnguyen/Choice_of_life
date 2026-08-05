@@ -40,10 +40,10 @@ describe("fixed-step browser driver", () => {
     const driver = createFixedStepDriver();
     driver.advanceFrame(0);
     expect(driver.advanceFrame(19).logicalSteps).toBe(0);
-    driver.setPauseReason("blur", true);
+    driver.setPauseReason("focus-interruption", true);
     expect(driver.advanceFrame(1_000).logicalSteps).toBe(0);
     driver.setPauseReason("modal", true);
-    driver.setPauseReason("blur", false);
+    driver.setPauseReason("focus-interruption", false);
     expect(driver.isPaused()).toBe(true);
     expect(driver.advanceFrame(2_000).logicalSteps).toBe(0);
     driver.setPauseReason("modal", false);
@@ -177,7 +177,13 @@ describe("fixed-step browser driver", () => {
     expect(stateHashV1(resumed)).toBe(stateHashV1(uninterrupted));
   });
 
-  it.each(["visibility", "blur", "user", "modal"] as const)(
+  it.each([
+    "visibility",
+    "focus-interruption",
+    "user",
+    "modal",
+    "semantic",
+  ] as const)(
     "treats %s as its own pause reason",
     (reason: RuntimePauseReason) => {
       const driver = createFixedStepDriver();
@@ -187,6 +193,65 @@ describe("fixed-step browser driver", () => {
       expect(driver.isPaused()).toBe(false);
     },
   );
+
+  it("exposes immutable canonical pause-reason snapshots", () => {
+    const driver = createFixedStepDriver();
+    driver.setPauseReason("semantic", true);
+    driver.setPauseReason("modal", true);
+    driver.setPauseReason("visibility", true);
+    driver.setPauseReason("user", true);
+    driver.setPauseReason("focus-interruption", true);
+
+    const snapshot = driver.activePauseReasons();
+    expect(snapshot).toEqual([
+      "visibility",
+      "focus-interruption",
+      "user",
+      "modal",
+      "semantic",
+    ]);
+    expect(Object.isFrozen(snapshot)).toBe(true);
+    expect(() => {
+      (snapshot as RuntimePauseReason[]).pop();
+    }).toThrow(TypeError);
+
+    driver.setPauseReason("visibility", false);
+    expect(snapshot).toHaveLength(5);
+    expect(driver.activePauseReasons()).toEqual([
+      "focus-interruption",
+      "user",
+      "modal",
+      "semantic",
+    ]);
+  });
+
+  it("resets on every distinct reason transition and resumes with a zero-step frame", () => {
+    const driver = createFixedStepDriver();
+    expect(driver.advanceFrame(0).logicalSteps).toBe(0);
+    expect(driver.advanceFrame(19).logicalSteps).toBe(0);
+    driver.setPauseReason("user", true);
+    driver.setPauseReason("modal", true);
+    driver.setPauseReason("user", false);
+    expect(driver.activePauseReasons()).toEqual(["modal"]);
+    expect(driver.advanceFrame(1_000).logicalSteps).toBe(0);
+    driver.setPauseReason("modal", false);
+    expect(driver.advanceFrame(2_000)).toEqual({
+      logicalSteps: 0,
+      droppedLogicalSteps: 0,
+    });
+    expect(driver.advanceFrame(2_020)).toEqual({
+      logicalSteps: 1,
+      droppedLogicalSteps: 0,
+    });
+  });
+
+  it("rejects unsupported runtime reason values", () => {
+    const driver = createFixedStepDriver();
+    expect(() => driver.setPauseReason("blur" as RuntimePauseReason, true))
+      .toThrow(/unsupported/);
+    expect(() => driver.setPauseReason("user", 1 as unknown as boolean))
+      .toThrow(/boolean/);
+  });
 
   it("rejects invalid timestamps and safely resets a backward clock", () => {
     const driver = createFixedStepDriver();

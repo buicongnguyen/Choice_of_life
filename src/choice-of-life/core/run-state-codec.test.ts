@@ -81,6 +81,32 @@ describe("run-state v1 codec", () => {
     const fixture = createMaximalRunStateFixture();
     const decoded = decodeRunState(encodeRunState(fixture), RUN_STATE_CONTRACT_FIXTURE_CATALOG);
     expect(decoded).toEqual({ kind: "ready", state: fixture, migratedFrom: null });
+    expect(decoded.kind === "ready" && Object.isFrozen(decoded.state)).toBe(true);
+    expect(decoded.kind === "ready" && Object.isFrozen(decoded.state.effectLedger.recent)).toBe(true);
+    expect(decoded.kind === "ready" && Object.isFrozen(decoded.state.runner?.spawn.resolvedEntityIds)).toBe(true);
+  });
+
+  it("deep-freezes only decoded ready states and leaves validation callers untouched", () => {
+    const callerOwned = JSON.parse(
+      JSON.stringify(createMaximalRunStateFixture()),
+    ) as RunStateV1;
+    const validation = validateRunState(
+      callerOwned,
+      RUN_STATE_CONTRACT_FIXTURE_CATALOG,
+    );
+    expect(validation).toEqual({ ok: true, state: callerOwned });
+    expect(Object.isFrozen(callerOwned)).toBe(false);
+    expect(Object.isFrozen(callerOwned.effectLedger)).toBe(false);
+
+    const decoded = decodeRunState(
+      encodeRunState(callerOwned),
+      RUN_STATE_CONTRACT_FIXTURE_CATALOG,
+    );
+    expect(decoded.kind).toBe("ready");
+    if (decoded.kind !== "ready") return;
+    expect(Object.isFrozen(decoded.state)).toBe(true);
+    expect(Object.isFrozen(decoded.state.storyState.memories)).toBe(true);
+    expect(Object.isFrozen(decoded.state.consequences.terminal[0])).toBe(true);
   });
 
   it("rejects a regex-valid run ID that does not match seed and mechanical setup", () => {

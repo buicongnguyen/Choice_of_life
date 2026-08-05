@@ -1,6 +1,6 @@
 {
   "name": "choice-of-life",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Choice of Life — a three-score side-scrolling life runner where every decision shapes the future.",
@@ -19,17 +19,31 @@
     "fixtures:validate": "node scripts/validate-fixture-locks.mjs",
     "fixtures:preregister": "node scripts/validate-fixture-preregistration.mjs",
     "fixtures:validate-preregistration": "node scripts/validate-committed-fixture-preregistration.mjs",
-    "verify": "npm run check && npm run check:core && npm run boundaries && npm run fixtures:validate && npm test && npm run build && npm run release:verify && npm run budget",
+    "check:runner-evaluator": "tsc -p tsconfig.runner-evaluator.json",
+    "test:runner-evaluator": "vitest run scripts/deploy-pages-workflow.test.mjs scripts/runner-evaluation-capsule.test.ts scripts/runner-laboratory-evaluator-cli.test.ts scripts/runner-laboratory-distributed-git.test.ts scripts/runner-laboratory-distributed.test.ts scripts/runner-laboratory-benchmark.test.ts scripts/runner-browser-matrix.test.ts scripts/runner-test-isolation.test.mjs && vitest run src/choice-of-life/core/runner/evaluation-replay.test.ts --pool=threads --poolOptions.threads.singleThread && vitest run scripts/runner-laboratory-evaluator.test.ts",
+    "runner:smoke": "vite-node scripts/runner-laboratory-evaluator-cli.ts -- smoke --project-root .",
+    "runner:benchmark": "vite-node scripts/runner-laboratory-benchmark.ts -- --run-benchmark --project-root .",
+    "runner:validate": "vite-node scripts/runner-laboratory-evaluator-cli.ts -- run --project-root . --mode validate",
+    "runner:generate": "vite-node scripts/runner-laboratory-evaluator-cli.ts -- run --project-root . --mode generate",
+    "runner:distributed": "vite-node scripts/runner-laboratory-distributed-cli.ts --",
+    "verify:checks": "npm run check && npm run check:core && npm run check:runner-evaluator && npm run boundaries && npm run fixtures:validate && npm test",
+    "verify:release": "npm run build && npm run release:verify && npm run budget",
+    "verify:post-runner": "npm run verify:checks && npm run verify:release",
+    "verify": "npm run verify:checks && npm run runner:validate && npm run verify:release",
     "preview": "vite preview",
     "check": "tsc --noEmit",
     "check:core": "tsc -p tsconfig.choice-of-life-core.json",
-    "test": "vitest run",
+    "test": "vitest run --exclude src/choice-of-life/core/runner/evaluation-replay.test.ts --exclude scripts/runner-laboratory-evaluator.test.ts && vitest run src/choice-of-life/core/runner/evaluation-replay.test.ts --pool=threads --poolOptions.threads.singleThread && vitest run scripts/runner-laboratory-evaluator.test.ts",
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "22.20.1",
     "jsdom": "^30.0.1",
+    "terser": "5.49.0",
     "typescript": "^5.6.0",
-    "vite": "^7.0.0",
+    "vite": "7.3.6",
+    "vite-node": "3.2.4",
     "vitest": "^3.2.4"
   }
 }

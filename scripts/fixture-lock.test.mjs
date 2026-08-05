@@ -15,6 +15,7 @@ import {
   validateContentLockSuiteEvidence,
   validateFixtureLocks,
   validateFixturePreregistration,
+  validatePhase3PreregistrationFixture,
   validateRegistryObject,
   validateRunnerEvidence,
   validateRunnerFixture,
@@ -56,6 +57,8 @@ async function copyDocsWithoutContentLocks(root) {
   await rm(path.join(root, "docs", "balance", "runner-evaluation-results"), { recursive: true, force: true });
   await rm(path.join(root, "docs", "balance", "runner-fixtures"), { recursive: true, force: true });
   await rm(path.join(root, "docs", "balance", "runner-fixture-v1.schema.json"), { force: true });
+  await rm(path.join(root, "docs", "balance", "newborn-fixtures"), { recursive: true, force: true });
+  await rm(path.join(root, "docs", "balance", "newborn-fixture-v1.schema.json"), { force: true });
   for (let phase = 2; phase <= 11; phase += 1) {
     await rm(path.join(root, "docs", "phase-specs", `phase-${phase}.md`), { force: true });
     await rm(path.join(root, "docs", "phase-specs", `phase-${phase}-lock-manifest.json`), { force: true });
@@ -1458,11 +1461,17 @@ function closedLiteralNode(value) {
   return { const: value };
 }
 
-function closedLiteralSchema(value) {
+function closedLiteralSchema(
+  value,
+  {
+    id = "https://choice-of-life.example/schemas/runner-fixture-v1.schema.json",
+    title = "Choice of Life Runner Laboratory Fixture v1",
+  } = {},
+) {
   return {
     $schema: "https://json-schema.org/draft/2020-12/schema",
-    $id: "https://choice-of-life.example/schemas/runner-fixture-v1.schema.json",
-    title: "Choice of Life Runner Laboratory Fixture v1",
+    $id: id,
+    title,
     ...closedLiteralNode(value),
   };
 }
@@ -1504,6 +1513,70 @@ async function writePhase2Bundle(root, { fixture = validRunnerFixture(), content
   return { fixture, contentLock, manifest };
 }
 
+function phase3ContentLock() {
+  // Structural preregistration test double only. Phase 3 gameplay/choice semantics
+  // belong to the future locked bundle and its later implementation validator.
+  const lock = phase2ContentLock();
+  lock.lockId = "newborn-stage-content-lock-v1";
+  lock.content.phaseId = "phase-3";
+  lock.review.designReason = "Preregister the newborn stage fixture before implementation or tuning.";
+  return lock;
+}
+
+function validPhase3Fixture() {
+  return {
+    schemaVersion: 1,
+    fixtureId: "newborn-stage-fixture-v1",
+    phaseId: "phase-3",
+    contentLockId: "newborn-stage-content-lock-v1",
+    contractStatus: "preregistered",
+  };
+}
+
+async function writePhase3Bundle(
+  root,
+  { fixture = validPhase3Fixture(), contentLock = phase3ContentLock() } = {},
+) {
+  const files = [
+    ["docs/phase-specs/phase-3.md", "# Phase 3 newborn stage\n"],
+    ["docs/balance/locks/newborn-stage-content-lock-v1.json", contentLock],
+    [
+      "docs/balance/newborn-fixture-v1.schema.json",
+      closedLiteralSchema(fixture, {
+        id: "https://choice-of-life.example/schemas/newborn-fixture-v1.schema.json",
+        title: "Choice of Life Newborn Stage Fixture v1",
+      }),
+    ],
+    ["docs/balance/newborn-fixtures/newborn-stage-fixture-v1.json", fixture],
+  ];
+  for (const [relative, value] of files) {
+    const absolute = path.join(root, ...relative.split("/"));
+    if (typeof value === "string") {
+      await mkdir(path.dirname(absolute), { recursive: true });
+      await writeFile(absolute, value, "utf8");
+    } else {
+      await writeJson(absolute, value);
+    }
+  }
+  const phase2ManifestPath = path.join(root, "docs", "phase-specs", "phase-2-lock-manifest.json");
+  const manifest = {
+    schemaVersion: 1,
+    manifestId: "phase-3-preregistration-lock-v1",
+    phaseId: "phase-3",
+    status: "locked",
+    hashAlgorithm: "sha256",
+    bytePolicy: "Repository-relative file bytes with LF enforced by docs/.gitattributes",
+    predecessorManifestId: "phase-2-preregistration-lock-v1",
+    predecessorManifestSha256: sha256(await readFile(phase2ManifestPath)),
+    files: await Promise.all(files.map(async ([relative]) => ({
+      path: relative,
+      sha256: sha256(await readFile(path.join(root, ...relative.split("/")))),
+    }))),
+  };
+  await writeJson(path.join(root, "docs", "phase-specs", "phase-3-lock-manifest.json"), manifest);
+  return { fixture, contentLock, manifest };
+}
+
 function runnerManualReviewArtifactSha256(session) {
   return createHash("sha256").update(JSON.stringify({
     announcementWitnessCount: session.announcementWitnessCount,
@@ -1511,6 +1584,7 @@ function runnerManualReviewArtifactSha256(session) {
     browserVersion: session.browserVersion,
     completedAtUtc: session.completedAtUtc,
     completionPathPassed: session.completionPathPassed,
+    evaluatedSourceSha256: session.evaluatedSourceSha256,
     focusTransitionCount: session.focusTransitionCount,
     forcedColorsInspectionPassed: session.forcedColorsInspectionPassed,
     keyboardInspectionPassed: session.keyboardInspectionPassed,
@@ -1547,6 +1621,7 @@ function validRunnerEvidence(fixture, evaluatedSourceSha256 = "a".repeat(64)) {
     nonvisualSemanticCompletionPassed: true,
     forcedColorsInspectionPassed: true,
     completionPathPassed: true,
+    evaluatedSourceSha256,
   };
   const artifactSha256 = runnerManualReviewArtifactSha256(session);
   return {
@@ -1608,11 +1683,13 @@ function completeAssistEvidenceReports(lock) {
 
 async function writeEvaluationSourceSkeleton(root) {
   for (const [relative, contents] of [
+    ["CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md", "# Choice of Life implementation plan\n"],
     ["index.html", "<main id=\"app\"></main>\n"],
     ["package.json", "{}\n"],
     ["package-lock.json", "{}\n"],
     ["tsconfig.json", "{}\n"],
     ["tsconfig.choice-of-life-core.json", "{}\n"],
+    ["tsconfig.runner-evaluator.json", "{}\n"],
     ["vite.config.ts", "export default {};\n"],
     ["src/main.ts", "export {};\n"],
   ]) {
@@ -1620,6 +1697,35 @@ async function writeEvaluationSourceSkeleton(root) {
     await mkdir(path.dirname(absolute), { recursive: true });
     await writeFile(absolute, contents, "utf8");
   }
+}
+
+async function writePhase2Evidence(root, fixture, contentLock, evaluatedSourceSha256) {
+  await writeJson(
+    path.join(
+      root,
+      "docs",
+      "balance",
+      "evaluation-results",
+      `${contentLock.lockId}.json`,
+    ),
+    {
+      schemaVersion: 1,
+      lockId: contentLock.lockId,
+      evaluationBatchId: "phase-2-evaluation-batch-v1",
+      evaluatedSourceSha256,
+      reports: completeAssistEvidenceReports(contentLock),
+    },
+  );
+  await writeJson(
+    path.join(
+      root,
+      "docs",
+      "balance",
+      "runner-evaluation-results",
+      `${fixture.fixtureId}.json`,
+    ),
+    validRunnerEvidence(fixture, evaluatedSourceSha256),
+  );
 }
 
 function completeEvidenceReports(lock) {
@@ -1796,6 +1902,14 @@ describe("Phase 1 fixture locks", () => {
     expect(workflow).toContain("CHOICE_LOCK_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}");
     expect(workflow).toContain("CHOICE_FIXTURE_TEST_PREREG_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}");
     expect(workflow.match(/- "scripts\/fixture-lock\.mjs"/g)).toHaveLength(2);
+    expect(workflow).toContain(
+      "uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1"
+    );
+    expect(workflow).toContain(
+      "uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0"
+    );
+    expect(workflow).not.toMatch(/uses: actions\/(?:checkout|setup-node)@v\d+/);
+    expect(workflow).toContain("node-version: 22.23.1");
   });
 
   it("rejects missing, unknown, and wrong-value registry fields", () => {
@@ -2112,11 +2226,13 @@ describe("Phase 1 fixture locks", () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "choice-evaluation-source-"));
     try {
       for (const file of [
+        "CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md",
         "index.html",
         "package.json",
         "package-lock.json",
         "tsconfig.json",
         "tsconfig.choice-of-life-core.json",
+        "tsconfig.runner-evaluator.json",
         "vite.config.ts",
         "src/main.ts",
       ]) {
@@ -2128,6 +2244,18 @@ describe("Phase 1 fixture locks", () => {
       await writeFile(path.join(root, "src/choice-of-life/core/model.ts"), "export const model = 1;\n", "utf8");
       await writeFile(path.join(root, "scripts/evaluator.py"), "value = 1\n", "utf8");
       const initial = await evaluationSourceSha256(root);
+      await writeFile(
+        path.join(root, "CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md"),
+        "# Changed normative implementation plan\n",
+        "utf8",
+      );
+      expect(await evaluationSourceSha256(root)).not.toBe(initial);
+      await writeFile(
+        path.join(root, "CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md"),
+        "CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md\n",
+        "utf8",
+      );
+      expect(await evaluationSourceSha256(root)).toBe(initial);
       await writeFile(path.join(root, "src/choice-of-life/core/model.ts"), "export const model = 1;\r\n", "utf8");
       await writeFile(path.join(root, "scripts/evaluator.py"), "value = 1\r\n", "utf8");
       expect(await evaluationSourceSha256(root)).toBe(initial);
@@ -2142,6 +2270,10 @@ describe("Phase 1 fixture locks", () => {
       await writeFile(path.join(root, "index.html"), "index.html\n", "utf8");
       expect(await evaluationSourceSha256(root)).toBe(initial);
       await writeFile(path.join(root, "src/choice-of-life/core/model.ts"), "export const model = 2;\n", "utf8");
+      expect(await evaluationSourceSha256(root)).not.toBe(initial);
+      await writeFile(path.join(root, "src/choice-of-life/core/model.ts"), "export const model = 1;\n", "utf8");
+      expect(await evaluationSourceSha256(root)).toBe(initial);
+      await writeFile(path.join(root, "tsconfig.runner-evaluator.json"), "{\"strict\":false}\n", "utf8");
       expect(await evaluationSourceSha256(root)).not.toBe(initial);
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -2182,7 +2314,7 @@ describe("Phase 1 fixture locks", () => {
   });
 });
 
-describe("additive phase manifests and Phase 2 runner fixture", () => {
+describe("additive phase manifests and preregistration fixtures", () => {
   it("keeps copied Phase 1 baselines isolated from worktree Phase 2 drafts", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-baseline-isolation-"));
     try {
@@ -2200,6 +2332,8 @@ describe("additive phase manifests and Phase 2 runner fixture", () => {
         contentLocks: 0,
         runnerFixtures: 0,
         runnerEvidence: 0,
+        newbornFixtures: 0,
+        newbornEvidence: 0,
       });
       await writeFile(path.join(root, "docs", "phase-specs", "phase-2.md"), "# orphan Phase 2\n", "utf8");
       await expect(validateFixturePreregistration(root)).rejects.toThrow(/requires docs\/phase-specs\/phase-2-lock-manifest\.json/);
@@ -2208,7 +2342,7 @@ describe("additive phase manifests and Phase 2 runner fixture", () => {
     }
   });
 
-  it("discovers additive manifests, pins the exact Phase 2 bundle, and preregisters missing new evidence", async () => {
+  it("discovers exact Phase 2 and Phase 3 bundles while keeping Phase 3 preregistration evidence-free", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase2-bundle-"));
     try {
       await copyDocsWithoutContentLocks(root);
@@ -2233,18 +2367,32 @@ describe("additive phase manifests and Phase 2 runner fixture", () => {
         runnerEvidence: 0,
       });
 
-      const phase3Path = path.join(root, "docs", "phase-specs", "phase-3.md");
-      await writeFile(phase3Path, "# Phase 3\n", "utf8");
-      await writeJson(path.join(root, "docs", "phase-specs", "phase-3-lock-manifest.json"), {
-        schemaVersion: 1,
-        manifestId: "phase-3-preregistration-lock-v1",
-        phaseId: "phase-3",
-        status: "locked",
-        hashAlgorithm: "sha256",
-        bytePolicy: "Repository-relative file bytes with LF enforced by docs/.gitattributes",
-        files: [{ path: "docs/phase-specs/phase-3.md", sha256: sha256(await readFile(phase3Path)) }],
+      await writePhase3Bundle(root);
+      await expect(verifyAdditiveLockManifests(root)).resolves.toMatchObject({
+        manifestCount: 2,
+        fileCount: 8,
+        protectedPaths: expect.arrayContaining([
+          "docs/phase-specs/phase-3.md",
+          "docs/balance/locks/newborn-stage-content-lock-v1.json",
+          "docs/balance/newborn-fixture-v1.schema.json",
+          "docs/balance/newborn-fixtures/newborn-stage-fixture-v1.json",
+        ]),
       });
-      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/no registered phase validator phase-3/);
+      await expect(validateFixturePreregistration(root)).resolves.toMatchObject({
+        manifests: 4,
+        manifestFiles: 18,
+        additiveManifests: 2,
+        additiveManifestFiles: 8,
+        contentLocks: 2,
+        runnerFixtures: 1,
+        runnerEvidence: 0,
+        newbornFixtures: 1,
+        newbornEvidence: 0,
+      });
+      await expect(validateFixtureLocks(root, {
+        requireSuiteEvidence: true,
+        verifyHistory: false,
+      })).rejects.toThrow(/Phase 3 implementation validator unavailable/);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -2287,6 +2435,321 @@ describe("additive phase manifests and Phase 2 runner fixture", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("pins the Phase 3 predecessor, exact bundle membership, structural IDs, and closed schema", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase3-structure-"));
+    try {
+      await copyDocsWithoutContentLocks(root);
+      await writePhase2Bundle(root);
+      const { fixture, contentLock } = await writePhase3Bundle(root);
+      const schemaPath = path.join(root, "docs", "balance", "newborn-fixture-v1.schema.json");
+      const manifestPath = path.join(root, "docs", "phase-specs", "phase-3-lock-manifest.json");
+      const schema = JSON.parse(await readFile(schemaPath, "utf8"));
+      expect(() => validatePhase3PreregistrationFixture(fixture, schema, contentLock)).not.toThrow();
+      const structurallyExtendedFixture = {
+        ...validPhase3Fixture(),
+        futureLockedContract: { opaqueUntilPhase3Lock: true },
+      };
+      expect(() => validatePhase3PreregistrationFixture(
+        structurallyExtendedFixture,
+        closedLiteralSchema(structurallyExtendedFixture, {
+          id: "https://choice-of-life.example/schemas/newborn-fixture-v1.schema.json",
+          title: "Choice of Life Newborn Stage Fixture v1",
+        }),
+        phase3ContentLock(),
+      )).not.toThrow();
+
+      const wrongPredecessorHash = JSON.parse(await readFile(manifestPath, "utf8"));
+      wrongPredecessorHash.predecessorManifestSha256 = "0".repeat(64);
+      await writeJson(manifestPath, wrongPredecessorHash);
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/predecessor hash/);
+
+      await writePhase3Bundle(root);
+      const wrongPredecessorId = JSON.parse(await readFile(manifestPath, "utf8"));
+      wrongPredecessorId.predecessorManifestId = "phase-1-preregistration-lock-v1";
+      await writeJson(manifestPath, wrongPredecessorId);
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/Phase 3 manifest predecessor ID/);
+
+      await writePhase3Bundle(root);
+      await rm(path.join(root, "docs", "phase-specs", "phase-2-lock-manifest.json"));
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/requires the registered Phase 2 predecessor/);
+      await writePhase2Bundle(root);
+
+      await writePhase3Bundle(root);
+      await writeFile(path.join(root, "docs", "phase-specs", "phase-3.md"), "# mutated Phase 3\n", "utf8");
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/hash mismatch docs\/phase-specs\/phase-3\.md/);
+
+      await writePhase3Bundle(root);
+      const missingProtectedPath = JSON.parse(await readFile(manifestPath, "utf8"));
+      missingProtectedPath.files.pop();
+      await writeJson(manifestPath, missingProtectedPath);
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/Phase 3 manifest exact protected path set/);
+
+      await writePhase3Bundle(root);
+      const extraPath = "docs/balance/newborn-fixtures/unregistered-extra.json";
+      await writeJson(path.join(root, ...extraPath.split("/")), { fixtureId: "unregistered-extra-v1" });
+      const extraProtectedPath = JSON.parse(await readFile(manifestPath, "utf8"));
+      extraProtectedPath.files.push({
+        path: extraPath,
+        sha256: sha256(await readFile(path.join(root, ...extraPath.split("/")))),
+      });
+      await writeJson(manifestPath, extraProtectedPath);
+      await expect(verifyAdditiveLockManifests(root)).rejects.toThrow(/Phase 3 manifest exact protected path set/);
+      await rm(path.join(root, ...extraPath.split("/")));
+
+      const wrongFixtureId = validPhase3Fixture();
+      wrongFixtureId.fixtureId = "other-newborn-fixture-v1";
+      await writePhase3Bundle(root, { fixture: wrongFixtureId });
+      await expect(validateFixturePreregistration(root)).rejects.toThrow(/Phase 3 newborn fixture ID/);
+
+      await writePhase3Bundle(root);
+      const wrongSchemaId = JSON.parse(await readFile(schemaPath, "utf8"));
+      wrongSchemaId.$id = "https://choice-of-life.example/schemas/other-newborn-v1.schema.json";
+      await writeJson(schemaPath, wrongSchemaId);
+      const selfConsistentManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+      selfConsistentManifest.files.find(({ path: filePath }) =>
+        filePath === "docs/balance/newborn-fixture-v1.schema.json"
+      ).sha256 = sha256(await readFile(schemaPath));
+      await writeJson(manifestPath, selfConsistentManifest);
+      await expect(validateFixturePreregistration(root)).rejects.toThrow(/Phase 3 newborn schema stable ID/);
+
+      const openSchema = closedLiteralSchema(validPhase3Fixture(), {
+        id: "https://choice-of-life.example/schemas/newborn-fixture-v1.schema.json",
+        title: "Choice of Life Newborn Stage Fixture v1",
+      });
+      openSchema.additionalProperties = true;
+      expect(() => validatePhase3PreregistrationFixture(
+        validPhase3Fixture(),
+        openSchema,
+        phase3ContentLock(),
+      )).toThrow(/permits additional properties/);
+
+      const wrongContentLock = phase3ContentLock();
+      wrongContentLock.lockId = "other-newborn-content-lock-v1";
+      expect(() => validatePhase3PreregistrationFixture(
+        validPhase3Fixture(),
+        closedLiteralSchema(validPhase3Fixture(), {
+          id: "https://choice-of-life.example/schemas/newborn-fixture-v1.schema.json",
+          title: "Choice of Life Newborn Stage Fixture v1",
+        }),
+        wrongContentLock,
+      )).toThrow(/Phase 3 newborn content lock ID/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects orphan Phase 3 files and any evidence before an implementation validator exists", async () => {
+    const orphanRoot = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase3-orphan-"));
+    const evidenceRoot = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase3-evidence-"));
+    try {
+      await copyDocsWithoutContentLocks(orphanRoot);
+      const orphanPath = path.join(orphanRoot, "docs", "balance", "newborn-fixture-v1.schema.json");
+      await writeJson(orphanPath, { $schema: "https://json-schema.org/draft/2020-12/schema" });
+      await expect(validateFixturePreregistration(orphanRoot)).rejects.toThrow(
+        /unexpected Phase 3 newborn schema entries|newborn-fixture-v1\.schema\.json requires/
+      );
+
+      await copyDocsWithoutContentLocks(evidenceRoot);
+      await writePhase2Bundle(evidenceRoot);
+      await writePhase3Bundle(evidenceRoot);
+      const unregisteredFixturePath = path.join(
+        evidenceRoot,
+        "docs",
+        "balance",
+        "newborn-fixtures",
+        "unregistered-newborn-v1.json",
+      );
+      await writeJson(unregisteredFixturePath, { fixtureId: "unregistered-newborn-v1" });
+      await expect(validateFixturePreregistration(evidenceRoot)).rejects.toThrow(
+        /unexpected Phase 3 newborn fixture entries/
+      );
+      await rm(unregisteredFixturePath);
+      await writeJson(
+        path.join(
+          evidenceRoot,
+          "docs",
+          "balance",
+          "evaluation-results",
+          "newborn-stage-content-lock-v1.json",
+        ),
+        {
+          schemaVersion: 1,
+          lockId: "newborn-stage-content-lock-v1",
+          evaluationBatchId: "premature-newborn-evaluation-v1",
+          evaluatedSourceSha256: "a".repeat(64),
+          reports: [],
+        },
+      );
+      await expect(validateFixturePreregistration(evidenceRoot)).rejects.toThrow(
+        /Phase 3 evidence is premature until an implementation validator is registered/
+      );
+    } finally {
+      await rm(orphanRoot, { recursive: true, force: true });
+      await rm(evidenceRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts a genuinely new Phase 3 docs-only bundle and rejects later byte edits or deletion", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase3-history-"));
+    try {
+      await copyDocsWithoutContentLocks(root);
+      await initialiseGitRepository(root);
+      await commitAll(root, "docs: establish Phase 1 baseline");
+      const { stdout: baseOutput } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: root });
+      const baseRevision = baseOutput.trim();
+      await writePhase2Bundle(root);
+      await commitAll(root, "docs: preregister Phase 2 runner bundle");
+      await writePhase3Bundle(root);
+      await commitAll(root, "docs: preregister Phase 3 newborn bundle");
+
+      const additive = await verifyAdditiveLockManifests(root);
+      await expect(verifyGitAdditiveManifestBundles(root, additive.records)).resolves.toBeUndefined();
+      await expect(validateCommittedFixturePreregistration(root, { baseRevision })).resolves.toMatchObject({
+        additiveManifests: 2,
+        runnerFixtures: 1,
+        runnerEvidence: 0,
+        newbornFixtures: 1,
+        newbornEvidence: 0,
+      });
+
+      await writeFile(path.join(root, "docs", "phase-3-follow-up.md"), "Follow-up review note.\n", "utf8");
+      await commitAll(root, "docs: follow up after Phase 3 preregistration");
+      await expect(validateCommittedFixturePreregistration(root, { baseRevision })).resolves.toMatchObject({
+        newbornFixtures: 1,
+        newbornEvidence: 0,
+      });
+
+      const manifestPath = path.join(root, "docs", "phase-specs", "phase-3-lock-manifest.json");
+      const phasePath = path.join(root, "docs", "phase-specs", "phase-3.md");
+      await writeFile(phasePath, "# self-consistent but edited Phase 3\n", "utf8");
+      const editedManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+      editedManifest.files.find(({ path: filePath }) => filePath === "docs/phase-specs/phase-3.md").sha256 =
+        sha256(await readFile(phasePath));
+      await writeJson(manifestPath, editedManifest);
+      const edited = await verifyAdditiveLockManifests(root);
+      await expect(verifyGitAdditiveManifestBundles(root, edited.records)).rejects.toThrow(
+        /creation blob differs|current bytes differ/
+      );
+
+      await rm(manifestPath);
+      await expect(verifyHistoricalAdditiveManifestPaths(
+        root,
+        ["docs/phase-specs/phase-2-lock-manifest.json"],
+      )).rejects.toThrow(/historical additive manifests differ/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it("requires refreshed Phase 2 suite and runner evidence in the Phase 3 docs-only lock commit", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase3-current-evidence-"));
+    try {
+      await copyDocsWithoutContentLocks(root);
+      await initialiseGitRepository(root);
+      await commitAll(root, "docs: establish Phase 1 baseline");
+      const { fixture, contentLock } = await writePhase2Bundle(root);
+      await commitAll(root, "docs: preregister Phase 2 runner bundle");
+      await writeEvaluationSourceSkeleton(root);
+      await commitAll(root, "test: establish evaluated source skeleton");
+      const phase2Digest = await evaluationSourceSha256(root);
+      await writePhase2Evidence(root, fixture, contentLock, phase2Digest);
+      await commitAll(root, "docs: record complete Phase 2 evidence");
+      await expect(validateFixtureLocks(root)).resolves.toMatchObject({
+        runnerFixtures: 1,
+        runnerEvidence: 1,
+      });
+      const { stdout: baseOutput } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: root });
+      const phase3BaseRevision = baseOutput.trim();
+
+      await writePhase3Bundle(root);
+      await expect(validateFixturePreregistration(root)).rejects.toThrow(/active suite evaluated source mismatch/);
+
+      const currentDigest = await evaluationSourceSha256(root);
+      const suiteEvidencePath = path.join(
+        root,
+        "docs",
+        "balance",
+        "evaluation-results",
+        `${contentLock.lockId}.json`,
+      );
+      const runnerEvidencePath = path.join(
+        root,
+        "docs",
+        "balance",
+        "runner-evaluation-results",
+        `${fixture.fixtureId}.json`,
+      );
+      const refreshedSuiteEvidence = JSON.parse(await readFile(suiteEvidencePath, "utf8"));
+      refreshedSuiteEvidence.evaluatedSourceSha256 = currentDigest;
+      await writeJson(suiteEvidencePath, refreshedSuiteEvidence);
+      await expect(validateFixturePreregistration(root)).rejects.toThrow(/runner evidence evaluated source mismatch/);
+
+      await writeJson(runnerEvidencePath, validRunnerEvidence(fixture, currentDigest));
+      await commitAll(root, "docs: lock Phase 3 and refresh Phase 2 evidence");
+      await expect(validateCommittedFixturePreregistration(root)).resolves.toMatchObject({
+        runnerEvidence: 1,
+        newbornFixtures: 1,
+        newbornEvidence: 0,
+      });
+      await expect(validateCommittedFixturePreregistration(root, {
+        baseRevision: phase3BaseRevision,
+      })).resolves.toMatchObject({
+        runnerFixtures: 1,
+        runnerEvidence: 1,
+        newbornFixtures: 1,
+        newbornEvidence: 0,
+      });
+      const { stdout: changedPathsOutput } = await execFileAsync(
+        "git",
+        ["diff-tree", "--root", "--no-commit-id", "--name-only", "-r", "HEAD"],
+        { cwd: root },
+      );
+      expect(changedPathsOutput.trim().split(/\r?\n/).every((filePath) => filePath.startsWith("docs/"))).toBe(true);
+      expect(changedPathsOutput).toContain("docs/balance/evaluation-results/runner-laboratory-content-lock-v1.json");
+      expect(changedPathsOutput).toContain("docs/balance/runner-evaluation-results/runner-laboratory-fixture-v1.json");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it("rejects Phase 3 split creation commits and non-doc files in its creation commit", async () => {
+    const splitRoot = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase3-split-"));
+    const mixedRoot = await mkdtemp(path.join(os.tmpdir(), "choice-life-phase3-mixed-"));
+    try {
+      await copyDocsWithoutContentLocks(splitRoot);
+      await initialiseGitRepository(splitRoot);
+      await commitAll(splitRoot, "docs: establish Phase 1 baseline");
+      await writePhase2Bundle(splitRoot);
+      await commitAll(splitRoot, "docs: preregister Phase 2 runner bundle");
+      await writePhase3Bundle(splitRoot);
+      const splitManifestPath = path.join(splitRoot, "docs", "phase-specs", "phase-3-lock-manifest.json");
+      const splitManifestBytes = await readFile(splitManifestPath);
+      await rm(splitManifestPath);
+      await commitAll(splitRoot, "docs: create Phase 3 protected files separately");
+      await writeFile(splitManifestPath, splitManifestBytes);
+      await commitAll(splitRoot, "docs: create Phase 3 manifest too late");
+      const split = await verifyAdditiveLockManifests(splitRoot);
+      await expect(verifyGitAdditiveManifestBundles(splitRoot, split.records)).rejects.toThrow(
+        /share one byte-creation commit/
+      );
+
+      await copyDocsWithoutContentLocks(mixedRoot);
+      await initialiseGitRepository(mixedRoot);
+      await commitAll(mixedRoot, "docs: establish Phase 1 baseline");
+      await writePhase2Bundle(mixedRoot);
+      await commitAll(mixedRoot, "docs: preregister Phase 2 runner bundle");
+      await writePhase3Bundle(mixedRoot);
+      await mkdir(path.join(mixedRoot, "src"), { recursive: true });
+      await writeFile(path.join(mixedRoot, "src", "premature-newborn.ts"), "export const premature = true;\n", "utf8");
+      await commitAll(mixedRoot, "feat: mix newborn code into preregistration");
+      const mixed = await verifyAdditiveLockManifests(mixedRoot);
+      await expect(verifyGitAdditiveManifestBundles(mixedRoot, mixed.records)).rejects.toThrow(/docs-only commit/);
+    } finally {
+      await rm(splitRoot, { recursive: true, force: true });
+      await rm(mixedRoot, { recursive: true, force: true });
+    }
+  }, 30_000);
 
   it("enforces a closed runner schema and semantic registry/content linkage", () => {
     const fixture = validRunnerFixture();
@@ -2545,6 +3008,16 @@ describe("additive phase manifests and Phase 2 runner fixture", () => {
     unboundedVersion.manualReviewEvidence.session.browserVersion = "x".repeat(33);
     expect(() => validateRunnerEvidence(fixture, unboundedVersion, digest)).toThrow(/browser version/);
 
+    const impossibleCompletionTime = clone(complete);
+    impossibleCompletionTime.manualReviewEvidence.session.completedAtUtc = "2026-02-30T00:00:00Z";
+    expect(() => validateRunnerEvidence(fixture, impossibleCompletionTime, digest))
+      .toThrow(/review completion time/);
+
+    const futureCompletionTime = clone(complete);
+    futureCompletionTime.manualReviewEvidence.session.completedAtUtc = "2999-01-01T00:00:00Z";
+    expect(() => validateRunnerEvidence(fixture, futureCompletionTime, digest))
+      .toThrow(/review completion time/);
+
     const missingForcedColorsInspection = clone(complete);
     missingForcedColorsInspection.manualReviewEvidence.session.forcedColorsInspectionPassed = false;
     expect(() => validateRunnerEvidence(fixture, missingForcedColorsInspection, digest)).toThrow(/forced-colors inspection/);
@@ -2563,6 +3036,20 @@ describe("additive phase manifests and Phase 2 runner fixture", () => {
     const mismatchedManualArtifact = clone(complete);
     mismatchedManualArtifact.manualReviewEvidence.artifact.sha256 = "d".repeat(64);
     expect(() => validateRunnerEvidence(fixture, mismatchedManualArtifact, digest)).toThrow(/manual review artifact mismatch/);
+
+    const transplantedManualSession = clone(complete);
+    transplantedManualSession.manualReviewEvidence.session.evaluatedSourceSha256 = "c".repeat(64);
+    transplantedManualSession.manualReviewEvidence.artifact.sha256 = runnerManualReviewArtifactSha256(
+      transplantedManualSession.manualReviewEvidence.session,
+    );
+    expect(() => validateRunnerEvidence(fixture, transplantedManualSession, digest))
+      .toThrow(/manual review source binding/);
+
+    const reboundWithoutReattestation = clone(complete);
+    reboundWithoutReattestation.evaluatedSourceSha256 = "c".repeat(64);
+    reboundWithoutReattestation.manualReviewEvidence.session.evaluatedSourceSha256 = "c".repeat(64);
+    expect(() => validateRunnerEvidence(fixture, reboundWithoutReattestation, "c".repeat(64)))
+      .toThrow(/manual review artifact mismatch/);
 
     const stale = clone(complete);
     stale.evaluatedSourceSha256 = "c".repeat(64);
