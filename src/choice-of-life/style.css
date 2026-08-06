@@ -961,37 +961,44 @@ body {
 
 .col-runner-visual-frame {
   position: relative;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.col-runner-visual-frame > .col-runner-progress,
+.col-runner-visual-frame > .col-runner-scores,
+.col-runner-visual-frame > .col-runner-controls,
+.col-runner-visual-frame > .col-icon-button {
+  z-index: 8;
+  grid-row: 2;
+  grid-column: 1;
 }
 
 .col-runner-visual-frame .col-runner-progress {
-  position: absolute;
-  z-index: 8;
-  inset-block-end: 0.4rem;
-  inset-inline: 0.6rem;
-  gap: 0.08rem;
+  align-self: start;
+  justify-self: stretch;
+  margin: 0.35rem 3.4rem 0 0.55rem;
+  gap: 0.05rem;
   pointer-events: none;
 }
 
 .col-runner-visual-frame .col-runner-progress label {
   color: #23313c;
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   font-weight: 800;
   text-shadow: 0 1px 2px rgb(255 255 255 / 70%);
 }
 
 .col-runner-visual-frame .col-runner-progress progress {
-  block-size: 0.35rem;
+  block-size: 0.28rem;
   border-width: 1px;
   border-radius: 999px;
 }
 
 .col-runner-visual-frame .col-runner-scores {
-  position: absolute;
-  z-index: 8;
-  inset-block-end: 2.4rem;
-  inset-inline-start: 0.6rem;
-  grid-template-columns: none;
-  grid-auto-flow: row;
+  align-self: start;
+  justify-self: stretch;
+  margin: 1.45rem 3.4rem 0 0.55rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.3rem;
   pointer-events: none;
 }
@@ -1000,8 +1007,9 @@ body {
   display: grid;
   grid-template-columns: auto auto;
   align-items: center;
-  gap: 0.05rem 0.4rem;
-  padding: 0.14rem 0.55rem;
+  gap: 0.02rem 0.35rem;
+  min-inline-size: 0;
+  padding: 0.06rem 0.45rem;
   border: 1px solid rgb(35 49 60 / 35%);
   border-radius: 999px;
   background: rgb(255 255 255 / 85%);
@@ -1009,18 +1017,71 @@ body {
 }
 
 .col-runner-visual-frame .col-runner-score-label {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
 }
 
 .col-runner-visual-frame .col-runner-score-value {
-  font-size: 0.78rem;
+  font-size: 0.68rem;
+}
+
+.col-runner-visual-frame > .col-runner-controls {
+  align-self: end;
+  margin: 0 0.55rem 0.55rem;
+}
+
+.col-runner-visual-frame > .col-icon-button--pause {
+  align-self: start;
+  justify-self: end;
+  margin: 0.3rem 0.55rem 0 0;
+}
+
+.col-runner-visual-frame > .col-icon-button--settings {
+  align-self: start;
+  justify-self: end;
+  margin: 3.4rem 0.55rem 0 0;
+}
+
+.col-icon-button {
+  display: grid;
+  place-items: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0;
+}
+
+.col-icon-button::before {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.col-icon-button--pause::before {
+  content: "⏸";
+}
+
+.col-icon-button--pause[data-runner-resume]::before,
+.col-icon-button--pause[aria-pressed="true"]::before {
+  content: "▶";
+}
+
+.col-icon-button--settings::before {
+  content: "⚙";
+}
+
+.col-icon-button--up::before {
+  content: "▲";
+}
+
+.col-icon-button--down::before {
+  content: "▼";
 }
 
 .col-runner-score-bar {
   display: block;
   grid-column: 1 / -1;
-  inline-size: 6.5rem;
-  block-size: 0.3rem;
+  inline-size: auto;
+  block-size: 0.22rem;
   border-radius: 999px;
   background: rgb(35 49 60 / 18%);
   overflow: hidden;
@@ -1050,6 +1111,8 @@ body {
 .col-runner-play-surface {
   position: relative;
   min-inline-size: 0;
+  grid-row: 2;
+  grid-column: 1;
   inline-size: 100%;
   block-size: clamp(28rem, 50vw, 30rem);
   border: 2px solid var(--col-primary-strong);
@@ -1132,6 +1195,8 @@ body {
 .col-runner-warning-layer {
   display: grid;
   min-inline-size: 0;
+  grid-row: 1;
+  grid-column: 1;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.45rem;
   pointer-events: none;
@@ -1592,26 +1657,6 @@ body {
     position: relative;
   }
 
-  #runner-user-pause-button {
-    position: absolute;
-    z-index: 9;
-    inset-block-start: 0.4rem;
-    inset-inline-end: 0.4rem;
-    padding: 0.28rem 0.62rem;
-    font-size: 0.8rem;
-  }
-
-  .col-runner-configure-bindings {
-    position: absolute;
-    z-index: 9;
-    inset-block-start: 0.4rem;
-    inset-inline-start: 0.4rem;
-    max-inline-size: 42%;
-    padding: 0.28rem 0.62rem;
-    font-size: 0.72rem;
-    line-height: 1.15;
-  }
-
   .col-runner-control-placement {
     display: none;
   }
@@ -1903,10 +1948,9 @@ body {
 .col-newborn-stage .col-newborn-scores {
   position: absolute;
   z-index: 6;
-  inset-block-start: 0.5rem;
-  inset-inline-start: 0.5rem;
-  grid-template-columns: none;
-  grid-auto-flow: row;
+  inset-block-start: 0.45rem;
+  inset-inline: 0.45rem calc(min(10rem, 42%) + 0.85rem);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.3rem;
   pointer-events: none;
 }
@@ -1915,8 +1959,9 @@ body {
   display: grid;
   grid-template-columns: auto auto;
   align-items: center;
-  gap: 0.05rem 0.4rem;
-  padding: 0.14rem 0.55rem;
+  gap: 0.02rem 0.35rem;
+  min-inline-size: 0;
+  padding: 0.06rem 0.45rem;
   border-width: 1px;
   border-radius: 999px;
   background: rgb(255 253 246 / 85%);
@@ -1924,31 +1969,31 @@ body {
 }
 
 .col-newborn-stage .col-newborn-score dt {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
 }
 
 .col-newborn-stage .col-newborn-score dd {
   grid-column: 1 / -1;
-  grid-template-columns: auto minmax(4rem, 1fr);
-  gap: 0.35rem;
+  grid-template-columns: auto minmax(1.2rem, 1fr);
+  gap: 0.3rem;
 }
 
 .col-newborn-stage .col-newborn-score-value {
-  font-size: 0.78rem;
+  font-size: 0.68rem;
 }
 
 .col-newborn-stage .col-newborn-score meter {
-  block-size: 0.35rem;
+  block-size: 0.25rem;
 }
 
 .col-newborn-stage .col-newborn-clock {
   position: absolute;
   z-index: 6;
-  inset-block-start: 0.5rem;
-  inset-inline-end: 0.5rem;
-  inline-size: min(11rem, 44%);
-  gap: 0.08rem 0.4rem;
-  padding: 0.18rem 0.55rem;
+  inset-block-start: 0.45rem;
+  inset-inline-end: 0.45rem;
+  inline-size: min(10rem, 42%);
+  gap: 0.05rem 0.35rem;
+  padding: 0.12rem 0.5rem;
   border-width: 1px;
   border-radius: 999px;
   background: rgb(255 245 220 / 88%);
@@ -1957,15 +2002,75 @@ body {
 }
 
 .col-newborn-stage .col-newborn-clock label {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
 }
 
 .col-newborn-stage .col-newborn-clock progress {
-  block-size: 0.32rem;
+  block-size: 0.25rem;
 }
 
 .col-newborn-stage .col-newborn-clock output {
-  font-size: 0.72rem;
+  font-size: 0.62rem;
+}
+
+.col-newborn-stage .col-newborn-stage-header {
+  position: absolute;
+  z-index: 5;
+  inset-block-start: 2.6rem;
+  inset-inline: 18%;
+  display: block;
+  padding: 0.35rem 0.7rem;
+  border: 2px solid rgb(151 108 76 / 60%);
+  border-radius: 0.7rem;
+  text-align: center;
+  background: rgb(255 248 231 / 78%);
+  box-shadow: 0 2px 6px rgb(72 53 42 / 20%);
+  pointer-events: none;
+}
+
+.col-newborn-stage .col-newborn-stage-header h2 {
+  font-size: clamp(0.95rem, 2.6vw, 1.35rem);
+}
+
+.col-newborn-stage .col-eyebrow {
+  font-size: 0.55rem;
+}
+
+.col-newborn-stage .col-newborn-stage-copy {
+  display: none;
+}
+
+.col-newborn-stage .col-newborn-pause-button {
+  position: absolute;
+  z-index: 8;
+  inset-block-start: 3.3rem;
+  inset-inline-end: 0.5rem;
+}
+
+.col-newborn-stage .col-newborn-controls {
+  position: absolute;
+  z-index: 8;
+  inset-block-end: 0.6rem;
+  inset-inline-end: 0.6rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.col-newborn-stage .col-newborn-choice-tray {
+  position: absolute;
+  z-index: 10;
+  inset: 6% 5%;
+  overflow: auto;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid #bd8c63;
+  border-radius: 0.9rem;
+  background: rgb(255 250 238 / 96%);
+  box-shadow: 0 0.6rem 1.4rem rgb(72 53 42 / 30%);
+}
+
+.col-newborn-stage .col-newborn-choice {
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9em;
 }
 
 .col-newborn-playfield {

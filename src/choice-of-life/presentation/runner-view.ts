@@ -909,8 +909,16 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
       `col-runner-controls col-runner-controls--${controlClusterPlacement}`,
     attributes: { "data-runner-control-cluster": controlClusterPlacement },
   });
-  const laneUpButton = button(document, "Up", "col-button col-runner-lane-button");
-  const laneDownButton = button(document, "Down", "col-button col-runner-lane-button");
+  const laneUpButton = button(
+    document,
+    "Up",
+    "col-button col-runner-lane-button col-icon-button col-icon-button--up",
+  );
+  const laneDownButton = button(
+    document,
+    "Down",
+    "col-button col-runner-lane-button col-icon-button col-icon-button--down",
+  );
   laneUpButton.setAttribute("aria-label", "Move up");
   laneDownButton.setAttribute("aria-label", "Move down");
   laneUpButton.setAttribute("data-runner-lane-command", "lane-up");
@@ -924,23 +932,25 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
     "col-button col-button--quiet col-runner-control-placement",
   );
   controlPlacementButton.setAttribute("data-runner-control-placement", controlClusterPlacement);
-  const pauseButton = button(document, "Pause", "col-button col-button--quiet");
+  const pauseButton = button(
+    document,
+    "Pause",
+    "col-button col-button--quiet col-icon-button col-icon-button--pause",
+  );
   pauseButton.id = "runner-user-pause-button";
   pauseButton.setAttribute("data-runner-user-pause", "");
   const configureBindingsButton = button(
     document,
     "Configure supplemental keys",
-    "col-button col-button--quiet col-runner-configure-bindings",
+    "col-button col-button--quiet col-runner-configure-bindings col-icon-button col-icon-button--settings",
   );
   configureBindingsButton.setAttribute("data-runner-configure-bindings", "");
   configureBindingsButton.disabled = true;
   controlArea.append(
     bindingInstructions,
-    laneCluster,
     controlPlacementButton,
-    pauseButton,
-    configureBindingsButton,
   );
+  visualFrame.append(laneCluster, pauseButton, configureBindingsButton);
 
   const interruptionControls = createElement(document, "div", {
     className: "col-runner-interruptions",

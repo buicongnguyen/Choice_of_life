@@ -341,14 +341,26 @@ export function mountNewbornView(
     text: "Keyboard: ↑/W moves up, ↓/S moves down, P pauses. Touch: use the lane buttons or swipe vertically in the room.",
   });
   const controlRow = createElement(document, "div", { className: "col-newborn-controls" });
-  const upButton = button(document, "↑ Move up", "col-button col-newborn-lane-button");
+  const upButton = button(
+    document,
+    "Move up",
+    "col-button col-newborn-lane-button col-icon-button col-icon-button--up",
+  );
   upButton.setAttribute("aria-keyshortcuts", "ArrowUp W");
-  const pauseButton = button(document, "Pause", "col-button col-newborn-pause-button");
+  const pauseButton = button(
+    document,
+    "Pause",
+    "col-button col-newborn-pause-button col-icon-button col-icon-button--pause",
+  );
   pauseButton.setAttribute("aria-keyshortcuts", "P");
-  const downButton = button(document, "↓ Move down", "col-button col-newborn-lane-button");
+  const downButton = button(
+    document,
+    "Move down",
+    "col-button col-newborn-lane-button col-icon-button col-icon-button--down",
+  );
   downButton.setAttribute("aria-keyshortcuts", "ArrowDown S");
-  controlRow.append(upButton, pauseButton, downButton);
-  controlArea.append(instructions, controlRow);
+  controlRow.append(upButton, downButton);
+  controlArea.append(instructions);
 
   const choiceTray = createElement(document, "section", {
     className: "col-newborn-choice-tray",
@@ -407,8 +419,8 @@ export function mountNewbornView(
   });
 
   const stageWrap = createElement(document, "div", { className: "col-newborn-stage" });
-  stageWrap.append(scores, clock, playfield);
-  section.append(top, stageWrap, controlArea, choiceTray, recap, status);
+  stageWrap.append(playfield, scores, clock, top, pauseButton, controlRow, choiceTray);
+  section.append(stageWrap, controlArea, recap, status);
   container.replaceChildren(section);
 
   const requestMove = (direction: "up" | "down"): void => {
