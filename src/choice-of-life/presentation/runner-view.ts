@@ -792,7 +792,14 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
       attributes: { "data-runner-score-output": scoreId },
     });
     scoreOutputs.set(scoreId, output);
-    card.append(label, output);
+    const bar = createElement(document, "span", {
+      className: "col-runner-score-bar",
+      attributes: { "aria-hidden": "true" },
+    });
+    bar.append(createElement(document, "span", {
+      className: "col-runner-score-bar-fill",
+    }));
+    card.append(label, output, bar);
     scores.append(card);
   }
 
@@ -888,7 +895,7 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
   player.classList.add("col-runner-player--figure");
   world.append(farLayer, nearLayer, laneLayer, entityField, player);
   playSurface.append(world);
-  visualFrame.append(warningLayer, playSurface);
+  visualFrame.append(warningLayer, playSurface, progressWrap, scores);
 
   const controlArea = createElement(document, "div", {
     className: "col-runner-control-area",
@@ -1115,8 +1122,6 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
     entryPanel,
     summary,
     nonLiveStatus,
-    progressWrap,
-    scores,
     visualFrame,
     controlArea,
     interruptionControls,
@@ -1659,6 +1664,10 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
       const output = scoreOutputs.get(scoreId)!;
       const value = state.scores[scoreId];
       setText(output, String(value));
+      output.closest(".col-runner-score")?.setAttribute(
+        "style",
+        `--col-runner-score-fill:${Math.max(0, Math.min(100, value))}%`,
+      );
       output.setAttribute(
         "aria-label",
         `${RUNNER_SCORE_LABELS[scoreId]}: ${value} out of 100`,

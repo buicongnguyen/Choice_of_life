@@ -268,7 +268,7 @@ export function mountNewbornView(
     attributes: { for: "newborn-stage-clock" },
   });
   clock.append(clockLabel, clockProgress, clockOutput);
-  top.append(headingCopy, clock);
+  top.append(headingCopy);
 
   const scores = createElement(document, "dl", {
     className: "col-newborn-scores",
@@ -406,7 +406,9 @@ export function mountNewbornView(
     attributes: { role: "status", "aria-live": "polite", "aria-atomic": "true" },
   });
 
-  section.append(top, scores, playfield, controlArea, choiceTray, recap, status);
+  const stageWrap = createElement(document, "div", { className: "col-newborn-stage" });
+  stageWrap.append(scores, clock, playfield);
+  section.append(top, stageWrap, controlArea, choiceTray, recap, status);
   container.replaceChildren(section);
 
   const requestMove = (direction: "up" | "down"): void => {
