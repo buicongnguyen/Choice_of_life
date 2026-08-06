@@ -4576,32 +4576,54 @@ export function drawRunnerToken(
   kind: RunnerTokenKind
 ): void {
   ctx.save();
+  ctx.lineJoin = "round";
   if (kind === "money") {
-    ellipse(ctx, x, footY - 18, 17, 17, "#c5791e");
-    ellipse(ctx, x, footY - 21, 15, 15, "#ffd23f");
+    const cy = footY - 20;
+    const rim = ctx.createLinearGradient(x, cy - 16, x, cy + 16);
+    rim.addColorStop(0, "#e8a739");
+    rim.addColorStop(1, "#96591a");
+    ellipse(ctx, x, cy + 2, 16, 16, rim);
+    const face = ctx.createRadialGradient(x - 5, cy - 7, 2, x, cy - 1, 16);
+    face.addColorStop(0, "#ffe98f");
+    face.addColorStop(0.65, "#ffd23f");
+    face.addColorStop(1, "#d99a24");
+    ellipse(ctx, x, cy - 1, 14, 14, face);
     ctx.strokeStyle = OUTLINE;
     ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.fillStyle = "#ba6b15";
-    ctx.font = "bold 18px 'Trebuchet MS', system-ui, sans-serif";
+    ctx.fillStyle = "#a35e12";
+    ctx.font = "bold 17px 'Trebuchet MS', system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("$", x, footY - 20);
+    ctx.fillText("$", x, cy);
+    ctx.strokeStyle = "rgba(255,250,220,0.85)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, cy - 1, 10, -2.4, -1.1);
+    ctx.stroke();
   } else if (kind === "health") {
     const cy = footY - 20;
+    const body = ctx.createRadialGradient(x - 6, cy - 8, 2, x, cy - 2, 20);
+    body.addColorStop(0, "#ff97a2");
+    body.addColorStop(0.55, "#f4485c");
+    body.addColorStop(1, "#a81f31");
     ctx.beginPath();
     ctx.moveTo(x, cy + 14);
     ctx.bezierCurveTo(x - 20, cy - 2, x - 12, cy - 16, x, cy - 6);
     ctx.bezierCurveTo(x + 12, cy - 16, x + 20, cy - 2, x, cy + 14);
     ctx.closePath();
-    ctx.fillStyle = "#ff5d6c";
+    ctx.fillStyle = body;
     ctx.fill();
     ctx.strokeStyle = OUTLINE;
     ctx.lineWidth = 2.5;
     ctx.stroke();
-    ellipse(ctx, x - 5, cy - 5, 3, 3, "#ffd0d6");
+    ellipse(ctx, x - 6, cy - 6, 4, 2.5, "rgba(255,255,255,0.8)");
   } else if (kind === "happiness") {
     const cy = footY - 20;
+    const body = ctx.createLinearGradient(x, cy - 16, x, cy + 16);
+    body.addColorStop(0, "#ffe98f");
+    body.addColorStop(0.6, "#ffd23f");
+    body.addColorStop(1, "#d9971f");
     ctx.beginPath();
     for (let i = 0; i < 10; i += 1) {
       const radius = i % 2 === 0 ? 16 : 7;
@@ -4612,22 +4634,33 @@ export function drawRunnerToken(
       else ctx.lineTo(px2, py2);
     }
     ctx.closePath();
-    ctx.fillStyle = "#ffd23f";
+    ctx.fillStyle = body;
     ctx.fill();
     ctx.strokeStyle = OUTLINE;
     ctx.lineWidth = 2.5;
     ctx.stroke();
+    ellipse(ctx, x - 4, cy - 6, 3, 2, "rgba(255,255,255,0.85)");
   } else if (kind === "hazard") {
     const cy = footY - 20;
+    const body = ctx.createLinearGradient(x - 12, cy - 14, x + 12, cy + 12);
+    body.addColorStop(0, "#ffb066");
+    body.addColorStop(0.55, "#ff7d3c");
+    body.addColorStop(1, "#c74a14");
     ctx.beginPath();
     ctx.moveTo(x, cy - 17);
     ctx.lineTo(x + 16, cy + 12);
     ctx.lineTo(x - 16, cy + 12);
     ctx.closePath();
-    ctx.fillStyle = "#ff8748";
+    ctx.fillStyle = body;
     ctx.fill();
     ctx.strokeStyle = OUTLINE;
     ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,240,210,0.7)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 2, cy - 12);
+    ctx.lineTo(x - 11, cy + 9);
     ctx.stroke();
     ctx.fillStyle = OUTLINE;
     ctx.font = "bold 16px 'Trebuchet MS', system-ui, sans-serif";
@@ -4636,18 +4669,258 @@ export function drawRunnerToken(
     ctx.fillText("!", x, cy + 3);
   } else {
     const cy = footY - 20;
+    const body = ctx.createLinearGradient(x - 10, cy - 12, x + 10, cy + 12);
+    body.addColorStop(0, "#c6bcff");
+    body.addColorStop(0.5, "#9c8cff");
+    body.addColorStop(1, "#5f4fc9");
     ctx.beginPath();
     ctx.moveTo(x, cy - 16);
     ctx.lineTo(x + 13, cy);
     ctx.lineTo(x, cy + 16);
     ctx.lineTo(x - 13, cy);
     ctx.closePath();
-    ctx.fillStyle = "#9c8cff";
+    ctx.fillStyle = body;
     ctx.fill();
     ctx.strokeStyle = OUTLINE;
     ctx.lineWidth = 2.5;
     ctx.stroke();
-    ellipse(ctx, x, cy, 4, 4, "#f2e8cf");
+    ctx.strokeStyle = "rgba(255,255,255,0.65)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x, cy - 16);
+    ctx.lineTo(x, cy + 16);
+    ctx.moveTo(x - 13, cy);
+    ctx.lineTo(x + 13, cy);
+    ctx.stroke();
+    ellipse(ctx, x - 4, cy - 6, 2.5, 2, "rgba(255,255,255,0.9)");
+  }
+  ctx.restore();
+}
+
+const NURSERY_ITEM_IDS = new Set([
+  "milk",
+  "toy",
+  "nest-egg",
+  "spill",
+  "noise",
+  "bill",
+]);
+
+/** Shaded pseudo-3D nursery pickups and hazards for the newborn stage. */
+function drawNurseryItem(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  footY: number,
+  eventId: string,
+  focused: boolean
+): void {
+  const lift = focused ? -2 : 0;
+  ctx.save();
+  ctx.lineJoin = "round";
+  if (eventId === "milk") {
+    const top = footY - 52 + lift;
+    const body = ctx.createLinearGradient(x - 12, 0, x + 12, 0);
+    body.addColorStop(0, "#fdfaf1");
+    body.addColorStop(0.45, "#ffffff");
+    body.addColorStop(1, "#d9d2c0");
+    ctx.fillStyle = body;
+    rrect(ctx, x - 11, top + 14, 22, 34, 7);
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2.5;
+    rrect(ctx, x - 11, top + 14, 22, 34, 7);
+    ctx.stroke();
+    const milk = ctx.createLinearGradient(x - 9, 0, x + 9, 0);
+    milk.addColorStop(0, "#fffdf6");
+    milk.addColorStop(1, "#efe6d0");
+    ctx.fillStyle = milk;
+    rrect(ctx, x - 8, top + 26, 16, 19, 5);
+    ctx.fill();
+    ctx.fillStyle = "#e9b25c";
+    rrect(ctx, x - 9, top + 8, 18, 7, 3);
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    rrect(ctx, x - 9, top + 8, 18, 7, 3);
+    ctx.stroke();
+    const teat = ctx.createRadialGradient(x - 2, top + 2, 1, x, top + 4, 7);
+    teat.addColorStop(0, "#f6c98a");
+    teat.addColorStop(1, "#cf8f45");
+    ellipse(ctx, x, top + 5, 6, 6, teat);
+    ctx.strokeStyle = OUTLINE;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    rrect(ctx, x - 8, top + 17, 3.5, 26, 2);
+    ctx.fill();
+  } else if (eventId === "toy") {
+    const cy = footY - 40 + lift;
+    const handle = ctx.createLinearGradient(x - 4, 0, x + 4, 0);
+    handle.addColorStop(0, "#f7e3b8");
+    handle.addColorStop(1, "#c99e5a");
+    ctx.fillStyle = handle;
+    rrect(ctx, x - 4, cy + 8, 8, 26, 4);
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2.5;
+    rrect(ctx, x - 4, cy + 8, 8, 26, 4);
+    ctx.stroke();
+    const ball = ctx.createRadialGradient(x - 5, cy - 6, 3, x, cy, 16);
+    ball.addColorStop(0, "#ffc7dd");
+    ball.addColorStop(0.65, "#f078a8");
+    ball.addColorStop(1, "#b74e7c");
+    ellipse(ctx, x, cy, 14, 14, ball);
+    ctx.strokeStyle = OUTLINE;
+    ctx.stroke();
+    ctx.fillStyle = "#fff3f8";
+    ellipse(ctx, x - 5, cy - 6, 4, 3, "rgba(255,255,255,0.85)");
+    ctx.fillStyle = "#7c3a58";
+    ellipse(ctx, x, cy, 5, 5, "#ffd9ea");
+    ctx.strokeStyle = "#b74e7c";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  } else if (eventId === "nest-egg") {
+    const cy = footY - 24 + lift;
+    const sack = ctx.createRadialGradient(x - 6, cy - 10, 4, x, cy, 22);
+    sack.addColorStop(0, "#e8c088");
+    sack.addColorStop(0.6, "#c08c4c");
+    sack.addColorStop(1, "#8a5f2e");
+    ctx.fillStyle = sack;
+    ctx.beginPath();
+    ctx.moveTo(x - 7, cy - 18);
+    ctx.bezierCurveTo(x - 22, cy - 10, x - 20, cy + 16, x, cy + 16);
+    ctx.bezierCurveTo(x + 20, cy + 16, x + 22, cy - 10, x + 7, cy - 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.fillStyle = "#9c6c36";
+    rrect(ctx, x - 8, cy - 22, 16, 6, 3);
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    rrect(ctx, x - 8, cy - 22, 16, 6, 3);
+    ctx.stroke();
+    ctx.fillStyle = "#5e3c17";
+    ctx.font = "bold 15px 'Trebuchet MS', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("$", x, cy + 2);
+    ellipse(ctx, x - 8, cy - 8, 3.5, 5, "rgba(255,240,210,0.55)");
+  } else if (eventId === "spill") {
+    const cy = footY + lift;
+    const puddle = ctx.createRadialGradient(x - 4, cy - 6, 2, x, cy - 3, 22);
+    puddle.addColorStop(0, "#bfe7f7");
+    puddle.addColorStop(0.7, "#5fb3dd");
+    puddle.addColorStop(1, "#2f7fb0");
+    ellipse(ctx, x, cy - 3, 21, 7, puddle);
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ellipse(ctx, x - 7, cy - 5, 5, 2, "rgba(255,255,255,0.7)");
+    const cup = ctx.createLinearGradient(x + 2, 0, x + 20, 0);
+    cup.addColorStop(0, "#fbf6ea");
+    cup.addColorStop(1, "#c9c2b0");
+    ctx.save();
+    ctx.translate(x + 10, cy - 16);
+    ctx.rotate(1.05);
+    ctx.fillStyle = cup;
+    rrect(ctx, -7, -11, 14, 20, 3);
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    rrect(ctx, -7, -11, 14, 20, 3);
+    ctx.stroke();
+    ctx.restore();
+    const drop = ctx.createRadialGradient(x - 13, cy - 17, 1, x - 12, cy - 15, 5);
+    drop.addColorStop(0, "#cdeefb");
+    drop.addColorStop(1, "#3f92c4");
+    ctx.fillStyle = drop;
+    ctx.beginPath();
+    ctx.moveTo(x - 12, cy - 22);
+    ctx.bezierCurveTo(x - 17, cy - 14, x - 15, cy - 10, x - 12, cy - 10);
+    ctx.bezierCurveTo(x - 9, cy - 10, x - 7, cy - 14, x - 12, cy - 22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 1.75;
+    ctx.stroke();
+  } else if (eventId === "noise") {
+    const cy = footY - 26 + lift;
+    const cone = ctx.createLinearGradient(x - 16, cy - 14, x + 6, cy + 12);
+    cone.addColorStop(0, "#ffb066");
+    cone.addColorStop(0.55, "#f07a3a");
+    cone.addColorStop(1, "#b34a1e");
+    ctx.fillStyle = cone;
+    ctx.beginPath();
+    ctx.moveTo(x - 16, cy - 5);
+    ctx.lineTo(x + 4, cy - 15);
+    ctx.lineTo(x + 4, cy + 15);
+    ctx.lineTo(x - 16, cy + 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    const mouth = ctx.createLinearGradient(x + 1, cy - 15, x + 8, cy + 15);
+    mouth.addColorStop(0, "#8e3a14");
+    mouth.addColorStop(1, "#5e230a");
+    ctx.fillStyle = mouth;
+    ellipse(ctx, x + 4, cy, 4, 15, mouth);
+    ctx.strokeStyle = OUTLINE;
+    ctx.stroke();
+    ctx.fillStyle = "#d8621f";
+    rrect(ctx, x - 20, cy - 3, 6, 12, 2);
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    rrect(ctx, x - 20, cy - 3, 6, 12, 2);
+    ctx.stroke();
+    ctx.strokeStyle = "#f5a623";
+    ctx.lineWidth = 2.5;
+    for (const radius of [9, 14, 19]) {
+      ctx.beginPath();
+      ctx.arc(x + 6, cy, radius, -0.7, 0.7);
+      ctx.stroke();
+    }
+    ellipse(ctx, x - 10, cy - 6, 4, 2.5, "rgba(255,235,200,0.6)");
+  } else {
+    const top = footY - 50 + lift;
+    ctx.fillStyle = "rgba(20,14,10,0.25)";
+    rrect(ctx, x - 12, top + 4, 28, 42, 3);
+    ctx.fill();
+    const paper = ctx.createLinearGradient(x - 14, 0, x + 14, 0);
+    paper.addColorStop(0, "#ffffff");
+    paper.addColorStop(0.75, "#f5efdd");
+    paper.addColorStop(1, "#cfc7ae");
+    ctx.fillStyle = paper;
+    ctx.beginPath();
+    ctx.moveTo(x - 14, top);
+    ctx.lineTo(x + 14, top);
+    ctx.lineTo(x + 14, top + 40);
+    for (let i = 0; i < 7; i += 1) {
+      ctx.lineTo(x + 14 - (i * 4 + 2), top + (i % 2 === 0 ? 44 : 40));
+    }
+    ctx.lineTo(x - 14, top + 40);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2.25;
+    ctx.stroke();
+    ctx.strokeStyle = "#a9a08a";
+    ctx.lineWidth = 2;
+    for (const line of [10, 17, 24]) {
+      ctx.beginPath();
+      ctx.moveTo(x - 9, top + line);
+      ctx.lineTo(x + 9, top + line);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = "#c9453a";
+    ctx.beginPath();
+    ctx.moveTo(x - 9, top + 32);
+    ctx.lineTo(x + 4, top + 32);
+    ctx.stroke();
+    ctx.fillStyle = "#c9453a";
+    ctx.font = "bold 10px 'Trebuchet MS', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("$", x + 9, top + 32);
   }
   ctx.restore();
 }
@@ -4673,6 +4946,7 @@ export function drawEventItem(
 
   if (eventId === "puppy") drawPet(ctx, x, footY, "dog", t, { focused, shadow: false });
   else if (eventId === "kitten") drawPet(ctx, x, footY, "cat", t, { focused, shadow: false });
+  else if (NURSERY_ITEM_IDS.has(eventId)) drawNurseryItem(ctx, x, footY, eventId, focused);
   else if (EVENT_MONEY_IDS.has(eventId)) drawMoneyEvent(ctx, x, footY, eventId, focused);
   else if (!good) drawBadEvent(ctx, x, footY, eventId, focused);
   else if (EVENT_PRIZE_IDS.has(eventId)) drawPrizeEvent(ctx, x, footY, eventId, focused);

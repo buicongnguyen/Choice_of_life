@@ -117,7 +117,7 @@ function projectEntity(entity: NewbornEntity, index: number): EntityProjection {
 const ITEM_ART = Object.freeze({
   "newborn-pickup-milk-v1": Object.freeze({ eventId: "milk", emoji: "🍼", label: "Milk" }),
   "newborn-pickup-rattle-v1": Object.freeze({ eventId: "toy", emoji: "🧸", label: "Rattle" }),
-  "newborn-pickup-nest-egg-v1": Object.freeze({ eventId: "coin", emoji: "●", label: "Savings" }),
+  "newborn-pickup-nest-egg-v1": Object.freeze({ eventId: "nest-egg", emoji: "●", label: "Savings" }),
   "newborn-hazard-spill-v1": Object.freeze({ eventId: "spill", emoji: "💧", label: "Spill" }),
   "newborn-hazard-noise-v1": Object.freeze({ eventId: "noise", emoji: "📢", label: "Noise" }),
   "newborn-hazard-cost-v1": Object.freeze({ eventId: "bill", emoji: "🧾", label: "Cost" }),
@@ -561,15 +561,6 @@ export function mountNewbornView(
     clockProgress.value = progress;
     clockOutput.value = `${progress}%`;
     clockOutput.textContent = `${progress}%`;
-    roomTrack.style.setProperty(
-      "--col-newborn-room-shift",
-      `${-((state.world.distanceMilli / 16_000) % 50)}%`,
-    );
-    scenery.style.setProperty(
-      "--col-newborn-light-shift",
-      `${-((state.world.distanceMilli / 100_000) % 12)}%`,
-    );
-
     renderScore(health, "Health", state.scores.health);
     renderScore(happiness, "Happiness", state.scores.happiness);
     renderScore(money, "Money", state.scores.money);
