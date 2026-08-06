@@ -9,7 +9,7 @@ import {
   type NewbornState,
 } from "../core/newborn/index";
 import { createElement } from "./elements";
-import { drawEventItem } from "../../sprites";
+import { drawEventItem, drawRunnerToken, type RunnerTokenKind } from "../../sprites";
 import {
   createCharacterElement,
   createCharacterModel,
@@ -376,14 +376,46 @@ export function mountNewbornView(
   const choiceIntro = createElement(document, "p", {
     text: "You are safe while choosing. What do you reach for?",
   });
+  const trayHeader = createElement(document, "div", { className: "col-newborn-choice-header" });
+  const trayMom = createElement(document, "div", {
+    className: "col-newborn-choice-mom col-polish-actor col-polish-actor--character",
+    attributes: { "aria-hidden": "true" },
+  });
+  trayMom.append(createCharacterElement(document, createCharacterModel({
+    characterId: "newborn-caregiver-tray",
+    label: "Mom",
+    gender: "female",
+    heritage: "asian",
+    lifeStage: "adult",
+    direction: "front",
+    motion: "idle",
+    expression: "smile",
+    seed: "newborn-caregiver-v1",
+    appearance: { clothingPaletteId: "coral-teal" },
+  })));
+  const trayCopy = createElement(document, "div", { className: "col-newborn-choice-copy" });
+  const choiceTokenByGoal: Readonly<Record<string, RunnerTokenKind>> = Object.freeze({
+    comfort: "health",
+    curiosity: "happiness",
+    stability: "money",
+  });
   const choiceList = createElement(document, "div", { className: "col-newborn-choice-list" });
   const optionButtons = NEWBORN_CAREGIVER_OPTIONS.map((option, index) => {
     const projected = projectCaregiverOption(option, index);
     const choice = button(document, "", "col-newborn-choice");
+    const icon = document.createElement("canvas");
+    icon.width = 40;
+    icon.height = 40;
+    icon.className = "col-newborn-choice-icon";
+    icon.setAttribute("aria-hidden", "true");
+    const iconContext = icon.getContext("2d");
+    if (iconContext !== null) {
+      drawRunnerToken(iconContext, 20, 38, choiceTokenByGoal[option.goalId] ?? "happiness");
+    }
     const label = createElement(document, "strong", { text: projected.label });
     const description = createElement(document, "span", { text: projected.description });
     const consequence = createElement(document, "small", { text: projected.consequence });
-    choice.append(label, description, consequence);
+    choice.append(icon, label, description, consequence);
     choice.dataset.optionId = projected.id;
     listen(choice, "click", () => {
       if (disposed || currentState?.phase !== "caregiver-choice") return;
@@ -392,7 +424,9 @@ export function mountNewbornView(
     choiceList.append(choice);
     return choice;
   });
-  choiceTray.append(choiceHeading, choiceIntro, choiceList);
+  trayCopy.append(choiceHeading, choiceIntro);
+  trayHeader.append(trayMom, trayCopy);
+  choiceTray.append(trayHeader, choiceList);
   choiceTray.hidden = true;
 
   const recap = createElement(document, "section", {

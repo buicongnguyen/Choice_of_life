@@ -996,11 +996,17 @@ body {
 
 .col-runner-visual-frame .col-runner-scores {
   align-self: start;
-  justify-self: stretch;
-  margin: 1.45rem 3.4rem 0 0.55rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-self: start;
+  max-inline-size: calc(100% - 4rem);
+  margin: 1.45rem 0 0 0.55rem;
+  grid-template-columns: repeat(3, auto);
+  justify-content: start;
   gap: 0.3rem;
   pointer-events: none;
+}
+
+.col-runner-visual-frame .col-runner-score-bar {
+  inline-size: 2.2rem;
 }
 
 .col-runner-visual-frame .col-runner-score {
@@ -1949,8 +1955,10 @@ body {
   position: absolute;
   z-index: 6;
   inset-block-start: 0.45rem;
-  inset-inline: 0.45rem calc(min(10rem, 42%) + 0.85rem);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  inset-inline-start: 0.45rem;
+  max-inline-size: calc(100% - min(10rem, 42%) - 1.3rem);
+  grid-template-columns: repeat(3, auto);
+  justify-content: start;
   gap: 0.3rem;
   pointer-events: none;
 }
@@ -1974,7 +1982,7 @@ body {
 
 .col-newborn-stage .col-newborn-score dd {
   grid-column: 1 / -1;
-  grid-template-columns: auto minmax(1.2rem, 1fr);
+  grid-template-columns: auto 2rem;
   gap: 0.3rem;
 }
 
@@ -2071,6 +2079,50 @@ body {
 .col-newborn-stage .col-newborn-choice {
   padding: 0.45rem 0.6rem;
   font-size: 0.9em;
+}
+
+.col-newborn-choice-header {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin-block-end: 0.45rem;
+}
+
+.col-newborn-choice-mom.col-polish-actor {
+  position: relative;
+  inset: auto;
+  flex: none;
+  inline-size: 3.6rem;
+  block-size: 5rem;
+  transform: none;
+  overflow: visible;
+}
+
+.col-newborn-choice-mom .col-character {
+  scale: 0.58;
+  transform-origin: 50% 100%;
+}
+
+.col-newborn-choice-copy {
+  min-inline-size: 0;
+}
+
+.col-newborn-choice {
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.55rem;
+}
+
+.col-newborn-choice-icon {
+  grid-row: 1 / 4;
+  inline-size: 2.2rem;
+  block-size: 2.2rem;
+}
+
+.col-newborn-choice > strong,
+.col-newborn-choice > span,
+.col-newborn-choice > small {
+  grid-column: 2;
 }
 
 .col-newborn-playfield {
