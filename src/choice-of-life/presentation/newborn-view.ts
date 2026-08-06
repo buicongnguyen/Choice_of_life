@@ -9,11 +9,24 @@ import {
   type NewbornState,
 } from "../core/newborn/index";
 import { createElement } from "./elements";
+import { drawEventItem } from "../../sprites";
+import {
+  createCharacterElement,
+  createCharacterModel,
+  type CharacterAppearanceOverrides,
+  type CharacterGender,
+  type CharacterHeritage,
+} from "./character-system";
 
 export interface NewbornViewCallbacks {
   dispatch(action: NewbornAction): void;
   onContinue(): void;
   onReturnToTitle(): void;
+  readonly playerCharacter?: Readonly<{
+    gender: CharacterGender;
+    heritage: CharacterHeritage;
+    appearance: CharacterAppearanceOverrides;
+  }>;
 }
 
 export interface NewbornView {
@@ -29,6 +42,7 @@ type EntityProjection = Readonly<{
   xMilli: number;
   score: "health" | "happiness" | "money";
   collected: boolean;
+  contentId: string;
 }>;
 
 type CaregiverOptionProjection = Readonly<{
@@ -96,50 +110,76 @@ function projectEntity(entity: NewbornEntity, index: number): EntityProjection {
     xMilli: finiteValue(entity.xMilli, NEWBORN_STAGE_CONTRACT.entitySpawnXMilli),
     score: entity.scoreId,
     collected: false,
+    contentId: entity.contentId,
   });
 }
 
-function createBaby(document: Document): HTMLDivElement {
+const ITEM_ART = Object.freeze({
+  "newborn-pickup-milk-v1": Object.freeze({ eventId: "milk", emoji: "🍼", label: "Milk" }),
+  "newborn-pickup-rattle-v1": Object.freeze({ eventId: "toy", emoji: "🧸", label: "Rattle" }),
+  "newborn-pickup-nest-egg-v1": Object.freeze({ eventId: "coin", emoji: "●", label: "Savings" }),
+  "newborn-hazard-spill-v1": Object.freeze({ eventId: "spill", emoji: "💧", label: "Spill" }),
+  "newborn-hazard-noise-v1": Object.freeze({ eventId: "noise", emoji: "📢", label: "Noise" }),
+  "newborn-hazard-cost-v1": Object.freeze({ eventId: "bill", emoji: "🧾", label: "Cost" }),
+} as const);
+
+function createEntityArt(document: Document, entity: EntityProjection): HTMLCanvasElement {
+  const canvas = createElement(document, "canvas", {
+    className: "col-newborn-entity-art",
+    attributes: { width: "112", height: "112", "aria-hidden": "true" },
+  });
+  const art = ITEM_ART[entity.contentId as keyof typeof ITEM_ART] ?? {
+    eventId: entity.kind === "hazard" ? "hazard" : entity.score === "money" ? "coin" : "gift",
+    emoji: entity.kind === "hazard" ? ENTITY_ICONS.hazard : ENTITY_ICONS[entity.score],
+    label: entity.kind === "hazard" ? "Avoid" : SCORE_LABELS[entity.score],
+  };
+  const context = canvas.getContext("2d");
+  if (context !== null) {
+    drawEventItem(context, 56, 101, art.eventId, art.emoji, art.label, entity.kind === "pickup", false, 0);
+  }
+  return canvas;
+}
+
+function createBaby(
+  document: Document,
+  playerCharacter: NewbornViewCallbacks["playerCharacter"],
+): HTMLDivElement {
   const baby = createElement(document, "div", {
-    className: "col-newborn-baby",
+    className: "col-newborn-baby col-newborn-baby--storybook col-polish-actor col-polish-actor--character",
     attributes: { "aria-hidden": "true" },
   });
-  const head = createElement(document, "div", { className: "col-newborn-baby-head" });
-  head.append(
-    createElement(document, "span", { className: "col-newborn-baby-curl" }),
-    createElement(document, "span", { className: "col-newborn-baby-ear col-newborn-baby-ear--left" }),
-    createElement(document, "span", { className: "col-newborn-baby-ear col-newborn-baby-ear--right" }),
-    createElement(document, "span", { className: "col-newborn-baby-eye col-newborn-baby-eye--left" }),
-    createElement(document, "span", { className: "col-newborn-baby-eye col-newborn-baby-eye--right" }),
-    createElement(document, "span", { className: "col-newborn-baby-cheek col-newborn-baby-cheek--left" }),
-    createElement(document, "span", { className: "col-newborn-baby-cheek col-newborn-baby-cheek--right" }),
-    createElement(document, "span", { className: "col-newborn-baby-smile" }),
-  );
-  const body = createElement(document, "div", { className: "col-newborn-baby-body" });
-  body.append(
-    createElement(document, "span", { className: "col-newborn-baby-bib", text: "♥" }),
-    createElement(document, "span", { className: "col-newborn-baby-arm col-newborn-baby-arm--left" }),
-    createElement(document, "span", { className: "col-newborn-baby-arm col-newborn-baby-arm--right" }),
-    createElement(document, "span", { className: "col-newborn-baby-leg col-newborn-baby-leg--left" }),
-    createElement(document, "span", { className: "col-newborn-baby-leg col-newborn-baby-leg--right" }),
-  );
-  baby.append(head, body);
+  baby.append(createCharacterElement(document, createCharacterModel({
+    characterId: "newborn-player",
+    label: "Player as a newborn",
+    gender: playerCharacter?.gender ?? "female",
+    heritage: playerCharacter?.heritage ?? "asian",
+    lifeStage: "newborn",
+    direction: "front",
+    motion: "sit",
+    expression: "smile",
+    seed: "newborn-player-v1",
+    appearance: playerCharacter?.appearance,
+  })));
   return baby;
 }
 
 function createCaregiver(document: Document): HTMLDivElement {
   const caregiver = createElement(document, "div", {
-    className: "col-newborn-caregiver",
+    className: "col-newborn-caregiver col-newborn-caregiver--storybook col-polish-actor col-polish-actor--character",
     attributes: { "aria-hidden": "true" },
   });
-  caregiver.append(
-    createElement(document, "span", { className: "col-newborn-caregiver-hair" }),
-    createElement(document, "span", { className: "col-newborn-caregiver-head" }),
-    createElement(document, "span", { className: "col-newborn-caregiver-body" }),
-    createElement(document, "span", { className: "col-newborn-caregiver-arm col-newborn-caregiver-arm--left" }),
-    createElement(document, "span", { className: "col-newborn-caregiver-arm col-newborn-caregiver-arm--right" }),
-    createElement(document, "span", { className: "col-newborn-caregiver-shadow" }),
-  );
+  caregiver.append(createCharacterElement(document, createCharacterModel({
+    characterId: "newborn-caregiver",
+    label: "Mom",
+    gender: "female",
+    heritage: "asian",
+    lifeStage: "adult",
+    direction: "left",
+    motion: "idle",
+    expression: "smile",
+    seed: "newborn-caregiver-v1",
+    appearance: { clothingPaletteId: "coral-teal" },
+  })));
   return caregiver;
 }
 
@@ -284,7 +324,7 @@ export function mountNewbornView(
   });
   const caregiver = createCaregiver(document);
   caregiver.hidden = true;
-  const baby = createBaby(document);
+  const baby = createBaby(document, callbacks.playerCharacter);
   baby.style.setProperty(
     "--col-newborn-player-x",
     `${(NEWBORN_STAGE_CONTRACT.playerXMilli / NEWBORN_STAGE_CONTRACT.entitySpawnXMilli) * 100}%`,
@@ -448,8 +488,8 @@ export function mountNewbornView(
       const x = (entity.xMilli / NEWBORN_STAGE_CONTRACT.entitySpawnXMilli) * 100;
       const token = createElement(document, "span", {
         className: `col-newborn-entity col-newborn-entity--${entity.kind} col-newborn-entity--${entity.score}`,
-        text: entity.kind === "hazard" ? ENTITY_ICONS.hazard : ENTITY_ICONS[entity.score],
       });
+      token.append(createEntityArt(document, entity));
       token.style.setProperty("--col-newborn-entity-x", `${x}%`);
       token.style.setProperty(
         "--col-newborn-entity-y",

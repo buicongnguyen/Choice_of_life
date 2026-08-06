@@ -1139,6 +1139,15 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
         dispatch: dispatchNewborn,
         onContinue: continueFromNewborn,
         onReturnToTitle: returnFromNewbornToTitle,
+        playerCharacter: {
+          gender: state.setup.gender,
+          heritage: state.setup.appearance.heritageStyleId,
+          appearance: {
+            hairStyleId: state.setup.appearance.hairStyleId,
+            hairColorId: state.setup.appearance.hairColorId,
+            clothingPaletteId: state.setup.appearance.clothingPaletteId,
+          },
+        },
       });
       mountedNewborn = Object.freeze({ view, stopClock });
       view.render(enteredState);

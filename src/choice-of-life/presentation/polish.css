@@ -446,6 +446,22 @@
   inline-size: var(--col-character-width, 5.5rem);
 }
 
+.col-polish-actor--character .col-character__atlas {
+  position: absolute;
+  z-index: 4;
+  inset-inline-start: 50%;
+  inset-block-end: 0;
+  inline-size: 11rem;
+  block-size: 11rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.col-polish-actor--character .col-character--atlas-ready > .col-character__figure,
+.col-polish-actor--character .col-character--atlas-ready > .col-character__shadow {
+  visibility: hidden;
+}
+
 .col-polish-actor--character .col-character__figure {
   block-size: 100%;
   display: block;
@@ -674,6 +690,22 @@
   block-size: 4.6rem;
   display: block;
   inline-size: 6.2rem;
+}
+
+.col-polish-actor--pet .col-companion__atlas {
+  position: absolute;
+  z-index: 3;
+  inset-inline-start: 50%;
+  inset-block-end: 0;
+  inline-size: 6.5rem;
+  block-size: 6.5rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.col-polish-actor--pet .col-companion--atlas-ready > .col-companion__figure,
+.col-polish-actor--pet .col-companion--atlas-ready > .col-companion__shadow {
+  visibility: hidden;
 }
 
 .col-polish-actor--pet .col-companion__figure {

@@ -14,6 +14,14 @@ const SCRIPT_OR_STYLE_EXTENSIONS = [
   ".css",
 ];
 const SOURCE_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
+const APPROVED_STORYBOOK_ASSET_ADAPTERS = new Set([
+  "src/career-outfit-characters.ts",
+  "src/occupation-characters.ts",
+  "src/sprites.ts",
+  "src/storybook-characters.ts",
+  "src/storybook-pets.ts",
+  "src/types.ts",
+]);
 const PROTECTED_MECHANICS_KEYS = new Set([
   "appearance",
   "accessibility",
@@ -928,6 +936,7 @@ function isSourceModule(relative) {
 function isAllowedProductionPath(relative) {
   return (
     relative === "src/main.ts" ||
+    APPROVED_STORYBOOK_ASSET_ADAPTERS.has(relative) ||
     relative === "src/choice-of-life/style.css" ||
     relative.startsWith("src/choice-of-life/presentation/") && relative.endsWith(".css") ||
     (relative.startsWith("src/choice-of-life/") &&

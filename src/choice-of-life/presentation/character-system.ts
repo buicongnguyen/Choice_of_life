@@ -1,4 +1,17 @@
 import type { CareerId, CareerSeason } from "../core/career";
+import { avatarLook } from "../../sprites";
+import { drawStorybookCharacter } from "../../storybook-characters";
+import { drawStorybookPet } from "../../storybook-pets";
+import {
+  drawCareerOutfitCharacter,
+  isCareerOutfitUniform,
+  type CareerOutfitUniform,
+} from "../../career-outfit-characters";
+import {
+  drawOccupationCharacter,
+  type LegacyJobUniform,
+} from "../../occupation-characters";
+import type { HeritageStyle } from "../../types";
 
 export type CharacterGender = "female" | "male";
 export type CharacterHeritage = "asian" | "western" | "black" | "middle-eastern";
@@ -577,6 +590,114 @@ export function renderCharacterMarkup(model: CharacterModel): string {
   return `<span class="${model.classes.className}" data-character-id="${id}" data-gender="${model.gender}" data-body-presentation="${model.bodyPresentationId}" data-life-stage="${model.lifeStage}" data-direction="${model.direction}" data-motion="${model.motion}" data-expression="${model.expression}" data-foot-anchor="bottom-center" data-appearance-signature="${escapeHtml(model.appearanceSignature)}" role="img" aria-label="${label}" style="${characterStyle(model)}"><span class="col-character__shadow" aria-hidden="true"></span><span class="col-character__figure" aria-hidden="true"><span class="col-character__hair-back"></span><span class="col-character__head"><span class="col-character__ear col-character__ear--left"></span><span class="col-character__ear col-character__ear--right"></span><span class="col-character__hair"></span><span class="col-character__face"><span class="col-character__brow col-character__brow--left"></span><span class="col-character__brow col-character__brow--right"></span><span class="col-character__eye col-character__eye--left"></span><span class="col-character__eye col-character__eye--right"></span><span class="col-character__cheek col-character__cheek--left"></span><span class="col-character__cheek col-character__cheek--right"></span><span class="col-character__mouth"></span></span></span><span class="col-character__body"><span class="col-character__torso"></span><span class="col-character__arm col-character__arm--left"></span><span class="col-character__arm col-character__arm--right"></span><span class="col-character__bottoms"></span>${accessory}<span class="col-character__detail col-character__detail--${model.appearance.detailId}"></span></span><span class="col-character__leg col-character__leg--left"><span class="col-character__shoe"></span></span><span class="col-character__leg col-character__leg--right"><span class="col-character__shoe"></span></span></span></span>`;
 }
 
+const LIFE_STAGE_INDEX: Readonly<Record<CharacterLifeStage, number>> = Object.freeze({
+  newborn: 0,
+  toddler: 1,
+  child: 3,
+  teen: 5,
+  "young-adult": 6,
+  adult: 7,
+  "middle-age": 9,
+  senior: 11,
+});
+
+const CAREER_UNIFORM_BY_JOB: Readonly<Partial<Record<CareerId, CareerOutfitUniform>>> =
+  Object.freeze({
+    teacher: "teacher",
+    chef: "chef",
+    barista: "barista",
+    athlete: "athlete",
+    entrepreneur: "entrepreneur",
+    engineer: "generalengineer",
+    "software-engineer": "softwareengineer",
+    manager: "manager",
+    "financial-analyst": "analyst",
+    artist: "artist",
+    police: "police",
+    lawyer: "lawyer",
+    ceo: "ceo",
+  });
+
+const OCCUPATION_UNIFORM_BY_JOB: Readonly<Partial<Record<CareerId, LegacyJobUniform>>> =
+  Object.freeze({
+    doctor: "doctor",
+    farmer: "farmer",
+    dancer: "dancer",
+    "gym-trainer": "trainer",
+    army: "soldier",
+  });
+
+function atlasHeritage(heritage: CharacterHeritage): HeritageStyle {
+  return heritage === "middle-eastern" ? "middleEastern" : heritage;
+}
+
+function modelJobId(model: CharacterModel): CareerId | null {
+  return (Object.keys(CHARACTER_JOB_WARDROBES) as CareerId[]).find(
+    (jobId) => CHARACTER_JOB_WARDROBES[jobId][model.outfit.season].outfitId === model.outfit.outfitId,
+  ) ?? null;
+}
+
+function drawCharacterAtlas(canvas: HTMLCanvasElement, model: CharacterModel): boolean {
+  const context = canvas.getContext("2d");
+  if (context === null) return false;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  const heritage = atlasHeritage(model.heritage);
+  const moving = model.motion === "walk-a" || model.motion === "walk-b";
+  const phase = model.walkFrame === 0 ? 0 : Math.PI / 2;
+  const size = Math.min(172, Math.max(92, model.metrics.heightPx * 1.5));
+  const jobId = modelJobId(model);
+  const careerUniform = jobId === null ? undefined : CAREER_UNIFORM_BY_JOB[jobId];
+  if (
+    careerUniform !== undefined
+    && isCareerOutfitUniform(careerUniform)
+    && drawCareerOutfitCharacter(
+      context,
+      canvas.width / 2,
+      canvas.height - 7,
+      careerUniform,
+      heritage,
+      model.gender,
+      { facing: model.direction, moving, phase, season: model.outfit.season, size },
+    )
+  ) {
+    return true;
+  }
+  const occupationUniform = jobId === null ? undefined : OCCUPATION_UNIFORM_BY_JOB[jobId];
+  if (
+    occupationUniform !== undefined
+    && drawOccupationCharacter(
+      context,
+      canvas.width / 2,
+      canvas.height - 7,
+      occupationUniform,
+      heritage,
+      model.gender,
+      { facing: model.direction, moving, phase, size },
+    )
+  ) {
+    return true;
+  }
+  const look = avatarLook(
+    LIFE_STAGE_INDEX[model.lifeStage],
+    model.gender,
+    heritage,
+    stableHash(model.appearanceSignature) % 2 === 0 ? "classic" : "alternate",
+  );
+  return drawStorybookCharacter(
+    context,
+    canvas.width / 2,
+    canvas.height - 7,
+    look,
+    phase,
+    {
+      moving,
+      facing: model.direction,
+      verticalBias: 0,
+      pose: model.motion === "sit" ? "sit" : "stand",
+    },
+  );
+}
+
 export function createCharacterElement(
   document: Document,
   model: CharacterModel,
@@ -585,7 +706,26 @@ export function createCharacterElement(
   template.innerHTML = renderCharacterMarkup(model);
   const element = template.content.firstElementChild;
   if (!element) throw new Error("Character markup did not create an element");
-  return element as HTMLElement;
+  const character = element as HTMLElement;
+  const canvas = document.createElement("canvas");
+  canvas.className = "col-character__atlas";
+  canvas.width = 192;
+  canvas.height = 192;
+  canvas.setAttribute("aria-hidden", "true");
+  character.append(canvas);
+  const redraw = (): void => {
+    character.classList.toggle("col-character--atlas-ready", drawCharacterAtlas(canvas, model));
+  };
+  redraw();
+  const ownerWindow = document.defaultView;
+  for (const eventName of [
+    "plj:character-atlas-ready",
+    "plj:career-outfit-atlas-ready",
+    "plj:occupation-atlas-ready",
+  ]) {
+    ownerWindow?.addEventListener(eventName, redraw, { once: true });
+  }
+  return character;
 }
 
 export type CompanionKind = "cat" | "dog";
@@ -685,5 +825,27 @@ export function createCompanionElement(
   template.innerHTML = renderCompanionMarkup(model);
   const element = template.content.firstElementChild;
   if (!element) throw new Error("Companion markup did not create an element");
-  return element as HTMLElement;
+  const companion = element as HTMLElement;
+  const canvas = document.createElement("canvas");
+  canvas.className = "col-companion__atlas";
+  canvas.width = 128;
+  canvas.height = 128;
+  canvas.setAttribute("aria-hidden", "true");
+  companion.append(canvas);
+  const redraw = (): void => {
+    const context = canvas.getContext("2d");
+    if (context === null) return;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    const ready = drawStorybookPet(context, canvas.width / 2, canvas.height - 5, model.kind, {
+      facing: model.direction,
+      moving: model.motion === "walk-a" || model.motion === "walk-b",
+      phase: model.motion === "walk-b" ? Math.PI / 2 : 0,
+      sitting: model.motion === "sit",
+      shadow: true,
+    });
+    companion.classList.toggle("col-companion--atlas-ready", ready);
+  };
+  redraw();
+  document.defaultView?.addEventListener("plj:pet-atlas-ready", redraw, { once: true });
+  return companion;
 }
