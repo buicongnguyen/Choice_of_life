@@ -56,3 +56,4 @@ Each release must pass code review, logic review, automated verification, an SSH
 ## Publishing
 
 Pushes to `main` run type checking through the build, the full automated test suite, the Vite production build, and GitHub Pages deployment through `.github/workflows/deploy-pages.yml`.
+
