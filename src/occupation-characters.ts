@@ -260,7 +260,14 @@ function atlasStateFor(
   state.readyPromise = new Promise<void>((resolve) => {
     const markReady = async (): Promise<void> => {
       try {
-        if (typeof image.decode === "function") await image.decode();
+        if (typeof image.decode === "function") {
+          await Promise.race([
+            image.decode(),
+            new Promise<void>((resolveTimeout) => {
+              setTimeout(resolveTimeout, 2000);
+            }),
+          ]);
+        }
       } catch {
         // A loaded PNG remains drawable if eager decode is unavailable.
       }

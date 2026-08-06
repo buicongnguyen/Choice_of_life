@@ -26,6 +26,12 @@ import {
 import type { RunnerSimulationEvent } from "../core/runner/simulation";
 import { createElement } from "./elements";
 import {
+  createCharacterElement,
+  createCharacterModel,
+} from "./character-system";
+import { drawRunnerToken, type RunnerTokenKind } from "../../sprites";
+import "./polish.css";
+import {
   createRunnerPresentationModel,
   RUNNER_LANE_LABELS,
   RUNNER_SCORE_LABELS,
@@ -645,6 +651,20 @@ function entitySymbol(entity: RunnerEntity): string {
     (entity.kind === "benefit" ? "+" : entity.kind === "hazard" ? "!" : "◆");
 }
 
+const ENTITY_TOKEN_KINDS: Readonly<Record<string, RunnerTokenKind>> = Object.freeze({
+  "runner-lab-health-token-v1": "health",
+  "runner-lab-happiness-token-v1": "happiness",
+  "runner-lab-money-token-v1": "money",
+  "runner-lab-clutter-hazard-v1": "hazard",
+  "runner-lab-pressure-hazard-v1": "hazard",
+  "runner-lab-decision-marker-v1": "decision",
+});
+
+function entityTokenKind(entity: RunnerEntity): RunnerTokenKind {
+  return ENTITY_TOKEN_KINDS[entity.contentId] ??
+    (entity.kind === "benefit" ? "health" : entity.kind === "hazard" ? "hazard" : "decision");
+}
+
 function isCompleted(snapshot: RunnerViewSessionSnapshot): boolean {
   return snapshot.status === "completed" ||
     snapshot.state.runStatus === "completed" ||
@@ -834,6 +854,38 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
   player.dataset.hairShape = stableCharacterToken.hairShape;
   player.dataset.hairTone = stableCharacterToken.hairTone;
   player.dataset.clothingTone = stableCharacterToken.clothingTone;
+  const figure = createElement(document, "span", {
+    className: "col-runner-player__figure",
+    attributes: { "aria-hidden": "true" },
+  });
+  for (const frame of ["walk-a", "walk-b"] as const) {
+    const actorWrap = createElement(document, "span", {
+      className: [
+        "col-polish-actor",
+        "col-polish-actor--character",
+        "col-runner-player__frame",
+        `col-runner-player__frame--${frame}`,
+      ].join(" "),
+    });
+    actorWrap.append(createCharacterElement(document, createCharacterModel({
+      characterId: `runner-player-${frame}`,
+      label: "Runner",
+      gender: stableCharacterToken.bodySet === "feminine" ? "female" : "male",
+      heritage: stableCharacterToken.artSet,
+      lifeStage: "young-adult",
+      direction: "right",
+      motion: frame,
+      seed: "runner-player",
+      appearance: {
+        hairStyleId: stableCharacterToken.hairShape,
+        hairColorId: stableCharacterToken.hairTone,
+        clothingPaletteId: stableCharacterToken.clothingTone,
+      },
+    })));
+    figure.append(actorWrap);
+  }
+  player.append(figure);
+  player.classList.add("col-runner-player--figure");
   world.append(farLayer, nearLayer, laneLayer, entityField, player);
   playSurface.append(world);
   visualFrame.append(warningLayer, playSurface);
@@ -1667,6 +1719,17 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
             "data-runner-content-id": entity.contentId,
           },
         });
+        const tokenCanvas = document.createElement("canvas");
+        tokenCanvas.width = 44;
+        tokenCanvas.height = 44;
+        tokenCanvas.className = "col-runner-entity__art";
+        tokenCanvas.setAttribute("aria-hidden", "true");
+        const tokenContext = tokenCanvas.getContext("2d");
+        if (tokenContext !== null) {
+          drawRunnerToken(tokenContext, 22, 42, entityTokenKind(entity));
+          element.append(tokenCanvas);
+          element.classList.add("col-runner-entity--art");
+        }
         entityElements.set(entity.instanceId, element);
       }
       const rawXPercent = entity.xMilli / 5000;

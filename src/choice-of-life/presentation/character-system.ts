@@ -718,12 +718,25 @@ export function createCharacterElement(
   };
   redraw();
   const ownerWindow = document.defaultView;
-  for (const eventName of [
-    "plj:character-atlas-ready",
-    "plj:career-outfit-atlas-ready",
-    "plj:occupation-atlas-ready",
-  ]) {
-    ownerWindow?.addEventListener(eventName, redraw, { once: true });
+  if (ownerWindow && !character.classList.contains("col-character--atlas-ready")) {
+    const eventNames = [
+      "plj:character-atlas-ready",
+      "plj:career-outfit-atlas-ready",
+      "plj:occupation-atlas-ready",
+    ];
+    // Atlas sheets load in several stages and each dispatches a ready event,
+    // so keep listening until the frame this element needs has drawn.
+    const onAtlasReady = (): void => {
+      redraw();
+      if (character.classList.contains("col-character--atlas-ready")) {
+        for (const eventName of eventNames) {
+          ownerWindow.removeEventListener(eventName, onAtlasReady);
+        }
+      }
+    };
+    for (const eventName of eventNames) {
+      ownerWindow.addEventListener(eventName, onAtlasReady);
+    }
   }
   return character;
 }

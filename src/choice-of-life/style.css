@@ -1171,6 +1171,70 @@ body {
   transform: translateX(-50%);
 }
 
+.col-runner-player--figure {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+
+.col-runner-player--figure::before,
+.col-runner-player--figure::after {
+  content: none;
+}
+
+.col-runner-entity--art {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  font-size: 0;
+  transform: translate(-50%, -50%);
+}
+
+.col-runner-entity__art {
+  inline-size: 2.4rem;
+  block-size: 2.4rem;
+  pointer-events: none;
+}
+
+.col-runner-player__figure {
+  --col-polish-ground-line: 0px;
+
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: visible;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.col-runner-player__frame {
+  --col-polish-actor-x: 50%;
+  --col-polish-actor-scale: 0.62;
+}
+
+.col-runner-player__frame--walk-b {
+  visibility: hidden;
+}
+
+.col-runner-view:not([data-motion-reduced="true"]) .col-runner-player__frame--walk-a {
+  animation: col-runner-stride-a 0.56s steps(1, end) infinite;
+}
+
+.col-runner-view:not([data-motion-reduced="true"]) .col-runner-player__frame--walk-b {
+  visibility: visible;
+  animation: col-runner-stride-b 0.56s steps(1, end) infinite;
+}
+
+@keyframes col-runner-stride-a {
+  0%, 49% { visibility: visible; }
+  50%, 100% { visibility: hidden; }
+}
+
+@keyframes col-runner-stride-b {
+  0%, 49% { visibility: hidden; }
+  50%, 100% { visibility: visible; }
+}
+
 .col-runner-control-area {
   display: grid;
   gap: 0.65rem;
@@ -1433,6 +1497,49 @@ body {
 
 .col-runner-view[data-motion-reduced="true"] .col-runner-player {
   inset-block-start: var(--col-runner-target-lane-y, 50%);
+}
+
+@media (max-width: 640px) {
+  .col-runner-view {
+    position: relative;
+  }
+
+  #runner-user-pause-button {
+    position: absolute;
+    z-index: 9;
+    inset-block-start: 0.4rem;
+    inset-inline-end: 0.4rem;
+    padding: 0.28rem 0.62rem;
+    font-size: 0.8rem;
+  }
+
+  .col-runner-configure-bindings {
+    position: absolute;
+    z-index: 9;
+    inset-block-start: 0.4rem;
+    inset-inline-start: 0.4rem;
+    max-inline-size: 42%;
+    padding: 0.28rem 0.62rem;
+    font-size: 0.72rem;
+    line-height: 1.15;
+  }
+
+  .col-runner-control-placement {
+    display: none;
+  }
+
+  .col-runner-binding-instructions {
+    display: none;
+  }
+
+  .col-runner-lane-button {
+    padding: 0.5rem 0.9rem;
+    font-size: 0.95rem;
+  }
+
+  .col-runner-play-surface {
+    block-size: 22rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

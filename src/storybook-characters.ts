@@ -673,7 +673,14 @@ function atlasStateFor(
     const markReady = async (): Promise<void> => {
       try {
         if (typeof image.decode === "function") {
-          await image.decode();
+          // Hidden or backgrounded documents can defer decode() indefinitely,
+          // so cap the wait; a loaded image is drawable without the hint.
+          await Promise.race([
+            image.decode(),
+            new Promise<void>((resolveTimeout) => {
+              setTimeout(resolveTimeout, 2000);
+            }),
+          ]);
         }
       } catch {
         // A loaded image remains drawable when an eager decode hint is

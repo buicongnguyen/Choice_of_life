@@ -4561,6 +4561,97 @@ const EVENT_MONEY_IDS = new Set([
 ]);
 const EVENT_PRIZE_IDS = new Set(["busk", "contest", "raffle", "viral", "gameshow"]);
 
+export type RunnerTokenKind =
+  | "money"
+  | "health"
+  | "happiness"
+  | "hazard"
+  | "decision";
+
+/** Compact pickup art for the life runner, sharing the event-item style. */
+export function drawRunnerToken(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  footY: number,
+  kind: RunnerTokenKind
+): void {
+  ctx.save();
+  if (kind === "money") {
+    ellipse(ctx, x, footY - 18, 17, 17, "#c5791e");
+    ellipse(ctx, x, footY - 21, 15, 15, "#ffd23f");
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#ba6b15";
+    ctx.font = "bold 18px 'Trebuchet MS', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("$", x, footY - 20);
+  } else if (kind === "health") {
+    const cy = footY - 20;
+    ctx.beginPath();
+    ctx.moveTo(x, cy + 14);
+    ctx.bezierCurveTo(x - 20, cy - 2, x - 12, cy - 16, x, cy - 6);
+    ctx.bezierCurveTo(x + 12, cy - 16, x + 20, cy - 2, x, cy + 14);
+    ctx.closePath();
+    ctx.fillStyle = "#ff5d6c";
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ellipse(ctx, x - 5, cy - 5, 3, 3, "#ffd0d6");
+  } else if (kind === "happiness") {
+    const cy = footY - 20;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i += 1) {
+      const radius = i % 2 === 0 ? 16 : 7;
+      const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+      const px2 = x + Math.cos(angle) * radius;
+      const py2 = cy + Math.sin(angle) * radius;
+      if (i === 0) ctx.moveTo(px2, py2);
+      else ctx.lineTo(px2, py2);
+    }
+    ctx.closePath();
+    ctx.fillStyle = "#ffd23f";
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  } else if (kind === "hazard") {
+    const cy = footY - 20;
+    ctx.beginPath();
+    ctx.moveTo(x, cy - 17);
+    ctx.lineTo(x + 16, cy + 12);
+    ctx.lineTo(x - 16, cy + 12);
+    ctx.closePath();
+    ctx.fillStyle = "#ff8748";
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.fillStyle = OUTLINE;
+    ctx.font = "bold 16px 'Trebuchet MS', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("!", x, cy + 3);
+  } else {
+    const cy = footY - 20;
+    ctx.beginPath();
+    ctx.moveTo(x, cy - 16);
+    ctx.lineTo(x + 13, cy);
+    ctx.lineTo(x, cy + 16);
+    ctx.lineTo(x - 13, cy);
+    ctx.closePath();
+    ctx.fillStyle = "#9c8cff";
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ellipse(ctx, x, cy, 4, 4, "#f2e8cf");
+  }
+  ctx.restore();
+}
+
 export function drawEventItem(
   ctx: CanvasRenderingContext2D,
   x: number,
