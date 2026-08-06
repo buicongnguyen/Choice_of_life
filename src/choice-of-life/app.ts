@@ -534,13 +534,20 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
 
   const renderHeader = (main: HTMLElement): void => {
     const header = createElement(document, "header", { className: "col-header" });
+    const gameMark = createElement(document, "div", {
+      className: "col-game-mark",
+      text: "✦",
+      attributes: { "aria-hidden": "true" },
+    });
     const eyebrow = createElement(document, "p", { className: "col-eyebrow", text: "A life shaped by small choices" });
     const title = createElement(document, "h1", { text: "Choice of Life", attributes: { "id": "choice-life-title" } });
     const subtitle = createElement(document, "p", {
       className: "col-subtitle",
       text: "Move through time, care for what matters, and see how decisions echo forward.",
     });
-    header.append(eyebrow, title, subtitle);
+    const copy = createElement(document, "div", { className: "col-header-copy" });
+    copy.append(eyebrow, title, subtitle);
+    header.append(gameMark, copy);
     main.append(header);
   };
 
@@ -549,7 +556,19 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       className: "col-panel col-title-panel",
       attributes: { "aria-labelledby": "title-actions-heading" },
     });
-    panel.append(createElement(document, "h2", { text: "Begin your journey", attributes: { "id": "title-actions-heading" } }));
+    const hud = createElement(document, "div", {
+      className: "col-title-hud",
+      attributes: { "aria-label": "Your three life goals" },
+    });
+    for (const [icon, label] of [["♥", "Health"], ["★", "Happiness"], ["●", "Money"]] as const) {
+      const stat = createElement(document, "span", { className: "col-title-stat" });
+      stat.append(
+        createElement(document, "b", { text: icon, attributes: { "aria-hidden": "true" } }),
+        createElement(document, "span", { text: label }),
+      );
+      hud.append(stat);
+    }
+    panel.append(hud, createElement(document, "h2", { text: "Begin your journey", attributes: { "id": "title-actions-heading" } }));
     panel.append(
       createElement(document, "p", {
         text: "There is no single perfect life. Health, happiness, and financial security create different possibilities—not a moral ranking.",
@@ -2534,7 +2553,11 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
 
     const main = createElement(document, "main", {
       className: "col-shell",
-      attributes: { "aria-labelledby": "choice-life-title", "aria-busy": state.pending ? "true" : "false" },
+      attributes: {
+        "aria-labelledby": "choice-life-title",
+        "aria-busy": state.pending ? "true" : "false",
+        "data-screen": state.screen,
+      },
     });
     renderHeader(main);
     if (state.screen === "title") {
