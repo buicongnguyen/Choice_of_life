@@ -76,13 +76,13 @@ export const STARTING_PROFILES: readonly StartingProfile[] = Object.freeze([
 ]);
 
 export const DIFFICULTIES: readonly ChoiceOption<Difficulty>[] = [
-  { id: "story", label: "Story", description: "More forgiving hazards and recovery; story choices stay untimed." },
-  { id: "normal", label: "Normal", description: "Standard hazard and recovery tolerance; story choices stay untimed." },
-  { id: "challenge", label: "Challenge", description: "Tighter hazards and recovery; story choices stay untimed." },
+  { id: "story", label: "Easy", description: "Slow-moving items, fewer hazards, and more recovery time." },
+  { id: "normal", label: "Medium", description: "Items move faster with a balanced number of hazards." },
+  { id: "challenge", label: "Difficult", description: "The fastest item speed and the busiest hazard patterns." },
 ] as const;
 
 export const CONTROL_MODES: readonly ChoiceOption<ControlMode>[] = [
-  { id: "manual", label: "Manual runner", description: "Move between lanes with keyboard or touch controls." },
+  { id: "manual", label: "Manual runner", description: "Use the friendly four-way pad, arrow keys, or WASD controls." },
   { id: "semantic-assist", label: "Semantic Assist", description: "Choose the same lane decisions from untimed, descriptive controls." },
   { id: "automatic-assist", label: "Automatic Assist", description: "The neutral runner trace is handled for you while story choices remain yours." },
 ] as const;

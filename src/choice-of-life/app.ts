@@ -807,7 +807,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
       panel.append(
         createElement(document, "p", {
           className: "col-run-summary",
-          text: `${profile.label} · ${state.readyRun.difficulty} difficulty · ${state.readyRun.controlMode}`,
+          text: `${profile.label} · ${DIFFICULTIES.find((option) => option.id === state.readyRun?.difficulty)?.label ?? state.readyRun.difficulty} difficulty · ${state.readyRun.controlMode}`,
         }),
         createScorePreview(
           document,

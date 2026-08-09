@@ -730,7 +730,7 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
     attributes: { "data-runner-entry": "" },
   });
   const orientation = createElement(document, "p", {
-    text: "Time moves from right to left. Use lane controls to collect helpful items and avoid hazards. The top lane is above the middle lane; the bottom lane is below it.",
+    text: "Time moves from right to left. Use the four-way movement pad: move up or down to catch helpful items and avoid hazards, and move left or right to choose a comfortable approach position.",
     attributes: { "data-runner-orientation": "" },
   });
   const startButton = button(document, "Start runner", "col-button col-button--primary");
@@ -915,19 +915,35 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
   });
   const laneUpButton = button(
     document,
-    "Up",
+    "▲",
     "col-button col-runner-lane-button col-icon-button col-icon-button--up",
   );
   const laneDownButton = button(
     document,
-    "Down",
+    "▼",
     "col-button col-runner-lane-button col-icon-button col-icon-button--down",
   );
   laneUpButton.setAttribute("aria-label", "Move up");
   laneDownButton.setAttribute("aria-label", "Move down");
   laneUpButton.setAttribute("data-runner-lane-command", "lane-up");
   laneDownButton.setAttribute("data-runner-lane-command", "lane-down");
-  laneCluster.append(laneUpButton, laneDownButton);
+  const moveLeftButton = button(
+    document,
+    "◀",
+    "col-button col-runner-lane-button col-runner-horizontal-button col-icon-button col-icon-button--left",
+  );
+  const moveRightButton = button(
+    document,
+    "▶",
+    "col-button col-runner-lane-button col-runner-horizontal-button col-icon-button col-icon-button--right",
+  );
+  moveLeftButton.setAttribute("aria-label", "Move left");
+  moveRightButton.setAttribute("aria-label", "Move right");
+  moveLeftButton.setAttribute("aria-keyshortcuts", "ArrowLeft A");
+  moveRightButton.setAttribute("aria-keyshortcuts", "ArrowRight D");
+  moveLeftButton.dataset.runnerHorizontalCommand = "left";
+  moveRightButton.dataset.runnerHorizontalCommand = "right";
+  laneCluster.append(laneUpButton, moveLeftButton, moveRightButton, laneDownButton);
   const controlPlacementButton = button(
     document,
     controlClusterPlacement === "right"
@@ -1175,6 +1191,14 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
   let bindingDialogOpen = false;
   let bindingDialogInvoker: HTMLElement | null = null;
   let pendingRemapCommand: RunnerViewInputCommand | null = null;
+  let horizontalPosition = 1;
+  const applyHorizontalPosition = (next: number): void => {
+    horizontalPosition = Math.max(0, Math.min(2, next));
+    player.style.setProperty("--col-runner-player-x", `${[32, 36, 40][horizontalPosition]}%`);
+    player.dataset.horizontalPosition = ["left", "center", "right"][horizontalPosition];
+    moveLeftButton.disabled = horizontalPosition === 0;
+    moveRightButton.disabled = horizontalPosition === 2;
+  };
   let presentationFault: string | null = null;
   let presentationFaultReportAttempted = false;
   let activeControlClusterPlacement: "left" | "right" = controlClusterPlacement;
@@ -1350,7 +1374,7 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
     );
     setText(
       bindingInstructions,
-      `Move up: ${up}. Move down: ${down}. You can also swipe vertically on the play surface.`,
+      `Move up: ${up}. Move down: ${down}. Move left: Left Arrow or A. Move right: Right Arrow or D. You can also swipe vertically on the play surface.`,
     );
   };
 
@@ -2111,6 +2135,8 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
     controlPlacementButton.disabled = bindingDialogOpen || terminal;
     laneUpButton.disabled = !inputOpen;
     laneDownButton.disabled = !inputOpen;
+    moveLeftButton.disabled = !inputOpen || horizontalPosition === 0;
+    moveRightButton.disabled = !inputOpen || horizontalPosition === 2;
     pauseButton.hidden = !snapshot.started || terminal;
     const userPaused = state.runner?.userPaused === true;
     setText(pauseButton, userPaused ? "Resume" : "Pause");
@@ -2175,6 +2201,20 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
       return;
     }
     consumeSnapshot(session.getSnapshot());
+  });
+  listen(moveLeftButton, "click", () => applyHorizontalPosition(horizontalPosition - 1));
+  listen(moveRightButton, "click", () => applyHorizontalPosition(horizontalPosition + 1));
+  listen(ownerWindow, "keydown", (event) => {
+    const keyboardEvent = event as KeyboardEvent;
+    const target = keyboardEvent.target;
+    if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) return;
+    if (keyboardEvent.code === "ArrowLeft" || keyboardEvent.code === "KeyA") {
+      keyboardEvent.preventDefault();
+      if (!moveLeftButton.disabled) moveLeftButton.click();
+    } else if (keyboardEvent.code === "ArrowRight" || keyboardEvent.code === "KeyD") {
+      keyboardEvent.preventDefault();
+      if (!moveRightButton.disabled) moveRightButton.click();
+    }
   });
   listen(controlPlacementButton, "click", () => {
     if (controlPlacementButton.hidden || controlPlacementButton.disabled) return;
@@ -2302,6 +2342,7 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
   }
 
   updateBindings(DEFAULT_BINDINGS);
+  applyHorizontalPosition(1);
   updateVisualOptions(initialVisualOptions);
   try {
     consumeSnapshot(initialSnapshot);

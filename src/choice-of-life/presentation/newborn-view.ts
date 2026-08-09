@@ -337,7 +337,7 @@ export function mountNewbornView(
   const controlArea = createElement(document, "div", { className: "col-newborn-control-area" });
   const instructions = createElement(document, "p", {
     className: "col-newborn-instructions",
-    text: "Keyboard: ↑/W moves up, ↓/S moves down, P pauses. Touch: use the lane buttons or swipe vertically in the room.",
+    text: "Keyboard: arrows or WASD move, P pauses. Touch: use the four-way pad or swipe vertically in the room.",
   });
   const controlRow = createElement(document, "div", { className: "col-newborn-controls" });
   const upButton = button(
@@ -358,7 +358,21 @@ export function mountNewbornView(
     "col-button col-newborn-lane-button col-icon-button col-icon-button--down",
   );
   downButton.setAttribute("aria-keyshortcuts", "ArrowDown S");
-  controlRow.append(upButton, downButton);
+  const leftButton = button(document, "◀", "col-button col-newborn-lane-button col-newborn-horizontal-button");
+  const rightButton = button(document, "▶", "col-button col-newborn-lane-button col-newborn-horizontal-button");
+  leftButton.setAttribute("aria-label", "Move left");
+  rightButton.setAttribute("aria-label", "Move right");
+  leftButton.setAttribute("aria-keyshortcuts", "ArrowLeft A");
+  rightButton.setAttribute("aria-keyshortcuts", "ArrowRight D");
+  upButton.textContent = "▲";
+  downButton.textContent = "▼";
+  upButton.setAttribute("aria-label", "Move up");
+  downButton.setAttribute("aria-label", "Move down");
+  upButton.dataset.newbornDirection = "up";
+  downButton.dataset.newbornDirection = "down";
+  leftButton.dataset.newbornDirection = "left";
+  rightButton.dataset.newbornDirection = "right";
+  controlRow.append(upButton, leftButton, rightButton, downButton);
   controlArea.append(instructions);
 
   const choiceTray = createElement(document, "section", {
@@ -462,6 +476,17 @@ export function mountNewbornView(
     callbacks.dispatch({ type: "move", direction });
   };
 
+  let horizontalPosition = 1;
+  const requestHorizontalMove = (direction: "left" | "right"): void => {
+    const state = currentState;
+    if (disposed || state === null || state.phase !== "active" || state.clock.paused) return;
+    horizontalPosition = Math.max(0, Math.min(2, horizontalPosition + (direction === "left" ? -1 : 1)));
+    baby.style.setProperty("--col-newborn-player-x", `${[21, 24, 27][horizontalPosition]}%`);
+    baby.dataset.horizontalPosition = ["left", "center", "right"][horizontalPosition];
+    leftButton.disabled = horizontalPosition === 0;
+    rightButton.disabled = horizontalPosition === 2;
+  };
+
   const togglePause = (): void => {
     const state = currentState;
     if (disposed || state === null || state.phase !== "active") return;
@@ -470,6 +495,8 @@ export function mountNewbornView(
 
   listen(upButton, "click", () => requestMove("up"));
   listen(downButton, "click", () => requestMove("down"));
+  listen(leftButton, "click", () => requestHorizontalMove("left"));
+  listen(rightButton, "click", () => requestHorizontalMove("right"));
   listen(pauseButton, "click", togglePause);
   listen(settleButton, "click", () => {
     if (currentState !== null && canSettleNewborn(currentState)) {
@@ -494,6 +521,12 @@ export function mountNewbornView(
       } else if (keyboardEvent.code === "ArrowDown" || keyboardEvent.code === "KeyS") {
         keyboardEvent.preventDefault();
         requestMove("down");
+      } else if (keyboardEvent.code === "ArrowLeft" || keyboardEvent.code === "KeyA") {
+        keyboardEvent.preventDefault();
+        requestHorizontalMove("left");
+      } else if (keyboardEvent.code === "ArrowRight" || keyboardEvent.code === "KeyD") {
+        keyboardEvent.preventDefault();
+        requestHorizontalMove("right");
       } else if (keyboardEvent.code === "KeyP") {
         keyboardEvent.preventDefault();
         togglePause();
@@ -578,6 +611,8 @@ export function mountNewbornView(
     const active = state.phase === "active";
     upButton.disabled = !active || state.clock.paused || state.player.lane === 0;
     downButton.disabled = !active || state.clock.paused || state.player.lane === 2;
+    leftButton.disabled = !active || state.clock.paused || horizontalPosition === 0;
+    rightButton.disabled = !active || state.clock.paused || horizontalPosition === 2;
     pauseButton.disabled = !active;
     pauseButton.textContent = state.clock.paused ? "Resume" : "Pause";
     pauseButton.setAttribute("aria-pressed", String(state.clock.paused));
