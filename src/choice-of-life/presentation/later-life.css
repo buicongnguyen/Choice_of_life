@@ -502,6 +502,16 @@
   animation: col-later-life-breathe 3.8s ease-in-out infinite;
 }
 
+.col-later-life-figure.col-polish-actor--character .col-character__atlas {
+  block-size: 10rem;
+  inline-size: 10rem;
+}
+
+.col-later-life-companion .col-companion__atlas {
+  block-size: 6.5rem;
+  inline-size: 6.5rem;
+}
+
 .col-later-life-figure-head {
   position: absolute;
   top: 18px;

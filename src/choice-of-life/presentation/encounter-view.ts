@@ -11,6 +11,8 @@ import type {
 } from "../core/shell-contracts";
 import { createElement } from "./elements";
 import { createStagePlayerAvatar, type StagePlayerCharacter } from "./stage-player-avatar";
+import { createCharacterElement, createCharacterModel, type CharacterHeritage } from "./character-system";
+import "./polish.css";
 
 export interface EncounterViewCallbacks {
   readonly playerCharacter?: StagePlayerCharacter;
@@ -62,20 +64,27 @@ function humanizeId(value: string): string {
 }
 
 function personMarkup(document: Document, role: "player" | "visitor"): HTMLElement {
-  const person = createElement(document, "div", {
+  return createElement(document, "div", {
     className: `col-encounter-person col-encounter-person--${role}`,
     attributes: { "aria-hidden": "true" },
   });
-  person.append(
-    createElement(document, "span", { className: "col-encounter-person-hair" }),
-    createElement(document, "span", { className: "col-encounter-person-head" }),
-    createElement(document, "span", { className: "col-encounter-person-body" }),
-    createElement(document, "span", { className: "col-encounter-person-arm col-encounter-person-arm--left" }),
-    createElement(document, "span", { className: "col-encounter-person-arm col-encounter-person-arm--right" }),
-    createElement(document, "span", { className: "col-encounter-person-leg col-encounter-person-leg--left" }),
-    createElement(document, "span", { className: "col-encounter-person-leg col-encounter-person-leg--right" }),
-  );
-  return person;
+}
+
+function encounterVisitorCharacter(document: Document, definition: EncounterDefinition): HTMLElement {
+  const hash = [...definition.encounterId].reduce((value, character) =>
+    (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
+  const heritages: readonly CharacterHeritage[] = ["asian", "western", "black", "middle-eastern"];
+  return createCharacterElement(document, createCharacterModel({
+    characterId: `encounter-${definition.encounterId}`,
+    label: encounterKindLabel(definition),
+    gender: hash % 2 === 0 ? "female" : "male",
+    heritage: heritages[hash % heritages.length] ?? "asian",
+    lifeStage: definition.kind === "friend" ? "child" : "adult",
+    direction: "left",
+    motion: "idle",
+    expression: "talk",
+    seed: definition.encounterId,
+  }));
 }
 
 export function mountEncounterView(
@@ -165,6 +174,7 @@ export function mountEncounterView(
   );
   const player = createStagePlayerAvatar(document, callbacks.playerCharacter, "toddler", "col-encounter-person col-encounter-person--player");
   const visitor = personMarkup(document, "visitor");
+  visitor.classList.add("col-polish-actor", "col-polish-actor--character");
   const visitorLabel = createElement(document, "span", {
     className: "col-encounter-visitor-label",
   });
@@ -413,6 +423,10 @@ export function mountEncounterView(
       pausePill.hidden = presenting === null && !recoveryPending;
       if (presenting) {
         visitor.dataset.kind = presenting.definition.kind;
+        const priorCharacter = visitor.querySelector(":scope > .col-character");
+        if (priorCharacter?.getAttribute("data-character-id") !== `encounter-${presenting.definition.encounterId}`) {
+          visitor.replaceChildren(encounterVisitorCharacter(document, presenting.definition), visitorLabel);
+        }
         visitorLabel.textContent = encounterKindLabel(presenting.definition);
         speech.textContent = presenting.definition.prompt;
       } else if (recoveryPending) {

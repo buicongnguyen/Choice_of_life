@@ -337,6 +337,16 @@
   width: 56px;
 }
 
+.col-adult-figure.col-polish-actor--character .col-character__atlas {
+  block-size: 9rem;
+  inline-size: 9rem;
+}
+
+.col-adult-figure--compact.col-polish-actor--character .col-character__atlas {
+  block-size: 7rem;
+  inline-size: 7rem;
+}
+
 .col-adult-figure__shadow {
   background: rgba(40, 46, 42, .2);
   border-radius: 50%;

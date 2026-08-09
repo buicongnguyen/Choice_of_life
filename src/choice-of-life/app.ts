@@ -1875,6 +1875,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     let view: AdultView | null = null;
     try {
       view = mountAdultView(host, {
+        playerCharacter: playerCharacterForStage(),
         dispatch: dispatchAdult,
         onContinueToLaterCareer: continueFromAdult,
         onReturnToReady: returnFromAdultToReady,
@@ -2040,6 +2041,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     let view: LaterLifeView | null = null;
     try {
       view = mountLaterLifeView(host, {
+        playerCharacter: playerCharacterForStage(),
         dispatch: dispatchLaterLife,
         onReturnToTitle: returnFromLaterLifeToTitle,
         onNewLife: beginNewLifeFromLaterLife,

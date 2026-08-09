@@ -17,9 +17,13 @@ import {
 } from "../core/later-life/index";
 import type { ScoreId } from "../core/score-model";
 import { createElement } from "./elements";
+import { createStagePlayerAvatar, type StagePlayerCharacter } from "./stage-player-avatar";
+import { createCompanionElement, createCompanionModel } from "./character-system";
 import "./later-life.css";
+import "./polish.css";
 
 export interface LaterLifeViewCallbacks {
+  readonly playerCharacter?: StagePlayerCharacter;
   /** Apply the action to the canonical later-life reducer, then render the returned state. */
   readonly dispatch: (action: LaterLifeAction) => void;
   /** Leave the current run and return to the game's title screen. */
@@ -503,27 +507,25 @@ export function mountLaterLifeView(
     createElement(document, "span", { className: "col-later-life-object col-later-life-object--tree" }),
     createElement(document, "span", { className: "col-later-life-object col-later-life-object--bench" }),
   );
-  const figure = createElement(document, "div", {
-    className: "col-later-life-figure",
-    attributes: { "aria-hidden": "true" },
-  });
-  figure.append(
-    createElement(document, "span", { className: "col-later-life-figure-hair" }),
-    createElement(document, "span", { className: "col-later-life-figure-head" }),
-    createElement(document, "span", { className: "col-later-life-figure-body" }),
-    createElement(document, "span", { className: "col-later-life-figure-arm col-later-life-figure-arm--left" }),
-    createElement(document, "span", { className: "col-later-life-figure-arm col-later-life-figure-arm--right" }),
-    createElement(document, "span", { className: "col-later-life-figure-leg col-later-life-figure-leg--left" }),
-    createElement(document, "span", { className: "col-later-life-figure-leg col-later-life-figure-leg--right" }),
+  const figure = createStagePlayerAvatar(
+    document,
+    callbacks.playerCharacter,
+    "senior",
+    "col-later-life-figure",
   );
   const companion = createElement(document, "div", {
-    className: "col-later-life-companion",
+    className: "col-later-life-companion col-polish-actor col-polish-actor--pet",
     attributes: { "aria-hidden": "true" },
   });
-  companion.append(
-    createElement(document, "span", { className: "col-later-life-companion-head" }),
-    createElement(document, "span", { className: "col-later-life-companion-body" }),
-  );
+  companion.append(createCompanionElement(document, createCompanionModel({
+    companionId: "later-life-companion",
+    name: "Family dog",
+    kind: "dog",
+    direction: "left",
+    motion: "sit",
+    expression: "happy",
+    seed: "later-life-companion",
+  })));
   const sceneCaption = createElement(document, "p", {
     className: "col-later-life-scene-caption",
   });

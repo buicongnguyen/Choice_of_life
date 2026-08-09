@@ -16,6 +16,13 @@ import {
 } from "../core/childhood/index";
 import { createElement } from "./elements";
 import { createStagePlayerAvatar, type StagePlayerCharacter } from "./stage-player-avatar";
+import {
+  createCharacterElement,
+  createCharacterModel,
+  createCompanionElement,
+  createCompanionModel,
+} from "./character-system";
+import "./polish.css";
 
 export interface ChildhoodViewCallbacks {
   readonly dispatch: (action: ChildhoodAction) => void;
@@ -86,39 +93,6 @@ const STAGE_COPY: Readonly<
   },
 });
 
-const SKIN_COLORS: Readonly<Record<ChildhoodAppearance["skinToneId"], string>> =
-  Object.freeze({
-    "porcelain-warm": "#f7d5bd",
-    peach: "#eebf9e",
-    golden: "#d99b68",
-    tan: "#bd794f",
-    "warm-brown": "#925334",
-    "deep-brown": "#613520",
-  });
-
-const HAIR_COLORS: Readonly<Record<ChildhoodAppearance["hairColorId"], string>> =
-  Object.freeze({
-    black: "#28221f",
-    "dark-brown": "#3d2b26",
-    "warm-brown": "#684336",
-    auburn: "#8a402b",
-  });
-
-const PALETTE_COLORS: Readonly<
-  Record<ChildhoodAppearance["clothingPaletteId"], readonly [string, string, string]>
-> = Object.freeze({
-  "coral-teal": ["#e46f62", "#297b7a", "#ffd98d"],
-  "berry-cream": ["#a84868", "#fff0d2", "#dd9db0"],
-  "sunflower-denim": ["#f1ba43", "#38658b", "#fff2b7"],
-  "mint-navy": ["#65bca0", "#263d68", "#d5f3df"],
-  "sky-caramel": ["#67a9d4", "#a76537", "#f2dfbd"],
-  "lavender-plum": ["#b590d0", "#673f70", "#f5d8ef"],
-  "rust-ocean": ["#b9583f", "#2c7180", "#f5c486"],
-  "forest-sand": ["#3c7257", "#c8a56b", "#f1dfb7"],
-});
-
-const PLAYER_PALETTE = Object.freeze(["#f28b66", "#317f89", "#ffe1a3"] as const);
-
 function ageCopy(ageMonths: number): string {
   const years = Math.floor(ageMonths / 12);
   const months = ageMonths % 12;
@@ -179,34 +153,18 @@ function createScoreWidget(
   return Object.freeze({ card, widget: Object.freeze({ output, meter }) });
 }
 
-function appendFace(document: Document, head: HTMLElement): void {
-  head.append(
-    createElement(document, "span", { className: "col-childhood-ear col-childhood-ear--left" }),
-    createElement(document, "span", { className: "col-childhood-ear col-childhood-ear--right" }),
-    createElement(document, "span", { className: "col-childhood-eye col-childhood-eye--left" }),
-    createElement(document, "span", { className: "col-childhood-eye col-childhood-eye--right" }),
-    createElement(document, "span", { className: "col-childhood-cheek col-childhood-cheek--left" }),
-    createElement(document, "span", { className: "col-childhood-cheek col-childhood-cheek--right" }),
-    createElement(document, "span", { className: "col-childhood-smile" }),
-  );
-}
-
 function createCharacter(
   document: Document,
   role: "player" | "friend",
   label: string,
+  gender: "female" | "male" = "female",
   appearance?: ChildhoodAppearance,
 ): HTMLElement {
   const figure = createElement(document, "figure", {
     className: `col-childhood-character col-childhood-character--${role}`,
     attributes: { "aria-label": label },
   });
-  const palette = appearance ? PALETTE_COLORS[appearance.clothingPaletteId] : PLAYER_PALETTE;
-  figure.style.setProperty("--child-skin", appearance ? SKIN_COLORS[appearance.skinToneId] : "#dba071");
-  figure.style.setProperty("--child-hair", appearance ? HAIR_COLORS[appearance.hairColorId] : "#302720");
-  figure.style.setProperty("--child-primary", palette[0]);
-  figure.style.setProperty("--child-secondary", palette[1]);
-  figure.style.setProperty("--child-accent", palette[2]);
+  figure.classList.add("col-polish-actor", "col-polish-actor--character");
   if (appearance) {
     figure.dataset.hair = appearance.hairStyleId;
     figure.dataset.clothes = appearance.clothingStyleId;
@@ -225,33 +183,18 @@ function createCharacter(
     figure.dataset.body = "player-child";
   }
 
-  const art = createElement(document, "div", {
-    className: "col-childhood-character-art",
-    attributes: { "aria-hidden": "true" },
-  });
-  const shadow = createElement(document, "span", { className: "col-childhood-character-shadow" });
-  const legs = createElement(document, "span", { className: "col-childhood-legs" });
-  legs.append(
-    createElement(document, "i", { className: "col-childhood-leg col-childhood-leg--left" }),
-    createElement(document, "i", { className: "col-childhood-leg col-childhood-leg--right" }),
-  );
-  const body = createElement(document, "span", { className: "col-childhood-body" });
-  body.append(
-    createElement(document, "i", { className: "col-childhood-collar" }),
-    createElement(document, "i", { className: "col-childhood-arm col-childhood-arm--left" }),
-    createElement(document, "i", { className: "col-childhood-arm col-childhood-arm--right" }),
-    createElement(document, "i", { className: "col-childhood-bag" }),
-  );
-  const head = createElement(document, "span", { className: "col-childhood-head" });
-  appendFace(document, head);
-  head.append(
-    createElement(document, "i", { className: "col-childhood-hair col-childhood-hair--base" }),
-    createElement(document, "i", { className: "col-childhood-hair col-childhood-hair--detail" }),
-    createElement(document, "i", { className: "col-childhood-accessory" }),
-  );
-  art.append(shadow, legs, body, head);
   figure.append(
-    art,
+    createCharacterElement(document, createCharacterModel({
+      characterId: appearance?.appearanceSignature ?? `child-${label}`,
+      label,
+      gender,
+      heritage: appearance?.heritageStyleId ?? "asian",
+      lifeStage: "child",
+      direction: "front",
+      motion: "idle",
+      expression: "smile",
+      seed: appearance?.appearanceSignature ?? label,
+    })),
     createElement(document, "figcaption", { text: label }),
   );
   return figure;
@@ -270,18 +213,18 @@ function createCompanion(
   figure.dataset.coat = companion.coatId;
   figure.dataset.accessory = companion.accessoryId;
   const art = createElement(document, "span", {
-    className: "col-childhood-companion-art",
+    className: "col-childhood-companion-art col-polish-actor col-polish-actor--pet",
     attributes: { "aria-hidden": "true" },
   });
-  art.append(
-    createElement(document, "i", { className: "col-childhood-pet-tail" }),
-    createElement(document, "i", { className: "col-childhood-pet-body" }),
-    createElement(document, "i", { className: "col-childhood-pet-head" }),
-    createElement(document, "i", { className: "col-childhood-pet-ear col-childhood-pet-ear--left" }),
-    createElement(document, "i", { className: "col-childhood-pet-ear col-childhood-pet-ear--right" }),
-    createElement(document, "i", { className: "col-childhood-pet-face" }),
-    createElement(document, "i", { className: "col-childhood-pet-collar" }),
-  );
+  art.append(createCompanionElement(document, createCompanionModel({
+    companionId: companion.companionId,
+    name: companion.name,
+    kind: companion.kind,
+    direction: "right",
+    motion: "idle",
+    expression: "happy",
+    seed: companion.companionId,
+  })));
   figure.append(art, createElement(document, "figcaption", { text: companion.name }));
   return figure;
 }
@@ -299,7 +242,7 @@ function friendCard(
       "data-appearance-signature": person.appearance.appearanceSignature,
     },
   });
-  const portrait = createCharacter(document, "friend", person.givenName, person.appearance);
+  const portrait = createCharacter(document, "friend", person.givenName, person.gender, person.appearance);
   const copy = createElement(document, "div", { className: "col-childhood-friend-copy" });
   copy.append(
     createElement(document, "strong", { text: person.displayName }),
@@ -504,7 +447,7 @@ export function mountChildhoodView(
     propOne.textContent = sceneText.propOne;
     propTwo.textContent = sceneText.propTwo;
     const player = createStagePlayerAvatar(document, callbacks.playerCharacter, "child", "col-childhood-character col-childhood-character--player");
-    const friendFigure = createCharacter(document, "friend", friend.person.givenName, friend.person.appearance);
+    const friendFigure = createCharacter(document, "friend", friend.person.givenName, friend.person.gender, friend.person.appearance);
     const children: HTMLElement[] = [player, friendFigure];
     if (state.companion) children.push(createCompanion(document, state.companion));
     characterField.replaceChildren(...children);

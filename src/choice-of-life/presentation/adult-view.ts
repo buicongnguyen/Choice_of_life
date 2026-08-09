@@ -18,9 +18,13 @@ import {
   type AdultState,
 } from "../core/adult/index";
 import { createElement } from "./elements";
+import { createCharacterElement, createCharacterModel, type CharacterHeritage } from "./character-system";
+import type { StagePlayerCharacter } from "./stage-player-avatar";
 import "./adult.css";
+import "./polish.css";
 
 export interface AdultViewCallbacks {
+  readonly playerCharacter?: StagePlayerCharacter;
   readonly dispatch: (action: AdultAction) => void;
   readonly onContinueToLaterCareer: () => void;
   readonly onReturnToReady?: () => void;
@@ -221,7 +225,7 @@ function createAdultFigure(
   document: Document,
   person: AdultFigureProfile,
   outfit: AdultOutfitVariant,
-  options: { readonly compact?: boolean; readonly hero?: boolean } = {},
+  options: { readonly compact?: boolean; readonly hero?: boolean; readonly playerCharacter?: StagePlayerCharacter } = {},
 ): HTMLElement {
   const figure = createElement(document, "div", {
     className: [
@@ -239,38 +243,28 @@ function createAdultFigure(
       "aria-label": `${person.name}, ${person.job.roleTitle}, wearing ${outfitLabel(outfit)}`,
     },
   });
-  figure.style.setProperty("--adult-skin", person.appearance.skinTone);
-  figure.style.setProperty("--adult-hair", person.appearance.hairColor);
-  figure.style.setProperty("--adult-outfit-primary", outfit.palette[0]);
-  figure.style.setProperty("--adult-outfit-secondary", outfit.palette[1]);
-  figure.style.setProperty("--adult-outfit-accent", outfit.palette[2]);
-
-  const body = createElement(document, "span", {
-    className: "col-adult-figure__body",
-    attributes: { "aria-hidden": "true" },
-  });
-  body.append(
-    createElement(document, "span", { className: "col-adult-figure__leg col-adult-figure__leg--left" }),
-    createElement(document, "span", { className: "col-adult-figure__leg col-adult-figure__leg--right" }),
-    createElement(document, "span", { className: "col-adult-figure__torso" }),
-    createElement(document, "span", { className: "col-adult-figure__arm col-adult-figure__arm--left" }),
-    createElement(document, "span", { className: "col-adult-figure__arm col-adult-figure__arm--right" }),
-    createElement(document, "span", { className: "col-adult-figure__neck" }),
-    createElement(document, "span", { className: "col-adult-figure__head" }),
-    createElement(document, "span", { className: "col-adult-figure__hair-back" }),
-    createElement(document, "span", { className: "col-adult-figure__hair" }),
-    createElement(document, "span", { className: "col-adult-figure__eye col-adult-figure__eye--left" }),
-    createElement(document, "span", { className: "col-adult-figure__eye col-adult-figure__eye--right" }),
-    createElement(document, "span", { className: "col-adult-figure__smile" }),
-    createElement(document, "span", { className: "col-adult-figure__badge" }),
-  );
-  figure.append(
-    createElement(document, "span", {
-      className: "col-adult-figure__shadow",
-      attributes: { "aria-hidden": "true" },
-    }),
-    body,
-  );
+  figure.classList.add("col-polish-actor", "col-polish-actor--character");
+  const cultureHeritage: Readonly<Record<AdultCulture, CharacterHeritage>> = {
+    "east-asian": "asian",
+    "south-asian": "asian",
+    western: "western",
+    "african-diaspora": "black",
+    latin: "western",
+  };
+  figure.append(createCharacterElement(document, createCharacterModel({
+    characterId: person.personId,
+    label: `${person.name}, ${person.job.roleTitle}, wearing ${outfitLabel(outfit)}`,
+    gender: options.playerCharacter?.gender ?? person.gender,
+    heritage: options.playerCharacter?.heritage ?? cultureHeritage[person.culture],
+    lifeStage: person.ageYears >= 58 ? "middle-age" : "adult",
+    direction: "front",
+    motion: "idle",
+    expression: "smile",
+    seed: person.personId,
+    appearance: options.playerCharacter?.appearance,
+    jobId: person.job.jobId,
+    season: outfit.season,
+  })));
   return figure;
 }
 
@@ -328,7 +322,7 @@ function createPersonCard(
   return card;
 }
 
-function createScene(document: Document, state: AdultState): HTMLElement {
+function createScene(document: Document, state: AdultState, playerCharacter?: StagePlayerCharacter): HTMLElement {
   const scene = createElement(document, "div", {
     className: `col-adult-scene col-adult-scene--${state.chapter}`,
     attributes: {
@@ -355,7 +349,7 @@ function createScene(document: Document, state: AdultState): HTMLElement {
   const player = playerProfile(state);
   const playerSpot = createElement(document, "div", { className: "col-adult-scene__person col-adult-scene__person--player" });
   playerSpot.append(
-    createAdultFigure(document, player, currentAdultOutfit(state), { hero: true }),
+    createAdultFigure(document, player, currentAdultOutfit(state), { hero: true, playerCharacter }),
     createElement(document, "span", { text: state.player.name }),
   );
   people.append(playerSpot);
@@ -483,7 +477,7 @@ function renderCommitmentChoice(
   if (state.partner) {
     const couple = createElement(document, "div", { className: "col-adult-couple-card" });
     couple.append(
-      createAdultFigure(document, playerProfile(state), currentAdultOutfit(state), { compact: true }),
+      createAdultFigure(document, playerProfile(state), currentAdultOutfit(state), { compact: true, playerCharacter: callbacks.playerCharacter }),
       createElement(document, "span", { className: "col-adult-couple-card__heart", text: "♡" }),
       createAdultFigure(document, state.partner, currentAdultNpcOutfit(state.partner, state.season), { compact: true }),
     );
@@ -900,7 +894,7 @@ export function mountAdultView(
         const meter = output.nextElementSibling as HTMLMeterElement | null;
         if (meter) meter.value = value;
       }
-      sceneHost.replaceChildren(createScene(document, state));
+      sceneHost.replaceChildren(createScene(document, state, callbacks.playerCharacter));
       tray.className = "col-adult-tray";
       tray.replaceChildren();
       if (state.phase === "route-choice") renderRouteChoice(document, tray, callbacks);
