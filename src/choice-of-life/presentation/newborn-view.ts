@@ -17,6 +17,7 @@ import {
   type CharacterGender,
   type CharacterHeritage,
 } from "./character-system";
+import { createV5RoomBackdrop } from "./v5-room-backdrop";
 
 export interface NewbornViewCallbacks {
   dispatch(action: NewbornAction): void;
@@ -292,10 +293,8 @@ export function mountNewbornView(
     className: "col-newborn-scenery",
     attributes: { "aria-hidden": "true" },
   });
-  scenery.style.setProperty(
-    "--col-newborn-nursery-image",
-    `url("${import.meta.env.BASE_URL}assets/newborn-nursery-v1.png")`,
-  );
+  const roomBackdrop = createV5RoomBackdrop(document, "nursery", "park");
+  cleanup.push(() => roomBackdrop.dispose());
   const skyLight = createElement(document, "div", { className: "col-newborn-window-light" });
   const roomTrack = createElement(document, "div", { className: "col-newborn-room-track" });
   roomTrack.append(
@@ -316,7 +315,7 @@ export function mountNewbornView(
       attributes: { "aria-label": label },
     }));
   }
-  scenery.append(skyLight, roomTrack, floor, lanes);
+  scenery.append(roomBackdrop.canvas, skyLight, roomTrack, floor, lanes);
 
   const entityField = createElement(document, "div", {
     className: "col-newborn-entity-field",

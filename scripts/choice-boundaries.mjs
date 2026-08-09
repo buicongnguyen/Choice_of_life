@@ -53,7 +53,9 @@ export const PROTECTED_MECHANICS_READ_ALLOWLIST = Object.freeze([
   "src/choice-of-life/presentation/character-system.ts",
   "src/choice-of-life/presentation/childhood-view.ts",
   "src/choice-of-life/presentation/model.ts",
+  "src/choice-of-life/presentation/newborn-view.ts",
   "src/choice-of-life/presentation/preferences-panel.ts",
+  "src/choice-of-life/presentation/v5-room-backdrop.ts",
 ]);
 const PROTECTED_MECHANICS_READ_ALLOWED = new Set(PROTECTED_MECHANICS_READ_ALLOWLIST);
 const FORBIDDEN_PURE_IDENTIFIERS = new Set([

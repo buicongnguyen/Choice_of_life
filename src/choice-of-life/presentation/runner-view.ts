@@ -29,7 +29,8 @@ import {
   createCharacterElement,
   createCharacterModel,
 } from "./character-system";
-import { drawRunnerToken, type RunnerTokenKind } from "../../sprites";
+import { drawEventItem, drawRunnerToken, type RunnerTokenKind } from "../../sprites";
+import { createV5RoomBackdrop } from "./v5-room-backdrop";
 import "./polish.css";
 import {
   createRunnerPresentationModel,
@@ -684,6 +685,7 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
   } = options;
   const document = options.dom;
   const ownerWindow = document.defaultView;
+  const cleanup: Array<() => void> = [];
   if (ownerWindow === null) fail("supplied document must have an owner window");
   const motionPreference = typeof ownerWindow.matchMedia === "function"
     ? ownerWindow.matchMedia("(prefers-reduced-motion: reduce)")
@@ -816,6 +818,8 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
   const world = createElement(document, "div", {
     className: "col-runner-world",
   });
+  const roomBackdrop = createV5RoomBackdrop(document, "playroom", "park");
+  cleanup.push(() => roomBackdrop.dispose());
   const farLayer = createElement(document, "div", {
     className: "col-runner-world-layer col-runner-world-layer--far",
     attributes: { "data-runner-scroll-layer": "far" },
@@ -893,7 +897,7 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
   }
   player.append(figure);
   player.classList.add("col-runner-player--figure");
-  world.append(farLayer, nearLayer, laneLayer, entityField, player);
+  world.append(roomBackdrop.canvas, farLayer, nearLayer, laneLayer, entityField, player);
   playSurface.append(world);
   visualFrame.append(warningLayer, playSurface, progressWrap, scores);
 
@@ -1144,7 +1148,6 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
   section.append(content, bindingDialog);
   root.append(section);
 
-  const cleanup: Array<() => void> = [];
   const listen = (
     target: EventTarget,
     type: string,
@@ -1739,13 +1742,35 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
           },
         });
         const tokenCanvas = document.createElement("canvas");
-        tokenCanvas.width = 44;
-        tokenCanvas.height = 44;
+        tokenCanvas.width = 104;
+        tokenCanvas.height = 104;
         tokenCanvas.className = "col-runner-entity__art";
         tokenCanvas.setAttribute("aria-hidden", "true");
         const tokenContext = tokenCanvas.getContext("2d");
         if (tokenContext !== null) {
-          drawRunnerToken(tokenContext, 22, 42, entityTokenKind(entity));
+          const tokenKind = entityTokenKind(entity);
+          const item = entity.kind === "opportunity"
+            ? { id: "contest", emoji: "?", label: "Choice" }
+            : entity.contentId.includes("health")
+            ? { id: "apple", emoji: "♥", label: "Health" }
+            : entity.contentId.includes("happiness")
+              ? { id: "toy", emoji: "★", label: "Happy" }
+              : entity.contentId.includes("money")
+                ? { id: "coin", emoji: "$", label: "Money" }
+                : entity.contentId.includes("pressure")
+                  ? { id: "noise", emoji: "!", label: "Stress" }
+                  : { id: "spill", emoji: "!", label: "Clutter" };
+          drawEventItem(
+            tokenContext,
+            52,
+            96,
+            item.id,
+            item.emoji,
+            item.label,
+            tokenKind !== "hazard",
+            false,
+            0,
+          );
           element.append(tokenCanvas);
           element.classList.add("col-runner-entity--art");
         }

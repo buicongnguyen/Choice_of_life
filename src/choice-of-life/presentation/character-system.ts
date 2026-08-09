@@ -698,15 +698,12 @@ function drawCharacterAtlas(canvas: HTMLCanvasElement, model: CharacterModel): b
   );
 }
 
-export function createCharacterElement(
+export function hydrateCharacterAtlas(
   document: Document,
+  character: HTMLElement,
   model: CharacterModel,
-): HTMLElement {
-  const template = document.createElement("template");
-  template.innerHTML = renderCharacterMarkup(model);
-  const element = template.content.firstElementChild;
-  if (!element) throw new Error("Character markup did not create an element");
-  const character = element as HTMLElement;
+): void {
+  if (character.querySelector(":scope > .col-character__atlas") !== null) return;
   const canvas = document.createElement("canvas");
   canvas.className = "col-character__atlas";
   canvas.width = 192;
@@ -738,6 +735,18 @@ export function createCharacterElement(
       ownerWindow.addEventListener(eventName, onAtlasReady);
     }
   }
+}
+
+export function createCharacterElement(
+  document: Document,
+  model: CharacterModel,
+): HTMLElement {
+  const template = document.createElement("template");
+  template.innerHTML = renderCharacterMarkup(model);
+  const element = template.content.firstElementChild;
+  if (!element) throw new Error("Character markup did not create an element");
+  const character = element as HTMLElement;
+  hydrateCharacterAtlas(document, character, model);
   return character;
 }
 
@@ -839,6 +848,16 @@ export function createCompanionElement(
   const element = template.content.firstElementChild;
   if (!element) throw new Error("Companion markup did not create an element");
   const companion = element as HTMLElement;
+  hydrateCompanionAtlas(document, companion, model);
+  return companion;
+}
+
+export function hydrateCompanionAtlas(
+  document: Document,
+  companion: HTMLElement,
+  model: CompanionModel,
+): void {
+  if (companion.querySelector(":scope > .col-companion__atlas") !== null) return;
   const canvas = document.createElement("canvas");
   canvas.className = "col-companion__atlas";
   canvas.width = 128;
@@ -859,6 +878,14 @@ export function createCompanionElement(
     companion.classList.toggle("col-companion--atlas-ready", ready);
   };
   redraw();
-  document.defaultView?.addEventListener("plj:pet-atlas-ready", redraw, { once: true });
-  return companion;
+  const ownerWindow = document.defaultView;
+  if (ownerWindow && !companion.classList.contains("col-companion--atlas-ready")) {
+    const onPetAtlasReady = (): void => {
+      redraw();
+      if (companion.classList.contains("col-companion--atlas-ready")) {
+        ownerWindow.removeEventListener("plj:pet-atlas-ready", onPetAtlasReady);
+      }
+    };
+    ownerWindow.addEventListener("plj:pet-atlas-ready", onPetAtlasReady);
+  }
 }

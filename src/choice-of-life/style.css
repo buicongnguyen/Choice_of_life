@@ -1135,6 +1135,17 @@ body {
   isolation: isolate;
 }
 
+.col-v5-room-backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
 .col-runner-world-layer {
   position: absolute;
   inset-block: 0;
@@ -1151,7 +1162,7 @@ body {
     radial-gradient(circle at 42% 13%, #fff8 0 1rem, transparent 1.1rem),
     linear-gradient(180deg, #b8e1e8 0 48%, transparent 48%);
   background-size: 18rem 100%, 23rem 100%, 100% 100%;
-  opacity: 0.85;
+  opacity: 0.16;
 }
 
 .col-runner-world-layer--near {
@@ -1165,6 +1176,7 @@ body {
     ),
     linear-gradient(180deg, #9ac98e 0%, #6fa66f 100%);
   border-block-start: 0.25rem solid #4c8557;
+  opacity: 0.18;
 }
 
 .col-runner-lanes {
@@ -1350,8 +1362,8 @@ body {
 }
 
 .col-runner-entity__art {
-  inline-size: 2.4rem;
-  block-size: 2.4rem;
+  inline-size: clamp(3rem, 6vw, 4.5rem);
+  block-size: clamp(3rem, 6vw, 4.5rem);
   pointer-events: none;
 }
 
@@ -2161,6 +2173,15 @@ body {
   background-size: cover;
 }
 
+.col-newborn-scenery > .col-v5-room-backdrop {
+  z-index: 0;
+}
+
+.col-newborn-scenery:has(.col-v5-room-backdrop) .col-newborn-room-track,
+.col-newborn-scenery:has(.col-v5-room-backdrop) .col-newborn-floor {
+  display: none;
+}
+
 .col-newborn-scenery::after {
   position: absolute;
   z-index: 3;
@@ -2428,8 +2449,8 @@ body {
 }
 
 .col-newborn-entity:has(.col-newborn-entity-art) {
-  inline-size: 5rem;
-  block-size: 5rem;
+  inline-size: 4.5rem;
+  block-size: 4.5rem;
   padding: 0;
   border: 0;
   background: transparent;
@@ -2443,10 +2464,10 @@ body {
 
 .col-newborn-entity-art {
   display: block;
-  inline-size: 7rem;
-  block-size: 7rem;
+  inline-size: 5.25rem;
+  block-size: 5.25rem;
   max-inline-size: none;
-  transform: translate(-1rem, -1rem);
+  transform: translate(-0.4rem, -0.4rem);
 }
 
 .col-newborn-baby {
@@ -3820,6 +3841,24 @@ body {
 
   .col-encounter-person--visitor {
     inset-inline-end: 17%;
+  }
+}
+
+@media (max-width: 30rem) {
+  .col-newborn-baby--storybook .col-character__atlas {
+    inline-size: 9rem;
+    block-size: 9rem;
+  }
+
+  .col-newborn-caregiver--storybook .col-character__atlas {
+    inline-size: 9.5rem;
+    block-size: 9.5rem;
+  }
+
+  .col-newborn-entity-art {
+    inline-size: 4.25rem;
+    block-size: 4.25rem;
+    transform: translate(0.1rem, 0.1rem);
   }
 }
 

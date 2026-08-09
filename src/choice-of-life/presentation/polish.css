@@ -451,10 +451,26 @@
   z-index: 4;
   inset-inline-start: 50%;
   inset-block-end: 0;
-  inline-size: 11rem;
-  block-size: 11rem;
+  inline-size: var(--col-character-atlas-size, 11rem);
+  block-size: var(--col-character-atlas-size, 11rem);
   transform: translateX(-50%);
   pointer-events: none;
+}
+
+.col-character[data-life-stage="newborn"] { --col-character-atlas-size: 6.5rem; }
+.col-character[data-life-stage="toddler"] { --col-character-atlas-size: 7.25rem; }
+.col-character[data-life-stage="child"] { --col-character-atlas-size: 8rem; }
+.col-character[data-life-stage="teen"] { --col-character-atlas-size: 9rem; }
+.col-character[data-life-stage="young-adult"] { --col-character-atlas-size: 10.25rem; }
+.col-character[data-life-stage="adult"] { --col-character-atlas-size: 11rem; }
+.col-character[data-life-stage="middle-age"] { --col-character-atlas-size: 11rem; }
+.col-character[data-life-stage="senior"] { --col-character-atlas-size: 10.5rem; }
+
+@media (max-width: 30rem) {
+  .col-polish-actor--character .col-character__atlas {
+    inline-size: min(var(--col-character-atlas-size, 11rem), 9.5rem);
+    block-size: min(var(--col-character-atlas-size, 11rem), 9.5rem);
+  }
 }
 
 .col-polish-actor--character .col-character--atlas-ready > .col-character__figure,

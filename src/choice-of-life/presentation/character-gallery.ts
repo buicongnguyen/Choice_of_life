@@ -4,6 +4,8 @@ import {
   createCharacterModel,
   createCompanionModel,
   createUniqueNpcCharacterModels,
+  hydrateCharacterAtlas,
+  hydrateCompanionAtlas,
   renderCharacterMarkup,
   renderCompanionMarkup,
   type CharacterDirection,
@@ -398,6 +400,39 @@ function renderContent(content: HTMLElement, state: GalleryState): void {
     renderNpcSection(state),
     renderCompanionSection(state),
   ].join("");
+
+  const pose = characterState(state);
+  const characters: CharacterModel[] = [
+    ...(["female", "male"] as const).flatMap((gender) =>
+      STAGE_EXAMPLES.map((example) => stageModel(example, gender, state))),
+    ...JOBS.flatMap((job, index) => ([
+      jobModel(job, "female", index, state),
+      jobModel(job, "male", index, state),
+    ])),
+    ...createUniqueNpcCharacterModels(NPC_REQUESTS.map((request) => ({
+      ...request,
+      direction: state.direction,
+      motion: pose.motion,
+      expression: pose.expression,
+      season: state.season,
+    }))),
+  ];
+  for (const model of characters) {
+    const element = content.querySelector<HTMLElement>(`[data-character-id="${model.characterId}"]`);
+    if (element !== null) hydrateCharacterAtlas(content.ownerDocument, element, model);
+  }
+
+  const petPose = companionState(state);
+  for (const request of COMPANIONS) {
+    const model = createCompanionModel({
+      ...request,
+      direction: state.direction,
+      motion: petPose.motion,
+      expression: petPose.expression,
+    });
+    const element = content.querySelector<HTMLElement>(`[data-companion-id="${model.companionId}"]`);
+    if (element !== null) hydrateCompanionAtlas(content.ownerDocument, element, model);
+  }
 }
 
 function optionButton(
