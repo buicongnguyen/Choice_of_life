@@ -10,8 +10,10 @@ import type {
   EncounterChapterState,
 } from "../core/shell-contracts";
 import { createElement } from "./elements";
+import { createStagePlayerAvatar, type StagePlayerCharacter } from "./stage-player-avatar";
 
 export interface EncounterViewCallbacks {
+  readonly playerCharacter?: StagePlayerCharacter;
   readonly dispatch: (action: EncounterChapterAction) => void;
   readonly onContinueToEducation: () => void;
   readonly onReturnToReady: () => void;
@@ -161,7 +163,7 @@ export function mountEncounterView(
     createElement(document, "span", { className: "col-encounter-school" }),
     createElement(document, "span", { className: "col-encounter-path" }),
   );
-  const player = personMarkup(document, "player");
+  const player = createStagePlayerAvatar(document, callbacks.playerCharacter, "toddler", "col-encounter-person col-encounter-person--player");
   const visitor = personMarkup(document, "visitor");
   const visitorLabel = createElement(document, "span", {
     className: "col-encounter-visitor-label",

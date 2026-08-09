@@ -2484,13 +2484,48 @@ body {
 }
 
 .col-newborn-baby--storybook .col-character__atlas {
-  inline-size: 14rem;
-  block-size: 14rem;
+  inline-size: 6.5rem;
+  block-size: 6.5rem;
 }
 
 .col-newborn-caregiver--storybook .col-character__atlas {
   inline-size: 12rem;
   block-size: 12rem;
+}
+
+.col-stage-player-avatar {
+  overflow: visible;
+}
+
+.col-career-player-scene {
+  align-items: end;
+  background: linear-gradient(180deg, #bce6fb 0 58%, #9ecf8c 58% 65%, #d7b783 65%);
+  border: 0.18rem solid rgb(72 50 39 / 35%);
+  border-radius: 1rem;
+  display: flex;
+  gap: 1rem;
+  min-block-size: 9rem;
+  overflow: hidden;
+  padding: 1rem 1.5rem 0.65rem;
+}
+
+.col-career-player-avatar {
+  --col-character-height: 7.25rem;
+  --col-character-width: 5.5rem;
+
+  block-size: 7.25rem;
+  flex: 0 0 5.5rem;
+  inline-size: 5.5rem;
+  position: relative;
+}
+
+.col-career-player-scene > span {
+  background: rgb(255 250 231 / 88%);
+  border-radius: 999px;
+  color: #49382f;
+  font-weight: 800;
+  margin-block-end: 0.55rem;
+  padding: 0.35rem 0.7rem;
 }
 
 .col-newborn-baby-head {
@@ -3846,8 +3881,8 @@ body {
 
 @media (max-width: 30rem) {
   .col-newborn-baby--storybook .col-character__atlas {
-    inline-size: 9rem;
-    block-size: 9rem;
+    inline-size: 6rem;
+    block-size: 6rem;
   }
 
   .col-newborn-caregiver--storybook .col-character__atlas {

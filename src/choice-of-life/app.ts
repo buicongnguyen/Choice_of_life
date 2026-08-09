@@ -283,6 +283,16 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     utilityReturnScreen: "title",
   };
 
+  const playerCharacterForStage = () => ({
+    gender: state.setup.gender,
+    heritage: state.setup.appearance.heritageStyleId,
+    appearance: {
+      hairStyleId: state.setup.appearance.hairStyleId,
+      hairColorId: state.setup.appearance.hairColorId,
+      clothingPaletteId: state.setup.appearance.clothingPaletteId,
+    },
+  } as const);
+
   root.classList.add("choice-life-root");
 
   const listen = <T extends EventTarget>(
@@ -1325,6 +1335,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     };
     try {
       view = mountEncounterView(encounterHost, {
+        playerCharacter: playerCharacterForStage(),
         dispatch: dispatchEncounter,
         onContinueToEducation: continueFromEncounters,
         onReturnToReady: returnFromEncountersToReady,
@@ -1467,6 +1478,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     let view: ChildhoodView | null = null;
     try {
       view = mountChildhoodView(host, {
+        playerCharacter: playerCharacterForStage(),
         dispatch: dispatchChildhood,
         onContinueToNextChapter: continueFromChildhood,
         onReturnToTitle: returnFromChildhoodToTitle,
@@ -1602,6 +1614,7 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     let view: EducationView | null = null;
     try {
       view = mountEducationView(educationHost, {
+        playerCharacter: playerCharacterForStage(),
         dispatch: dispatchEducation,
         onContinueToCareer: continueFromEducation,
         onReturnToReady: returnFromEducationToReady,
@@ -1734,8 +1747,9 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     let view: CareerView | null = null;
     try {
       view = mountCareerView(host, {
+        playerCharacter: playerCharacterForStage(),
         dispatch: dispatchCareer,
-        onContinueToChildhood: continueFromCareer,
+        onContinueToAdult: continueFromCareer,
         onReturnToReady: returnFromCareerToReady,
       });
       mountedCareer = Object.freeze({ view });

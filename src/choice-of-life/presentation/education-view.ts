@@ -11,8 +11,10 @@ import {
 } from "../core/education/index";
 import type { EducationChapterAction } from "../core/shell-contracts";
 import { createElement } from "./elements";
+import { createStagePlayerAvatar, type StagePlayerCharacter } from "./stage-player-avatar";
 
 export interface EducationViewCallbacks {
+  readonly playerCharacter?: StagePlayerCharacter;
   readonly dispatch: (action: EducationChapterAction) => void;
   readonly onContinueToCareer: () => void;
   readonly onReturnToReady: () => void;
@@ -202,18 +204,7 @@ export function mountEducationView(
     createElement(document, "span", { className: "col-education-tree col-education-tree--two" }),
     createElement(document, "span", { className: "col-education-path" }),
   );
-  const student = createElement(document, "div", {
-    className: "col-education-student",
-    attributes: { "aria-hidden": "true" },
-  });
-  student.append(
-    createElement(document, "span", { className: "col-education-student-hair" }),
-    createElement(document, "span", { className: "col-education-student-head" }),
-    createElement(document, "span", { className: "col-education-student-body" }),
-    createElement(document, "span", { className: "col-education-student-bag" }),
-    createElement(document, "span", { className: "col-education-student-leg col-education-student-leg--left" }),
-    createElement(document, "span", { className: "col-education-student-leg col-education-student-leg--right" }),
-  );
+  const student = createStagePlayerAvatar(document, callbacks.playerCharacter, "teen", "col-education-student");
   const sceneCaption = createElement(document, "p", { className: "col-education-scene-caption" });
   playfield.append(campus, student, sceneCaption);
 

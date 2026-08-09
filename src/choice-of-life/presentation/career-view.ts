@@ -9,10 +9,12 @@ import {
   type CareerState,
 } from "../core/career/index";
 import { createElement } from "./elements";
+import { createStagePlayerAvatar, type StagePlayerCharacter } from "./stage-player-avatar";
 
 export interface CareerViewCallbacks {
+  readonly playerCharacter?: StagePlayerCharacter;
   readonly dispatch: (action: CareerAction) => void;
-  readonly onContinueToChildhood: () => void;
+  readonly onContinueToAdult: () => void;
   readonly onReturnToReady: () => void;
 }
 
@@ -134,12 +136,23 @@ export function mountCareerView(
   }
 
   const content = createElement(document, "div", { className: "col-career-content", attributes: { "aria-live": "polite" } });
+  const playerScene = createElement(document, "div", { className: "col-career-player-scene" });
+  const renderPlayer = (state: CareerState): void => {
+    const selected = state.selectedRole;
+    playerScene.replaceChildren(
+      createStagePlayerAvatar(document, callbacks.playerCharacter, "young-adult", "col-career-player-avatar", {
+        jobId: selected?.careerId,
+        season: state.season,
+      }),
+      createElement(document, "span", { text: selected?.roleTitle ?? "Your next chapter" }),
+    );
+  };
   const footer = createElement(document, "div", { className: "col-career-footer" });
   const back = createElement(document, "button", { className: "col-button col-button--quiet", text: "Back to life overview" });
   back.type = "button";
   back.addEventListener("click", callbacks.onReturnToReady);
   footer.append(back);
-  section.append(header, scoreRow, content, footer);
+  section.append(header, scoreRow, playerScene, content, footer);
   host.replaceChildren(section);
 
   const renderOffers = (state: CareerState): void => {
@@ -274,9 +287,9 @@ export function mountCareerView(
       );
       lines.append(card);
     }
-    const next = createElement(document, "button", { className: "col-button col-button--primary", text: "Continue to Childhood" });
+    const next = createElement(document, "button", { className: "col-button col-button--primary", text: "Continue to Adult Life" });
     next.type = "button";
-    next.addEventListener("click", callbacks.onContinueToChildhood);
+    next.addEventListener("click", callbacks.onContinueToAdult);
     content.append(lines, next);
   };
 
@@ -287,6 +300,7 @@ export function mountCareerView(
       section.dataset.phase = state.phase;
       age.textContent = ageCopy(state.profile.ageYears);
       role.textContent = state.selectedRole?.roleTitle ?? "Career offers open";
+      renderPlayer(state);
       for (const scoreId of ["health", "happiness", "money"] as const) {
         const output = scoreOutputs.get(scoreId);
         if (output) {

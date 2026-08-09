@@ -15,11 +15,13 @@ import {
   type ChildhoodState,
 } from "../core/childhood/index";
 import { createElement } from "./elements";
+import { createStagePlayerAvatar, type StagePlayerCharacter } from "./stage-player-avatar";
 
 export interface ChildhoodViewCallbacks {
   readonly dispatch: (action: ChildhoodAction) => void;
   readonly onContinueToNextChapter: (state: ChildhoodState) => void;
   readonly onReturnToTitle?: () => void;
+  readonly playerCharacter?: StagePlayerCharacter;
 }
 
 export interface ChildhoodView {
@@ -501,7 +503,7 @@ export function mountChildhoodView(
     sceneDescription.textContent = sceneText.sceneCopy;
     propOne.textContent = sceneText.propOne;
     propTwo.textContent = sceneText.propTwo;
-    const player = createCharacter(document, "player", "You");
+    const player = createStagePlayerAvatar(document, callbacks.playerCharacter, "child", "col-childhood-character col-childhood-character--player");
     const friendFigure = createCharacter(document, "friend", friend.person.givenName, friend.person.appearance);
     const children: HTMLElement[] = [player, friendFigure];
     if (state.companion) children.push(createCompanion(document, state.companion));
