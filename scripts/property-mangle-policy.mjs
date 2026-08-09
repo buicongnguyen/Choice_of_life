@@ -136,6 +136,41 @@ function browserSourceGraph(repoRoot) {
     left.fileName.localeCompare(right.fileName));
 }
 
+function importedJsonManifests(sources) {
+  const files = new Set();
+  for (const source of sources) {
+    const visit = (node) => {
+      if (
+        ts.isImportDeclaration(node) &&
+        ts.isStringLiteralLike(node.moduleSpecifier) &&
+        node.moduleSpecifier.text.endsWith(".json")
+      ) {
+        const filename = path.resolve(
+          path.dirname(source.fileName),
+          node.moduleSpecifier.text,
+        );
+        if (fs.existsSync(filename)) files.add(filename);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+  }
+  return [...files].sort();
+}
+
+function jsonPropertyNames(value, names = new Set()) {
+  if (Array.isArray(value)) {
+    for (const entry of value) jsonPropertyNames(entry, names);
+    return names;
+  }
+  if (value === null || typeof value !== "object") return names;
+  for (const [name, entry] of Object.entries(value)) {
+    if (IDENTIFIER.test(name)) names.add(name);
+    jsonPropertyNames(entry, names);
+  }
+  return names;
+}
+
 function runStateWireNames(sources) {
   const wireSource = sources.find((source) =>
     path.basename(source.fileName) === "run-state-wire.ts");
@@ -232,6 +267,11 @@ function escapedAlternation(names) {
 
 export function createPropertyManglePolicy(repoRoot = process.cwd()) {
   const sources = browserSourceGraph(repoRoot);
+  const jsonManifestFiles = importedJsonManifests(sources);
+  const jsonManifestNames = new Set();
+  for (const filename of jsonManifestFiles) {
+    jsonPropertyNames(JSON.parse(fs.readFileSync(filename, "utf8")), jsonManifestNames);
+  }
   const wireNames = runStateWireNames(sources);
   const candidates = new Set();
   const reflected = new Set([
@@ -240,6 +280,11 @@ export function createPropertyManglePolicy(repoRoot = process.cwd()) {
     ...QUARANTINE_WIRE_KEYS,
   ]);
   const dataset = new Set();
+
+  // Vite emits imported JSON as quoted object keys. Terser must not rename the
+  // matching TypeScript property access (for example MANIFEST.atlases), or the
+  // production-only bundle will read an undefined property and lose all art.
+  for (const name of jsonManifestNames) reflected.add(name);
 
   for (const source of sources) {
     const visit = (node) => {
@@ -302,6 +347,10 @@ export function createPropertyManglePolicy(repoRoot = process.cwd()) {
     safeNames: Object.freeze(safeNames),
     reflectedNames: Object.freeze([...reflected].sort()),
     datasetNames: Object.freeze([...dataset].sort()),
+    jsonManifestNames: Object.freeze([...jsonManifestNames].sort()),
+    jsonManifestFiles: Object.freeze(
+      jsonManifestFiles.map((filename) => path.relative(repoRoot, filename).replaceAll("\\", "/")),
+    ),
     sourceFiles: Object.freeze(
       sources.map((source) => path.relative(repoRoot, source.fileName).replaceAll("\\", "/")),
     ),

@@ -3,14 +3,17 @@ import { avatarLook } from "../../sprites";
 import { drawStorybookCharacter } from "../../storybook-characters";
 import { drawStorybookPet } from "../../storybook-pets";
 import {
+  careerOutfitHeritage,
   drawCareerOutfitCharacter,
   isCareerOutfitUniform,
   type CareerOutfitUniform,
 } from "../../career-outfit-characters";
 import {
   drawOccupationCharacter,
+  occupationHeritage,
   type LegacyJobUniform,
 } from "../../occupation-characters";
+import { drawSummerCharacter } from "../../summer-characters";
 import type { HeritageStyle } from "../../types";
 
 export type CharacterGender = "female" | "male";
@@ -621,6 +624,7 @@ const CAREER_UNIFORM_BY_JOB: Readonly<Partial<Record<CareerId, CareerOutfitUnifo
 const OCCUPATION_UNIFORM_BY_JOB: Readonly<Partial<Record<CareerId, LegacyJobUniform>>> =
   Object.freeze({
     doctor: "doctor",
+    nurse: "doctor",
     farmer: "farmer",
     dancer: "dancer",
     "gym-trainer": "trainer",
@@ -637,9 +641,18 @@ function modelJobId(model: CharacterModel): CareerId | null {
   ) ?? null;
 }
 
-function drawCharacterAtlas(canvas: HTMLCanvasElement, model: CharacterModel): boolean {
+type CharacterAtlasSource = "career" | "occupation" | "summer" | "storybook" | "none";
+
+interface CharacterAtlasDrawResult {
+  readonly drawn: boolean;
+  /** True only when the intended V5 source, rather than a temporary fallback, rendered. */
+  readonly complete: boolean;
+  readonly source: CharacterAtlasSource;
+}
+
+function drawCharacterAtlas(canvas: HTMLCanvasElement, model: CharacterModel): CharacterAtlasDrawResult {
   const context = canvas.getContext("2d");
-  if (context === null) return false;
+  if (context === null) return { drawn: false, complete: false, source: "none" };
   context.clearRect(0, 0, canvas.width, canvas.height);
   const heritage = atlasHeritage(model.heritage);
   const moving = model.motion === "walk-a" || model.motion === "walk-b";
@@ -647,9 +660,11 @@ function drawCharacterAtlas(canvas: HTMLCanvasElement, model: CharacterModel): b
   const size = Math.min(172, Math.max(92, model.metrics.heightPx * 1.5));
   const jobId = modelJobId(model);
   const careerUniform = jobId === null ? undefined : CAREER_UNIFORM_BY_JOB[jobId];
-  if (
-    careerUniform !== undefined
+  const careerPreferred = careerUniform !== undefined
     && isCareerOutfitUniform(careerUniform)
+    && careerOutfitHeritage(heritage) !== null;
+  if (
+    careerPreferred
     && drawCareerOutfitCharacter(
       context,
       canvas.width / 2,
@@ -660,11 +675,13 @@ function drawCharacterAtlas(canvas: HTMLCanvasElement, model: CharacterModel): b
       { facing: model.direction, moving, phase, season: model.outfit.season, size },
     )
   ) {
-    return true;
+    return { drawn: true, complete: true, source: "career" };
   }
   const occupationUniform = jobId === null ? undefined : OCCUPATION_UNIFORM_BY_JOB[jobId];
+  const occupationPreferred = occupationUniform !== undefined
+    && occupationHeritage(heritage) !== null;
   if (
-    occupationUniform !== undefined
+    occupationPreferred
     && drawOccupationCharacter(
       context,
       canvas.width / 2,
@@ -675,7 +692,23 @@ function drawCharacterAtlas(canvas: HTMLCanvasElement, model: CharacterModel): b
       { facing: model.direction, moving, phase, size },
     )
   ) {
-    return true;
+    return { drawn: true, complete: true, source: "occupation" };
+  }
+  const summerPreferred = jobId === null
+    && model.outfit.season === "summer"
+    && (model.lifeStage === "young-adult" || model.lifeStage === "adult" || model.lifeStage === "middle-age");
+  if (
+    summerPreferred
+    && drawSummerCharacter(
+      context,
+      canvas.width / 2,
+      canvas.height - 7,
+      heritage,
+      model.gender,
+      { facing: model.direction, moving, phase, size },
+    )
+  ) {
+    return { drawn: true, complete: true, source: "summer" };
   }
   const look = avatarLook(
     LIFE_STAGE_INDEX[model.lifeStage],
@@ -683,7 +716,7 @@ function drawCharacterAtlas(canvas: HTMLCanvasElement, model: CharacterModel): b
     heritage,
     stableHash(model.appearanceSignature) % 2 === 0 ? "classic" : "alternate",
   );
-  return drawStorybookCharacter(
+  const storybookDrawn = drawStorybookCharacter(
     context,
     canvas.width / 2,
     canvas.height - 7,
@@ -696,6 +729,11 @@ function drawCharacterAtlas(canvas: HTMLCanvasElement, model: CharacterModel): b
       pose: model.motion === "sit" ? "sit" : "stand",
     },
   );
+  return {
+    drawn: storybookDrawn,
+    complete: storybookDrawn && !careerPreferred && !occupationPreferred && !summerPreferred,
+    source: storybookDrawn ? "storybook" : "none",
+  };
 }
 
 export function hydrateCharacterAtlas(
@@ -710,22 +748,27 @@ export function hydrateCharacterAtlas(
   canvas.height = 192;
   canvas.setAttribute("aria-hidden", "true");
   character.append(canvas);
-  const redraw = (): void => {
-    character.classList.toggle("col-character--atlas-ready", drawCharacterAtlas(canvas, model));
+  const redraw = (): CharacterAtlasDrawResult => {
+    const result = drawCharacterAtlas(canvas, model);
+    character.classList.toggle("col-character--atlas-ready", result.drawn);
+    character.setAttribute("data-atlas-source", result.source);
+    character.toggleAttribute("data-atlas-pending", !result.complete);
+    return result;
   };
-  redraw();
+  let result = redraw();
   const ownerWindow = document.defaultView;
-  if (ownerWindow && !character.classList.contains("col-character--atlas-ready")) {
+  if (ownerWindow && !result.complete) {
     const eventNames = [
       "plj:character-atlas-ready",
       "plj:career-outfit-atlas-ready",
       "plj:occupation-atlas-ready",
+      "plj:summer-character-atlas-ready",
     ];
     // Atlas sheets load in several stages and each dispatches a ready event,
     // so keep listening until the frame this element needs has drawn.
     const onAtlasReady = (): void => {
-      redraw();
-      if (character.classList.contains("col-character--atlas-ready")) {
+      result = redraw();
+      if (result.complete) {
         for (const eventName of eventNames) {
           ownerWindow.removeEventListener(eventName, onAtlasReady);
         }

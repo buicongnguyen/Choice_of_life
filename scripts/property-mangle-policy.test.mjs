@@ -52,6 +52,28 @@ describe("production property-mangle policy", () => {
     }
   });
 
+  it("pins imported JSON manifest properties used by V5 asset loaders", () => {
+    expect(policy.jsonManifestFiles).toEqual([
+      "src/assets/career-outfits/career-outfit-anchors.json",
+      "src/assets/characters/character-anchors.json",
+      "src/assets/characters/character-appearance-alternate-anchors.json",
+      "src/assets/characters/character-frame-metrics.json",
+      "src/assets/characters/character-motion-anchors.json",
+      "src/assets/characters/character-stage-expansion-anchors.json",
+      "src/assets/occupations/occupation-anchors.json",
+      "src/assets/summer/summer-anchors.json",
+    ]);
+    for (const name of [
+      "ageBands", "atlases", "cellSize", "families", "pack", "packs",
+      "rows", "uniforms",
+    ]) {
+      expect(policy.jsonManifestNames).toContain(name);
+      expect(policy.reflectedNames).toContain(name);
+      expect(policy.safeNames).not.toContain(name);
+      expect(policy.pattern.test(name), name).toBe(false);
+    }
+  });
+
   it("pins quarantine and durable save-wire boundaries", () => {
     expect(policy.quarantineWireNames).toEqual([
       "version", "code", "schemaVersion", "contentVersion",

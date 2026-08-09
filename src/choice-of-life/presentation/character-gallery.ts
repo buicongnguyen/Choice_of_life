@@ -285,7 +285,10 @@ function jobModel(
   state: GalleryState,
 ): CharacterModel {
   const pose = characterState(state);
-  const heritages: readonly CharacterHeritage[] = ["asian", "western", "black", "middle-eastern"];
+  // V5's reviewed job atlases are authored for Asian and Western bodies.
+  // Other heritages keep their identity in everyday storybook art elsewhere,
+  // while this outfit comparison must show the actual uniform being reviewed.
+  const heritages: readonly CharacterHeritage[] = ["asian", "western"];
   return createCharacterModel({
     characterId: `gallery-job-${job.id}-${gender}`,
     label: `${gender === "female" ? "Female" : "Male"} ${job.label}, ${state.season} uniform`,
