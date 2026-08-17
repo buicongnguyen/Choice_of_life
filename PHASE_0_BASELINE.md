@@ -241,6 +241,20 @@ rather than all of `docs/`.
 Per the Phase 0 gate, the two remaining `npm test` failures are triaged rather
 than hidden. **Both currently block the new deploy gate.** They need a decision.
 
+**Confirmed against real CI.** The gate was exercised on two pushed commits:
+`verify` failed, `build` and `deploy` never started, and production stayed at
+`5385712`. The gate behaves as designed. One defect in the gate itself surfaced
+only once CI ran the suite: the verify job had no browser installed, so
+`runner-browser-matrix.test.ts` failed with *"Executable doesn't exist"* despite
+passing on a developer machine. A chromium install step was added ahead of
+`npm test`, after which CI reproduced the local result exactly — 915 passing,
+the two exceptions below failing.
+
+**E1 is the single blocker for the whole pipeline.** The `Check Choice of Life
+fixture history` workflow fails on the same missing evidence as
+`fixture-lock.test.mjs`, so both workflows turn green on one artifact, not two
+independent fixes.
+
 ### E1 — `fixture-lock.test.mjs`: missing suite evidence
 
 `Fixture lock validation failed: active suite evidence unavailable for
