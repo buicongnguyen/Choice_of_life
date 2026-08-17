@@ -58,6 +58,14 @@ describe("Pages deploy workflow contract", () => {
     expect(source).toMatch(/\n {2}build:\n\s+needs: verify/);
     expect(source).toMatch(/\n {2}deploy:\n\s+needs: build/);
 
+    // The browser the runner matrix test drives must be installed before the
+    // suite runs, or that test fails in CI while passing locally.
+    const browserInstallIndex = source.indexOf(
+      "npx --no-install playwright install --with-deps chromium",
+    );
+    expect(browserInstallIndex).toBeGreaterThan(verifyIndex);
+    expect(browserInstallIndex).toBeLessThan(source.indexOf("run: npm test"));
+
     for (const gate of [
       "run: npm run check",
       "run: npm run check:core",

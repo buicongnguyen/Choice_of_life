@@ -54,6 +54,12 @@ jobs:
       - name: Enforce domain and protected-trait boundaries
         run: npm run boundaries
 
+      # scripts/runner-browser-matrix.test.ts drives a real browser. Without
+      # this it fails in CI with "Executable doesn't exist", even though it
+      # passes on a developer machine that already has the browser.
+      - name: Install the browser the runner matrix test drives
+        run: npx --no-install playwright install --with-deps chromium
+
       - name: Run automated tests
         run: npm test
 
