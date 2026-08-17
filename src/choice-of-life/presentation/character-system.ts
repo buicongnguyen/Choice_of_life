@@ -762,7 +762,11 @@ export function hydrateCharacterAtlas(
       "plj:character-atlas-ready",
       "plj:career-outfit-atlas-ready",
       "plj:occupation-atlas-ready",
-      "plj:summer-character-atlas-ready",
+      // summer-characters.ts dispatches "plj:summer-atlas-ready"; the previous
+      // name here was never dispatched by anything, so a character waiting on
+      // the summer sheet was only ever repainted if some other atlas happened to
+      // finish afterwards.
+      "plj:summer-atlas-ready",
     ];
     // Atlas sheets load in several stages and each dispatches a ready event,
     // so keep listening until the frame this element needs has drawn.

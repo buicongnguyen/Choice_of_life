@@ -1898,10 +1898,19 @@ describe("Phase 1 fixture locks", () => {
     const workflow = await readFile(new URL("../.github/workflows/validate-locks.yml", import.meta.url), "utf8");
     expect(workflow).toContain("run: npm run fixtures:validate-preregistration");
     expect(workflow).not.toContain("run: npm run fixtures:preregister");
+    // The workflow must actually run on its own. It was `workflow_dispatch`-only
+    // for months, which is why this assertion previously described a file that
+    // did not exist.
+    expect(workflow).toMatch(/^on:\n\s+push:/m);
+    expect(workflow).toMatch(/\n\s+pull_request:/);
+    // Docs cannot change a lock, so both triggers ignore them.
     expect(workflow.match(/- "docs\/\*\*"/g)).toHaveLength(2);
+    // A change to the validator itself must still trigger validation, so it must
+    // never appear in an ignore list.
+    expect(workflow).not.toMatch(/paths-ignore:[\s\S]*?scripts\/fixture-lock\.mjs/);
+    expect(workflow).toContain("fetch-depth: 0");
     expect(workflow).toContain("CHOICE_LOCK_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}");
     expect(workflow).toContain("CHOICE_FIXTURE_TEST_PREREG_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}");
-    expect(workflow.match(/- "scripts\/fixture-lock\.mjs"/g)).toHaveLength(2);
     expect(workflow).toContain(
       "uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1"
     );

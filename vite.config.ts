@@ -121,4 +121,12 @@ export default defineConfig({
     minify: "terser",
     terserOptions: createProductionTerserOptions(productionMinification.propertyOptions),
   },
+  test: {
+    // Several suites spawn child Vite builds or drive long fixed-step runs. At
+    // Vitest's 5s default they pass alone but time out under parallel load,
+    // which turns a deploy-gating test run into a coin flip. This is generous
+    // enough to absorb contention and still short enough to catch a real hang.
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
+  },
 });

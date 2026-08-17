@@ -442,9 +442,12 @@ describe("long-lived runner view", () => {
     expect(view.playSurface.getAttribute("aria-hidden")).toBe("true");
     expect(view.playSurface.querySelectorAll("button, [tabindex]")).toHaveLength(0);
     expect(view.getInputGateSnapshot().started).toBe(false);
-    expect(view.laneUpButton.textContent).toBe("Up");
+    // The lane buttons are icon-only, so the glyph carries no accessible name
+    // and `aria-label` is the only thing a screen reader announces. Assert both,
+    // so replacing the glyph can never silently strip the label.
+    expect(view.laneUpButton.textContent).toBe("▲");
     expect(view.laneUpButton.getAttribute("aria-label")).toBe("Move up");
-    expect(view.laneDownButton.textContent).toBe("Down");
+    expect(view.laneDownButton.textContent).toBe("▼");
     expect(view.laneDownButton.getAttribute("aria-label")).toBe("Move down");
 
     view.updateBindings({

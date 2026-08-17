@@ -1192,12 +1192,16 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
   let bindingDialogInvoker: HTMLElement | null = null;
   let pendingRemapCommand: RunnerViewInputCommand | null = null;
   let horizontalPosition = 1;
+  // Mirrors the presentation refresh's input gate. Without it this helper reset
+  // `disabled` from position alone and re-enabled the horizontal buttons while
+  // input was closed, until the next refresh happened to correct them.
+  let horizontalInputOpen = false;
   const applyHorizontalPosition = (next: number): void => {
     horizontalPosition = Math.max(0, Math.min(2, next));
     player.style.setProperty("--col-runner-player-x", `${[32, 36, 40][horizontalPosition]}%`);
     player.dataset.horizontalPosition = ["left", "center", "right"][horizontalPosition];
-    moveLeftButton.disabled = horizontalPosition === 0;
-    moveRightButton.disabled = horizontalPosition === 2;
+    moveLeftButton.disabled = !horizontalInputOpen || horizontalPosition === 0;
+    moveRightButton.disabled = !horizontalInputOpen || horizontalPosition === 2;
   };
   let presentationFault: string | null = null;
   let presentationFaultReportAttempted = false;
@@ -2135,6 +2139,7 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
     controlPlacementButton.disabled = bindingDialogOpen || terminal;
     laneUpButton.disabled = !inputOpen;
     laneDownButton.disabled = !inputOpen;
+    horizontalInputOpen = inputOpen;
     moveLeftButton.disabled = !inputOpen || horizontalPosition === 0;
     moveRightButton.disabled = !inputOpen || horizontalPosition === 2;
     pauseButton.hidden = !snapshot.started || terminal;
@@ -2208,13 +2213,32 @@ export function mountRunnerView(options: RunnerViewMountOptions): RunnerView {
     const keyboardEvent = event as KeyboardEvent;
     const target = keyboardEvent.target;
     if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) return;
-    if (keyboardEvent.code === "ArrowLeft" || keyboardEvent.code === "KeyA") {
-      keyboardEvent.preventDefault();
-      if (!moveLeftButton.disabled) moveLeftButton.click();
-    } else if (keyboardEvent.code === "ArrowRight" || keyboardEvent.code === "KeyD") {
-      keyboardEvent.preventDefault();
-      if (!moveRightButton.disabled) moveRightButton.click();
+    // Modifier combinations belong to the browser and the operating system:
+    // Alt+ArrowLeft is Back, and Cmd/Ctrl+Arrow moves the caret or switches
+    // workspaces. Never claim them.
+    if (
+      keyboardEvent.altKey || keyboardEvent.ctrlKey ||
+      keyboardEvent.metaKey || keyboardEvent.shiftKey
+    ) {
+      return;
     }
+    // The binding dialog captures its own keys for remapping. Without this the
+    // window listener also fires, so one ArrowLeft both fails a remap and moves
+    // the player behind the open dialog.
+    if (bindingDialogOpen) return;
+    const horizontalButton = keyboardEvent.code === "ArrowLeft" ||
+        keyboardEvent.code === "KeyA"
+      ? moveLeftButton
+      : keyboardEvent.code === "ArrowRight" || keyboardEvent.code === "KeyD"
+      ? moveRightButton
+      : null;
+    if (horizontalButton === null) return;
+    // Only consume the key when the press is actually accepted. Preventing the
+    // default first meant a paused, unstarted, or already-at-the-edge runner
+    // still swallowed the arrow key and broke browser scrolling.
+    if (horizontalButton.disabled) return;
+    keyboardEvent.preventDefault();
+    horizontalButton.click();
   });
   listen(controlPlacementButton, "click", () => {
     if (controlPlacementButton.hidden || controlPlacementButton.disabled) return;

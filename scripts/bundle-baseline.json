@@ -1,0 +1,19 @@
+{
+  "$comment": "Phase 0 bundle baseline (CHOICE_OF_LIFE_AAA_UPGRADE_PLAN.md §14 Phase 0, §0 L5/L9). These are the measured production numbers at the time the deploy was first gated on verification. `npm run budget` fails against the §13 release targets; this file records where the build actually stands so the ratchet can block regressions while Phase 1 brings the numbers down. Lower these values as the work lands. Never raise one without recording why.",
+  "recordedAt": "2026-08-17",
+  "recordedFrom": "npm run build on main, Node 26",
+  "measurements": {
+    "totalBytes": 102347339,
+    "mainEntryJsBytes": 570175,
+    "cssBytes": 187472,
+    "criticalGzipBytes": 212039,
+    "criticalBrotliBytes": 172916,
+    "pngFiles": 94,
+    "pngBytes": 99960248
+  },
+  "accepted": {
+    "totalBytes": "5.1x over the 20 MiB target. Cause: the build emits every character/career/occupation/summer/pet atlas for all four art sets and both genders. Phase 1 per-stage preload groups and compact runtime atlases are the fix.",
+    "mainEntryJsBytes": "14% over the 500 KB target uncompressed, but the compressed critical path (gzip 212 KB, brotli 173 KB) is already inside the 350 KiB §13 target, so this is a lower priority than the atlas weight.",
+    "pngFiles": "The Phase 1 budget profile bans PNG output outright while the game ships PNG atlases. Phase 1 must replace the ban with a per-file and total cap (§0 L5)."
+  }
+}

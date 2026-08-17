@@ -26,6 +26,11 @@ describe("presentation production invariant diagnostics", () => {
       bundle: true,
       define: { "import.meta.env.DEV": "false" },
       format: "esm",
+      // Vite owns stylesheet imports; this harness only inspects the JavaScript
+      // messages. Without the empty loader, `import "./polish.css"` in
+      // runner-view.ts aborts the bundle because `write: false` gives esbuild no
+      // output path for a CSS chunk.
+      loader: { ".css": "empty" },
       platform: "browser",
       target: "es2022",
       treeShaking: true,

@@ -20,6 +20,10 @@ const APPROVED_STORYBOOK_ASSET_ADAPTERS = new Set([
   "src/sprites.ts",
   "src/storybook-characters.ts",
   "src/storybook-pets.ts",
+  // Draw-only v5 seasonal outfit adapter, the same role as the career-outfit and
+  // occupation adapters above. `character-system.ts` imports `drawSummerCharacter`
+  // to paint a canvas; it returns no value that reaches the score domain.
+  "src/summer-characters.ts",
   "src/types.ts",
 ]);
 const PROTECTED_MECHANICS_KEYS = new Set([
@@ -55,6 +59,10 @@ export const PROTECTED_MECHANICS_READ_ALLOWLIST = Object.freeze([
   "src/choice-of-life/presentation/model.ts",
   "src/choice-of-life/presentation/newborn-view.ts",
   "src/choice-of-life/presentation/preferences-panel.ts",
+  // Reads gender/heritage/appearance only to build the avatar DOM element for a
+  // life stage. It returns an HTMLElement and touches no score, choice, or
+  // opportunity path, so it is a cosmetic read like the sibling stage views.
+  "src/choice-of-life/presentation/stage-player-avatar.ts",
   "src/choice-of-life/presentation/v5-room-backdrop.ts",
 ]);
 const PROTECTED_MECHANICS_READ_ALLOWED = new Set(PROTECTED_MECHANICS_READ_ALLOWLIST);

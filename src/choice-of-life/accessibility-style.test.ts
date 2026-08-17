@@ -6,11 +6,27 @@ const style = readFileSync(new URL("./style.css", import.meta.url), "utf8") as s
 
 function rule(selector: string): string {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = style.match(new RegExp(`${escaped}\\s*\\{([^}]+)\\}`));
+  // Anchor to the start of a line so a longer, more specific selector cannot
+  // satisfy a lookup for the base rule. Without this, `.col-field select`
+  // silently matched `.col-shell[data-screen="setup"] .col-field select`, and
+  // `.col-button--primary` matched the screen-scoped override — so these
+  // contract assertions were reading rules they were never meant to check.
+  const match = style.match(
+    new RegExp(`^\\s*${escaped}\\s*\\{([^}]+)\\}`, "m"),
+  );
   if (!match?.[1]) {
     throw new Error(`Missing CSS rule: ${selector}`);
   }
   return match[1];
+}
+
+/** Every declaration block whose selector list mentions `selector`. */
+function allRulesMentioning(selector: string): readonly string[] {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const matches = style.matchAll(
+    new RegExp(`(^|[},])([^{}]*${escaped})\\s*\\{([^}]+)\\}`, "gm"),
+  );
+  return [...matches].map((match) => match[3] ?? "");
 }
 
 function relativeLuminance(hex: string): number {
@@ -152,6 +168,23 @@ describe("Phase 1 accessibility style contract", () => {
     expect(rule(".col-button--primary:focus-visible")).toMatch(
       /outline-color:\s*var\(--col-focus\)/,
     );
+    // The title/setup/ready screens override the primary button with a literal
+    // gradient, so the base rule above is not what most players actually see.
+    // Lock the shipped colors too, or the contrast guarantee only covers a rule
+    // that is overridden before it ever renders.
+    for (const block of allRulesMentioning(".col-button--primary")) {
+      const border = /border-color:\s*(#[0-9a-f]{6})/i.exec(block)?.[1];
+      const text = /(?:^|;)\s*color:\s*(#[0-9a-f]{6})/i.exec(block)?.[1];
+      const fill = /background:[^;]*?(#[0-9a-f]{6})\s*\)?\s*;/i.exec(block)?.[1];
+      if (text && fill) {
+        expect(contrastRatio(text, fill), `${text} on ${fill}`)
+          .toBeGreaterThanOrEqual(3);
+      }
+      if (border && fill) {
+        expect(contrastRatio(border, fill), `${border} edge on ${fill}`)
+          .toBeGreaterThanOrEqual(3);
+      }
+    }
     expect(rule('.col-runner-control-area [data-runner-user-pause]')).toMatch(
       /border-color:\s*#64727a/,
     );

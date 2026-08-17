@@ -1,10 +1,32 @@
 name: Check Choice of Life fixture history
 
+# Runs on every push and pull request that can affect the locks. This was
+# previously `workflow_dispatch` only, so the committed preregistration history
+# was never validated automatically.
+#
+# `docs/**` is ignored on both triggers because documentation cannot change a
+# fixture lock. `scripts/fixture-lock.mjs` is deliberately NOT ignored: a change
+# to the validator itself is exactly when this job must run.
+
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "docs/**"
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "docs/**"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: validate-locks-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate-history:
@@ -26,5 +48,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Both validators diff against the commit the branch started from.
       - name: Validate committed preregistration history
         run: npm run fixtures:validate-preregistration
+        env:
+          CHOICE_LOCK_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CHOICE_FIXTURE_TEST_PREREG_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}

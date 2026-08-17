@@ -259,6 +259,13 @@ export function mountChoiceOfLife(root: HTMLElement, dependencies: BrowserDepend
     preferenceStorage = null;
   }
   const preferenceStore = createPlayerPreferenceStore(preferenceStorage);
+  // KNOWN DEFECT (see PHASE_0_BASELINE.md, open P1): `snapshot.settings` is
+  // DEFAULT_SETTINGS whenever there is no saved run (browser-shell.ts:362), so
+  // this spread resets stored high-contrast, reduced-motion, text-scale, and
+  // announcement choices for a player returning without an active life. The fix
+  // belongs in the shell — it should report the persisted player preferences
+  // instead of defaults — because gating here on `savedRun` breaks the two
+  // accessibility contract tests that require shell-reported settings to win.
   let playerPreferences = normalizePlayerPreferences({
     ...preferenceStore.load(),
     ...snapshot.settings,

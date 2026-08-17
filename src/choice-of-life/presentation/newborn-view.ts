@@ -515,21 +515,53 @@ export function mountNewbornView(
         target instanceof HTMLTextAreaElement ||
         (target instanceof HTMLElement && target.isContentEditable)
       ) return;
-      if (keyboardEvent.code === "ArrowUp" || keyboardEvent.code === "KeyW") {
-        keyboardEvent.preventDefault();
-        requestMove("up");
-      } else if (keyboardEvent.code === "ArrowDown" || keyboardEvent.code === "KeyS") {
-        keyboardEvent.preventDefault();
-        requestMove("down");
-      } else if (keyboardEvent.code === "ArrowLeft" || keyboardEvent.code === "KeyA") {
-        keyboardEvent.preventDefault();
-        requestHorizontalMove("left");
-      } else if (keyboardEvent.code === "ArrowRight" || keyboardEvent.code === "KeyD") {
-        keyboardEvent.preventDefault();
-        requestHorizontalMove("right");
-      } else if (keyboardEvent.code === "KeyP") {
-        keyboardEvent.preventDefault();
-        togglePause();
+      // Modifier combinations belong to the browser and the operating system:
+      // Ctrl/Cmd+P prints, Ctrl/Cmd+S saves, Ctrl/Cmd+A selects all, Ctrl+D
+      // bookmarks, Alt+ArrowLeft goes back. Never claim them.
+      if (
+        keyboardEvent.altKey || keyboardEvent.ctrlKey ||
+        keyboardEvent.metaKey || keyboardEvent.shiftKey
+      ) return;
+      // The choice tray and the recap take over the stage; movement and pause
+      // must not act behind an open panel.
+      if (!choiceTray.hidden || !recap.hidden) return;
+      const state = currentState;
+      if (disposed || state === null || state.phase !== "active") return;
+      const paused = state.clock.paused;
+      // Consume the key only when the press is actually accepted, so a paused,
+      // settled, or edge-of-room stage still leaves scrolling and shortcuts to
+      // the browser.
+      switch (keyboardEvent.code) {
+        case "ArrowUp":
+        case "KeyW":
+          if (paused) return;
+          keyboardEvent.preventDefault();
+          requestMove("up");
+          return;
+        case "ArrowDown":
+        case "KeyS":
+          if (paused) return;
+          keyboardEvent.preventDefault();
+          requestMove("down");
+          return;
+        case "ArrowLeft":
+        case "KeyA":
+          if (paused || leftButton.disabled) return;
+          keyboardEvent.preventDefault();
+          requestHorizontalMove("left");
+          return;
+        case "ArrowRight":
+        case "KeyD":
+          if (paused || rightButton.disabled) return;
+          keyboardEvent.preventDefault();
+          requestHorizontalMove("right");
+          return;
+        case "KeyP":
+          keyboardEvent.preventDefault();
+          togglePause();
+          return;
+        default:
+          return;
       }
     });
   }

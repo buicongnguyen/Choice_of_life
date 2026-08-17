@@ -15,6 +15,7 @@
     "release:verify": "node scripts/check-release.mjs",
     "build": "tsc && vite build",
     "budget": "node scripts/check-bundle-budget.mjs",
+    "budget:ratchet": "node scripts/check-bundle-ratchet.mjs",
     "boundaries": "node scripts/check-choice-boundaries.mjs",
     "fixtures:validate": "node scripts/validate-fixture-locks.mjs",
     "fixtures:preregister": "node scripts/validate-fixture-preregistration.mjs",

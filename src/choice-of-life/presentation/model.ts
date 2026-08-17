@@ -162,5 +162,16 @@ export function cloneSetup(selection: SetupSelection = DEFAULT_SETUP): SetupSele
 }
 
 export function cloneSettings(settings: VisualSettings = DEFAULT_SETTINGS): VisualSettings {
-  return { ...settings };
+  // Must project, not spread. Callers pass the wider `PlayerPreferences` (which
+  // is assignable to `VisualSettings`, so the compiler is happy), and a bare
+  // spread carried `schemaVersion`, `assistMode`, and `audioCuesEnabled`
+  // through. `browser-shell.copyValidSettings` requires *exactly* these four
+  // keys, so every extra key made `saveSettings` return `kind: "invalid"` and
+  // republish the previous settings — accessibility changes silently reverted.
+  return {
+    highContrast: settings.highContrast,
+    reducedMotion: settings.reducedMotion,
+    screenReaderAnnouncements: settings.screenReaderAnnouncements,
+    textScale: settings.textScale,
+  };
 }

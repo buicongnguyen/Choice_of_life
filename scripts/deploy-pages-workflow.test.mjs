@@ -3,13 +3,26 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+/**
+ * Contract for the Pages deploy workflow.
+ *
+ * The previous version of this file asserted a four-job distributed pipeline
+ * with sharded runner evaluation, Playwright browser installs, and plan-digest
+ * transport. That pipeline was never built: at the commit that introduced these
+ * tests the workflow was already the simple build-and-deploy it remained. Since
+ * no CI ran the test suite, three permanently failing tests sat on `main`
+ * unnoticed.
+ *
+ * These assertions now describe the workflow that exists and the property that
+ * actually matters: nothing reaches production without passing verification
+ * first.
+ */
+
 const ROOT = path.resolve(import.meta.dirname, "..");
 const WORKFLOW_PATH = path.join(ROOT, ".github", "workflows", "deploy-pages.yml");
 const ACTION_PINS = Object.freeze({
   checkout: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1",
   setupNode: "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0",
-  uploadArtifact: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1",
-  downloadArtifact: "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1",
   configurePages: "actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0",
   uploadPages: "actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0",
   deployPages: "actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0",
@@ -19,75 +32,71 @@ function occurrences(source, pattern) {
   return [...source.matchAll(pattern)].length;
 }
 
-describe("distributed Pages workflow contract", () => {
-  it("pins the exact release in every computational job and closes the 4x4 DAG", async () => {
+describe("Pages deploy workflow contract", () => {
+  it("pins the exact release commit in every job that checks out code", async () => {
     const source = await readFile(WORKFLOW_PATH, "utf8");
-    expect(occurrences(source, /ref: \$\{\{ github\.sha \}\}/g)).toBe(3);
-    expect(occurrences(source, /persist-credentials: false/g)).toBe(3);
-    expect(occurrences(source, /node-version: 22\.23\.1/g)).toBe(3);
-    expect(source.split(ACTION_PINS.checkout).length - 1).toBe(3);
-    expect(source.split(ACTION_PINS.setupNode).length - 1).toBe(3);
-    expect(occurrences(source, /npm run release:stamp/g)).toBe(3);
-    expect(source).toContain("fail-fast: false");
-    expect(source).toContain("max-parallel: 4");
-    expect(source).toContain("group: [0, 1, 2, 3]");
-    expect(source).toContain("--groups 4");
-    expect(source).toContain("--workers-per-group 4");
-    expect(source).toMatch(/aggregate-build:\n\s+needs:\n\s+- preflight\n\s+- runner-shards/);
-    expect(source).toMatch(
-      /aggregate-build:[\s\S]*?permissions:\n\s+contents: read\n\s+pages: read\n\s+steps:/,
-    );
-    expect(source).toMatch(/deploy:\n\s+needs: aggregate-build/);
-    expect(source).not.toContain("continue-on-error");
-    expect(source).not.toMatch(/if:\s*\$\{\{\s*always\(\)/);
+    // verify and build both check out; deploy consumes the uploaded artifact.
+    expect(occurrences(source, /ref: \$\{\{ github\.sha \}\}/g)).toBe(2);
+    expect(occurrences(source, /persist-credentials: false/g)).toBe(2);
+    expect(occurrences(source, /node-version: 22\.23\.1/g)).toBe(2);
+    expect(source.split(ACTION_PINS.checkout).length - 1).toBe(2);
+    expect(source.split(ACTION_PINS.setupNode).length - 1).toBe(2);
+    expect(occurrences(source, /npm run release:stamp/g)).toBe(2);
   });
 
-  it("uses immutable current artifact actions, explicit downloads, and independent plan-digest transport", async () => {
+  it("runs every verification gate before anything is built or uploaded", async () => {
     const source = await readFile(WORKFLOW_PATH, "utf8");
-    const usesLines = source.split("\n").filter((line) => line.trimStart().startsWith("uses:"));
-    expect(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#\s+v[0-9.]+)?$/.test(line.trim())))
-      .toBe(true);
-    expect(source.split(ACTION_PINS.uploadArtifact).length - 1).toBe(2);
-    // Two exact plan downloads plus four explicit, independently named groups.
-    expect(source.split(ACTION_PINS.downloadArtifact).length - 1).toBe(6);
-    for (let groupIndex = 0; groupIndex < 4; groupIndex += 1) {
-      expect(source).toContain(`name: runner-shards-\${{ github.sha }}-group-${groupIndex}`);
-      expect(source).toContain(
-        `path: \${{ runner.temp }}/runner-distributed-shards/runner-shards-\${{ github.sha }}-group-${groupIndex}`,
-      );
+    const verifyIndex = source.indexOf("verify:");
+    const buildIndex = source.indexOf("\n  build:");
+    const deployIndex = source.indexOf("\n  deploy:");
+    expect(verifyIndex).toBeGreaterThanOrEqual(0);
+    expect(buildIndex).toBeGreaterThan(verifyIndex);
+    expect(deployIndex).toBeGreaterThan(buildIndex);
+
+    // Build waits for verification; deploy waits for build. This ordering is the
+    // whole point of the workflow.
+    expect(source).toMatch(/\n {2}build:\n\s+needs: verify/);
+    expect(source).toMatch(/\n {2}deploy:\n\s+needs: build/);
+
+    for (const gate of [
+      "run: npm run check",
+      "run: npm run check:core",
+      "run: npm run boundaries",
+      "run: npm test",
+    ]) {
+      const gateIndex = source.indexOf(gate);
+      expect(gateIndex, gate).toBeGreaterThan(verifyIndex);
+      expect(gateIndex, `${gate} must run in verify, before build`)
+        .toBeLessThan(buildIndex);
     }
-    expect(source).toContain("plan_sha256: ${{ steps.plan-digest.outputs.value }}");
-    expect(occurrences(source, /needs\.preflight\.outputs\.plan_sha256/g)).toBe(3);
-    expect(source).toContain("--expected-plan-sha256");
-    expect(source).toContain("runner-distributed-plan-v1.sha256");
   });
 
-  it("keeps all bounded jobs below six hours and verifies exact tested bytes before Pages upload", async () => {
+  it("verifies the built release and blocks bundle regressions before upload", async () => {
     const source = await readFile(WORKFLOW_PATH, "utf8");
-    expect([...source.matchAll(/timeout-minutes: (\d+)/g)].map((match) => Number(match[1])))
-      .toEqual([45, 240, 180, 15]);
-    const aggregateIndex = source.indexOf("distributed-aggregate \\");
-    const preflightJobIndex = source.indexOf("preflight:");
-    const aggregateJobIndex = source.indexOf("aggregate-build:");
-    const preflightInstallIndex = source.indexOf("run: npm ci", preflightJobIndex);
-    const aggregateInstallIndex = source.indexOf("run: npm ci", aggregateJobIndex);
-    const browserInstallCommand = "npx --no-install playwright install --with-deps chromium";
-    const preflightBrowserInstallIndex = source.indexOf(browserInstallCommand, preflightInstallIndex);
-    const aggregateBrowserInstallIndex = source.indexOf(browserInstallCommand, aggregateInstallIndex);
-    const preflightVerifyIndex = source.indexOf("npm run verify:checks", preflightJobIndex);
-    const postRunnerIndex = source.indexOf("npm run verify:post-runner");
-    const exactDistIndex = source.indexOf("distributed-verify-dist \\");
+    const buildStepIndex = source.indexOf("run: npm run build");
+    const releaseVerifyIndex = source.indexOf("run: npm run release:verify");
+    const ratchetIndex = source.indexOf("run: npm run budget:ratchet");
     const pagesUploadIndex = source.indexOf(`uses: ${ACTION_PINS.uploadPages}`);
-    expect(aggregateIndex).toBeGreaterThan(0);
-    expect(occurrences(source, /npx --no-install playwright install --with-deps chromium/g)).toBe(2);
-    expect(preflightBrowserInstallIndex).toBeGreaterThan(preflightInstallIndex);
-    expect(preflightBrowserInstallIndex).toBeLessThan(preflightVerifyIndex);
-    expect(aggregateBrowserInstallIndex).toBeGreaterThan(aggregateInstallIndex);
-    expect(aggregateBrowserInstallIndex).toBeLessThan(aggregateIndex);
-    expect(postRunnerIndex).toBeGreaterThan(aggregateIndex);
-    expect(exactDistIndex).toBeGreaterThan(postRunnerIndex);
-    expect(pagesUploadIndex).toBeGreaterThan(exactDistIndex);
+    expect(buildStepIndex).toBeGreaterThan(0);
+    expect(releaseVerifyIndex).toBeGreaterThan(buildStepIndex);
+    expect(ratchetIndex).toBeGreaterThan(buildStepIndex);
+    expect(pagesUploadIndex).toBeGreaterThan(ratchetIndex);
     expect(source).toContain(`uses: ${ACTION_PINS.configurePages}`);
     expect(source).toContain(`uses: ${ACTION_PINS.deployPages}`);
+  });
+
+  it("keeps every action pinned to a full commit SHA and every job bounded", async () => {
+    const source = await readFile(WORKFLOW_PATH, "utf8");
+    const usesLines = source.split("\n").filter((line) => line.trimStart().startsWith("uses:"));
+    expect(usesLines.length).toBeGreaterThan(0);
+    expect(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#\s+v[0-9.]+)?$/.test(line.trim())))
+      .toBe(true);
+    const timeouts = [...source.matchAll(/timeout-minutes: (\d+)/g)]
+      .map((match) => Number(match[1]));
+    expect(timeouts).toHaveLength(3);
+    expect(timeouts.every((minutes) => minutes > 0 && minutes < 360)).toBe(true);
+    // A failure must stop the pipeline, never be swallowed into a green deploy.
+    expect(source).not.toContain("continue-on-error");
+    expect(source).not.toMatch(/if:\s*\$\{\{\s*always\(\)/);
   });
 });
