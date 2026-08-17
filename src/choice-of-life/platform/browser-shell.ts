@@ -3,6 +3,7 @@ import { deepFreeze } from "../core/immutable";
 import { createInitialRunState } from "../core/run-factory";
 import { createNewbornState, reduceNewborn, type NewbornState } from "../core/newborn/index";
 import {
+  CAREGIVER_SUPPORT_THRESHOLDS,
   DEFAULT_ENCOUNTER_CATALOG,
   canLeaveEncounterStage,
   createEncounterEngineState,
@@ -190,8 +191,8 @@ function educationSupportLevel(state: EncounterChapterState): EducationSupportLe
   const caregiverCloseness = state.engine.relationships
     .filter((relationship) => relationship.kind === "caregiver")
     .reduce((highest, relationship) => Math.max(highest, relationship.closeness), 0);
-  if (caregiverCloseness >= 70) return "strong";
-  if (caregiverCloseness >= 35) return "some";
+  if (caregiverCloseness >= CAREGIVER_SUPPORT_THRESHOLDS.strong) return "strong";
+  if (caregiverCloseness >= CAREGIVER_SUPPORT_THRESHOLDS.some) return "some";
   return "none";
 }
 

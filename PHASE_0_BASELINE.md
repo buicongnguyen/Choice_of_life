@@ -188,6 +188,43 @@ The framing below is the verifier's, not the finder's.
   sheet only repainted if some *other* atlas happened to finish afterwards.
   Fixed.
 
+- **The player's avatar became a different person every chapter.** P0 under §19
+  ("wrong atlas identity") and §6.3 ("stable face, hair style/color, skin tone").
+  `app.playerCharacterForStage()` supplies only `hairStyleId`, `hairColorId` and
+  `clothingPaletteId`, so `createCharacterModel` derived `skinToneId`,
+  `faceStyleId` and `detailId` from the seed — and the seed was
+  `choice-of-life-player-${lifeStage}`. Every chapter screen re-rolled all three.
+  Measured before the fix: skin tone `golden` at toddler, `porcelain-warm` at
+  child. Now seeded from the chosen identity via `playerIdentitySeed`, which
+  excludes the life stage. Covered by `stage-player-avatar.test.ts`, verified to
+  fail against the old seed.
+
+- **The caregiver bond had no mechanical effect.** `educationSupportLevel`
+  compared closeness against 70 and 35 while the only caregiver deltas in the
+  catalog are +6 and +4, so every playthrough resolved to `"none"` and two of
+  three support tiers were dead code — while the UI showed a "6/100" readout
+  implying it mattered. The thresholds now live beside the catalog that makes
+  them reachable (`CAREGIVER_SUPPORT_THRESHOLDS`) and map onto the encounter's
+  three real options: ask for comfort (+6) → strong, play together (+4) → some,
+  follow the routine (0) → none. `caregiver-support.test.ts` fails if the
+  thresholds and catalog ever drift apart again.
+
+  This is a balance decision as much as a fix. The mapping makes each existing
+  choice matter without inventing new numbers, but retune it in Phase 8 if the
+  intended curve differs.
+
+- **3 MB of unused art on every page load.** `storybook-characters.ts` warmed the
+  Western base and expansion pair at import time, inherited from v5 where the
+  title screen displayed that default pair. The Choice of Life title screen
+  renders no characters at all — measured: 0 canvases, 0 character elements — so
+  four sheets totalling ~3 MB were fetched and decoded for art never shown, and
+  hardcoded to `western` regardless of the player's art set. Removed.
+
+  Verified after the change: title loads **0 KB** of character atlases; entering
+  the newborn stage fetches exactly three sheets, all `asian-female`, matching the
+  chosen set; all three characters reach `data-atlas-source="storybook"` with
+  `atlas-ready`, so the on-demand path resolves with no placeholder left behind.
+
 ### Confirmed, not yet fixed
 
 | Area | Defect | Verifier's note |

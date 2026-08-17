@@ -1,4 +1,6 @@
 export {
+  CAREGIVER_SUPPORT_THRESHOLDS,
+  caregiverClosenessOutcomes,
   createEncounterCatalog,
   DEFAULT_ENCOUNTER_CATALOG,
   getEncounterDefinition,

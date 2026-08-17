@@ -213,3 +213,39 @@ export const DEFAULT_ENCOUNTER_CATALOG = createEncounterCatalog(
   DEFAULT_DEFINITIONS,
   "default-life-encounters-v1",
 );
+
+/**
+ * Caregiver-closeness thresholds for downstream education support.
+ *
+ * These live beside the catalog because the catalog's `closenessDelta` values
+ * are what makes them reachable. They previously lived in `browser-shell.ts` as
+ * 70 and 35, while the only caregiver deltas in this catalog are 6 and 4 — so
+ * every playthrough resolved to "none" and two of the three support tiers were
+ * dead code. The three thresholds map onto the three options of
+ * `caregiver-comfort-v1`: ask for comfort (+6), play together (+4), or follow
+ * the routine (no closeness change).
+ *
+ * Rebalance these together with the catalog deltas, never independently, and
+ * keep `caregiverClosenessOutcomes` passing.
+ */
+export const CAREGIVER_SUPPORT_THRESHOLDS = Object.freeze({
+  strong: 6,
+  some: 4,
+});
+
+/** Every caregiver closeness total a single playthrough can actually reach. */
+export function caregiverClosenessOutcomes(
+  definitions: readonly EncounterDefinition[] = DEFAULT_DEFINITIONS,
+): readonly number[] {
+  const totals = new Set<number>([0]);
+  for (const definition of definitions) {
+    if (definition.kind !== "caregiver") continue;
+    for (const option of definition.options) {
+      for (const change of option.relationships ?? []) {
+        if (change.kind !== "caregiver") continue;
+        totals.add(Math.max(0, Math.min(100, change.closenessDelta)));
+      }
+    }
+  }
+  return [...totals].sort((first, second) => first - second);
+}

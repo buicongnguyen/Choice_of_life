@@ -3,14 +3,22 @@
   "recordedAt": "2026-08-17",
   "recordedFrom": "npm run build on main, Node 26",
   "measurements": {
-    "totalBytes": 102347339,
-    "mainEntryJsBytes": 570175,
+    "totalBytes": 102347738,
+    "mainEntryJsBytes": 570574,
     "cssBytes": 187472,
-    "criticalGzipBytes": 212039,
-    "criticalBrotliBytes": 172916,
+    "criticalGzipBytes": 212112,
+    "criticalBrotliBytes": 172988,
     "pngFiles": 94,
     "pngBytes": 99960248
   },
+  "revisions": [
+    {
+      "date": "2026-08-17",
+      "change": "mainEntryJsBytes 570175 -> 570574 (+399), totalBytes +399, gzip +73, brotli +72",
+      "why": "Deliberate. The ratchet correctly blocked this. The growth is the stage-player identity seed (playerIdentitySeed) plus the caregiver support thresholds and their catalog-derived reachability helper. Both fix defects that made player choices meaningless: the avatar re-rolled skin tone, face and accessory every chapter, and two of three education support tiers were unreachable. 399 bytes uncompressed is an acceptable price, and the compressed critical path stays well inside the 350 KiB §13 target at 212 KB gzip.",
+      "note": "Runtime transfer improved substantially in the same change: removing the import-time Western atlas warm cuts about 3 MB of PNG off every page load. That does not show here because the sheets are still emitted into dist by `new URL(...)` references; only Phase 1 per-stage atlases will move totalBytes."
+    }
+  ],
   "accepted": {
     "totalBytes": "5.1x over the 20 MiB target. Cause: the build emits every character/career/occupation/summer/pet atlas for all four art sets and both genders. Phase 1 per-stage preload groups and compact runtime atlases are the fix.",
     "mainEntryJsBytes": "14% over the 500 KB target uncompressed, but the compressed critical path (gzip 212 KB, brotli 173 KB) is already inside the 350 KiB §13 target, so this is a lower priority than the atlas weight.",

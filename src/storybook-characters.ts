@@ -923,9 +923,18 @@ export function drawStorybookCharacter(
   return true;
 }
 
-if (typeof window !== "undefined") {
-  // The title uses the default neutral pair. Motion companions wait for the
-  // selected-character entry/resume flow, avoiding an unnecessary 20 MiB
-  // decoded Western motion set when another heritage is chosen.
-  void warmStorybookAtlasFamilies("western", ["base", "expansion"]);
-}
+// Import-time atlas warming intentionally removed.
+//
+// This module used to eagerly warm the Western base and expansion pair on
+// import, because the Pixel Life Journey v5 title screen displayed that default
+// neutral pair. The Choice of Life title screen renders no characters at all
+// (no canvas, no character element), so those four sheets — about 3 MB
+// transferred and far more decoded — were fetched on every page load for art
+// that is never shown, and hardcoded to `western` even when the player picks a
+// different art set.
+//
+// Atlases already load on demand through `atlasStateFor`, and
+// `hydrateCharacterAtlas` redraws when each sheet becomes ready, so nothing
+// needs a warm at import. Per-stage preload groups belong to Phase 1 of the
+// upgrade plan; they should warm the *selected* heritage and gender for the
+// current stage, never a hardcoded default.
