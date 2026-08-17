@@ -218,18 +218,31 @@ export const DEFAULT_ENCOUNTER_CATALOG = createEncounterCatalog(
  * Caregiver-closeness thresholds for downstream education support.
  *
  * These live beside the catalog because the catalog's `closenessDelta` values
- * are what makes them reachable. They previously lived in `browser-shell.ts` as
- * 70 and 35, while the only caregiver deltas in this catalog are 6 and 4 — so
- * every playthrough resolved to "none" and two of the three support tiers were
- * dead code. The three thresholds map onto the three options of
- * `caregiver-comfort-v1`: ask for comfort (+6), play together (+4), or follow
- * the routine (no closeness change).
+ * are what make them reachable. They previously lived in `browser-shell.ts` as
+ * 70 and 35, while the only caregiver deltas here are +6 and +4 — so every
+ * playthrough resolved to "none" and the caregiver bond had no mechanical
+ * effect at all.
  *
- * Rebalance these together with the catalog deltas, never independently, and
- * keep `caregiverClosenessOutcomes` passing.
+ * `some` is set to 4 so that *either* way of engaging with the caregiver earns
+ * support, and following the routine does not. That is a trade-off: engagement
+ * buys education support (+4 academic, +15 funding), the routine buys immediate
+ * health and money.
+ *
+ * `strong` is deliberately set above what one encounter can produce. An earlier
+ * revision mapped it to 6, which made the three options a strict education
+ * ladder (65 / 50 / 37 effective funding from a 35-money start) — it ranked
+ * "ask for comfort" above "play together", which §8.3 treats as equally valid,
+ * and it punished the money-minded routine hardest on money. Reaching `strong`
+ * should require sustained closeness across several caregiver encounters, which
+ * this catalog does not yet contain. It is therefore unreachable *by design and
+ * on record*, not by accident — see `caregiver-support.test.ts`, which fails if
+ * that stops being true without this comment being updated.
+ *
+ * Rebalance these together with the catalog deltas, never independently.
  */
 export const CAREGIVER_SUPPORT_THRESHOLDS = Object.freeze({
-  strong: 6,
+  /** Two engaged caregiver encounters' worth; no single option can reach it. */
+  strong: 12,
   some: 4,
 });
 

@@ -209,9 +209,25 @@ The framing below is the verifier's, not the finder's.
   follow the routine (0) → none. `caregiver-support.test.ts` fails if the
   thresholds and catalog ever drift apart again.
 
-  This is a balance decision as much as a fix. The mapping makes each existing
-  choice matter without inventing new numbers, but retune it in Phase 8 if the
+  This is a balance decision as much as a fix. Retune it in Phase 8 if the
   intended curve differs.
+
+  **Self-review correction.** The first version of this fix mapped `strong` to 6,
+  which activated `SUPPORT_FUNDING_BONUS.strong` (+30) from a single newborn
+  choice and made the three options a strict education-access ladder — 65 / 50 /
+  37 effective funding from a 35-money start. That was worse than the bug in two
+  ways: it ranked "ask for comfort" above "play together", which §8.3 treats as
+  equally valid rather than better or worse, and it gave the money-minded
+  "follow the routine" option (+2 money) the *worst* effective funding by 28
+  points, inverting the incentive it exists to express. `strong` is now 12 —
+  above what one encounter can yield — so both engaged options earn `some` and
+  the choice is a genuine trade-off: caregiver engagement buys education support,
+  the routine buys immediate health and money. `strong` awaits the additional
+  caregiver encounters Phase 5/6 will add, and is documented as such rather than
+  silently dead. Three assertions in `caregiver-support.test.ts` now guard this
+  class of mistake — engaged-option parity, no dominant option, and a bounded
+  effective-money spread — and all three were confirmed to fail against the 6/4
+  mapping.
 
 - **3 MB of unused art on every page load.** `storybook-characters.ts` warmed the
   Western base and expansion pair at import time, inherited from v5 where the
