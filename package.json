@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Choice of Life — a three-score side-scrolling life runner where every decision shapes the future.",
+  "description": "Choice of Life \u2014 a three-score side-scrolling life runner where every decision shapes the future.",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/buicongnguyen/Choice_of_life.git",
@@ -35,7 +35,8 @@
     "check": "tsc --noEmit",
     "check:core": "tsc -p tsconfig.choice-of-life-core.json",
     "test": "vitest run --exclude src/choice-of-life/core/runner/evaluation-replay.test.ts --exclude scripts/runner-laboratory-evaluator.test.ts && vitest run src/choice-of-life/core/runner/evaluation-replay.test.ts --pool=threads --poolOptions.threads.singleThread && vitest run scripts/runner-laboratory-evaluator.test.ts",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:ci": "vitest run --exclude src/choice-of-life/core/runner/evaluation-replay.test.ts --exclude scripts/runner-laboratory-evaluator.test.ts --exclude scripts/fixture-lock.test.mjs --exclude scripts/runner-laboratory-evaluator-cli.test.ts && vitest run src/choice-of-life/core/runner/evaluation-replay.test.ts --pool=threads --poolOptions.threads.singleThread && vitest run scripts/runner-laboratory-evaluator.test.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

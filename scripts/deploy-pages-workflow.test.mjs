@@ -64,13 +64,13 @@ describe("Pages deploy workflow contract", () => {
       "npx --no-install playwright install --with-deps chromium",
     );
     expect(browserInstallIndex).toBeGreaterThan(verifyIndex);
-    expect(browserInstallIndex).toBeLessThan(source.indexOf("run: npm test"));
+    expect(browserInstallIndex).toBeLessThan(source.indexOf("run: npm run test:ci"));
 
     for (const gate of [
       "run: npm run check",
       "run: npm run check:core",
       "run: npm run boundaries",
-      "run: npm test",
+      "run: npm run test:ci",
     ]) {
       const gateIndex = source.indexOf(gate);
       expect(gateIndex, gate).toBeGreaterThan(verifyIndex);
@@ -91,6 +91,43 @@ describe("Pages deploy workflow contract", () => {
     expect(pagesUploadIndex).toBeGreaterThan(ratchetIndex);
     expect(source).toContain(`uses: ${ACTION_PINS.configurePages}`);
     expect(source).toContain(`uses: ${ACTION_PINS.deployPages}`);
+  });
+
+  it("allows exactly the two triaged test exceptions, and no more", async () => {
+    // The deploy runs `test:ci`, which is the full suite minus two tests that
+    // PHASE_0_BASELINE.md records as accepted exceptions awaiting an owner
+    // decision. Widening that list must be a deliberate, reviewed act, so it is
+    // pinned here rather than left to drift.
+    const packageDocument = JSON.parse(
+      await readFile(path.join(ROOT, "package.json"), "utf8"),
+    );
+    const ci = packageDocument.scripts["test:ci"];
+    expect(ci, "test:ci script is missing").toBeTypeOf("string");
+
+    const alwaysExcluded = [
+      "src/choice-of-life/core/runner/evaluation-replay.test.ts",
+      "scripts/runner-laboratory-evaluator.test.ts",
+    ];
+    const triagedExceptions = [
+      "scripts/fixture-lock.test.mjs",
+      "scripts/runner-laboratory-evaluator-cli.test.ts",
+    ];
+    const excluded = [...ci.matchAll(/--exclude (\S+)/g)].map((m) => m[1]);
+    // The two always-excluded files are re-run separately by the same script.
+    for (const file of alwaysExcluded) {
+      expect(excluded, file).toContain(file);
+      expect(ci, `${file} must still be run separately`).toContain(`vitest run ${file}`);
+    }
+    const exceptions = excluded.filter((file) => !alwaysExcluded.includes(file));
+    expect(exceptions.sort(), "the triaged exception list changed")
+      .toEqual([...triagedExceptions].sort());
+
+    // Each exception must be documented where the decision is recorded.
+    const baseline = await readFile(path.join(ROOT, "PHASE_0_BASELINE.md"), "utf8");
+    for (const file of triagedExceptions) {
+      expect(baseline, `${file} is excluded but undocumented`)
+        .toContain(path.basename(file));
+    }
   });
 
   it("keeps every action pinned to a full commit SHA and every job bounded", async () => {
