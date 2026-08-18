@@ -34,17 +34,35 @@ export const RATCHET_TARGETS = Object.freeze({
   pngFiles: 0,
 });
 
+/**
+ * Byte-for-byte equality across machines is not achievable: the same commit
+ * built on Windows with Node 26 and on a Linux CI runner with Node 22 differed
+ * by 6 bytes in total output and 1 byte after brotli. Pinning absolute counts
+ * therefore made the gate impossible to pass anywhere but the machine that
+ * recorded it. This tolerance is far above that observed noise and far below any
+ * real change - the smallest deliberate growth recorded in the baseline's
+ * revision log is 83 bytes - so genuine regressions are still caught.
+ */
+const NOISE_TOLERANCE_BYTES = 64;
+
+function toleranceFor(key) {
+  // File counts are exact; only byte measurements carry build noise.
+  return key.endsWith("Bytes") ? NOISE_TOLERANCE_BYTES : 0;
+}
+
 export function comparisonRows(measured, baseline) {
   return Object.keys(RATCHET_TARGETS).map((key) => {
     const now = measured[key] ?? 0;
     const was = baseline.measurements[key] ?? 0;
+    const tolerance = toleranceFor(key);
     return {
       key,
       now,
       baseline: was,
       target: RATCHET_TARGETS[key],
       delta: now - was,
-      regressed: now > was,
+      tolerance,
+      regressed: now > was + tolerance,
       meetsTarget: now <= RATCHET_TARGETS[key],
     };
   });
