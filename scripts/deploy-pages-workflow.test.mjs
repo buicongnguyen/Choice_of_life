@@ -104,13 +104,14 @@ describe("Pages deploy workflow contract", () => {
     const ci = packageDocument.scripts["test:ci"];
     expect(ci, "test:ci script is missing").toBeTypeOf("string");
 
+    // Re-run separately by the same script because it needs a single thread.
     const alwaysExcluded = [
       "src/choice-of-life/core/runner/evaluation-replay.test.ts",
-      "scripts/runner-laboratory-evaluator.test.ts",
     ];
     const triagedExceptions = [
       "scripts/fixture-lock.test.mjs",
       "scripts/runner-laboratory-evaluator-cli.test.ts",
+      "scripts/runner-laboratory-evaluator.test.ts",
     ];
     const excluded = [...ci.matchAll(/--exclude (\S+)/g)].map((m) => m[1]);
     // The two always-excluded files are re-run separately by the same script.

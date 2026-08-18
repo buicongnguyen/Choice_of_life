@@ -346,6 +346,15 @@ exclusion list grows, if an excluded file is undocumented here, or if the
 always-excluded pair stops being run separately. Delete both exclusions once the
 evidence is generated and the entry budget is reconciled.
 
+### E3 — `runner-laboratory-evaluator.test.ts`: too heavy for a per-push gate
+
+Its *"produces the same canonical aggregate bytes for one and sixteen production
+shards"* case spawns sixteen child production builds. It passes locally but timed
+out at the 6-minute per-test budget on a CI runner. Plan §15 reserves large
+population and broad matrix checks for a milestone or release candidate and asks
+for them to be explicitly time-boxed, so it stays in `npm test` and out of the
+deploy gate. **Owner:** run it before tagging a release.
+
 ### E1 — `fixture-lock.test.mjs`: missing suite evidence
 
 `Fixture lock validation failed: active suite evidence unavailable for
