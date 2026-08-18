@@ -75,7 +75,7 @@
 
 .col-gallery__eyebrow {
   color: var(--col-gallery-teal-dark) !important;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 900;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -121,7 +121,7 @@
 
 .col-gallery__control-group legend {
   color: var(--col-gallery-muted);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
   margin-block-end: 0.35rem;
   padding: 0;
@@ -273,7 +273,7 @@
 
 .col-gallery__card-copy > p,
 .col-gallery__job-title p {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
 }
 
 .col-gallery__trait-row {
@@ -288,7 +288,7 @@
   background: rgba(40, 127, 120, 0.09);
   border-radius: 999px;
   color: var(--col-gallery-teal-dark);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 800;
   padding: 0.2rem 0.4rem;
 }
@@ -605,7 +605,7 @@
 .col-gallery .col-character__job-accessory {
   align-items: center;
   display: flex;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   justify-content: center;
   position: absolute;
   right: -54%;

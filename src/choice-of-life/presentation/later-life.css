@@ -58,7 +58,7 @@
 .col-later-life-eyebrow {
   display: inline-block;
   color: var(--col-coral-dark);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -129,7 +129,7 @@
   display: grid;
   gap: 6px;
   color: #929b98;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 750;
   text-align: center;
 }
@@ -207,7 +207,7 @@
 
 .col-later-life-score > span {
   overflow: hidden;
-  font-size: 0.73rem;
+  font-size: 0.75rem;
   font-weight: 750;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -761,7 +761,7 @@
   border-radius: 99px;
   background: #f3eee1;
   color: #716a5c;
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 
@@ -777,7 +777,7 @@
 
 .col-later-life-option-tradeoff {
   color: #7c6d62;
-  font-size: 0.73rem;
+  font-size: 0.75rem;
 }
 
 .col-later-life-effects {
@@ -790,7 +790,7 @@
 .col-later-life-effect {
   padding: 4px 6px;
   border-radius: 7px;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 850;
 }
 
@@ -867,7 +867,7 @@
 .col-later-life-person-copy small {
   overflow: hidden;
   color: var(--col-muted);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   text-transform: capitalize;
   white-space: nowrap;
@@ -984,7 +984,7 @@
 .col-later-life-footer p {
   margin: 0;
   color: var(--col-muted);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
 }
 
 .col-later-life-view.is-biography .col-later-life-header {
@@ -1107,7 +1107,7 @@
 
 .col-later-life-reflection-label {
   color: var(--col-muted);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -1121,7 +1121,7 @@
 
 .col-later-life-reflection-band {
   color: var(--reflection-color);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 850;
   text-transform: capitalize;
 }
@@ -1187,7 +1187,7 @@
   background: #f3ead6;
   color: #9c6748;
   font-family: Georgia, serif;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 900;
 }
 
@@ -1201,13 +1201,13 @@
   display: block;
   margin-top: 2px;
   color: var(--col-muted);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
 }
 
 .col-later-life-chapter-card p {
   margin: 10px 0;
   color: #596765;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.45;
 }
 
@@ -1215,7 +1215,7 @@
   padding-top: 8px;
   border-top: 1px dashed #dfdbd1;
   color: var(--col-teal-dark);
-  font-size: 0.67rem;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 
@@ -1259,7 +1259,7 @@
 
 .col-later-life-decision-list span {
   color: var(--col-muted);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.4;
 }
 
@@ -1352,7 +1352,7 @@
   }
 
   .col-later-life-stage-rail span {
-    font-size: 0.62rem;
+    font-size: 0.75rem;
   }
 
   .col-later-life-scores {
@@ -1368,7 +1368,7 @@
   }
 
   .col-later-life-score > span {
-    font-size: 0.62rem;
+    font-size: 0.75rem;
   }
 
   .col-later-life-score output {

@@ -3,11 +3,11 @@
   "recordedAt": "2026-08-17",
   "recordedFrom": "npm run build on main, Node 26",
   "measurements": {
-    "totalBytes": 102350536,
+    "totalBytes": 102350619,
     "mainEntryJsBytes": 570985,
-    "cssBytes": 189859,
+    "cssBytes": 189942,
     "criticalGzipBytes": 212584,
-    "criticalBrotliBytes": 173427,
+    "criticalBrotliBytes": 173455,
     "pngFiles": 94,
     "pngBytes": 99960248
   },
@@ -29,6 +29,12 @@
       "change": "cssBytes 187531 -> 189859 (+2328), totalBytes +2328, gzip +325, brotli +206",
       "why": "Deliberate; the ratchet blocked it. All CSS, no JavaScript. Fixes the newborn stage UI: the control pad rendered as a near-opaque dark ellipse covering 37.5% of the playfield and 100% of the player on mobile (a specificity collision between an overlay design and a button-row design); the choice tray covered 79.2% of the playfield and 100% of both the player and the caregiver, violating plan \u00a78.1; and HUD text ran as small as 8.8px with the three core score values at 10.88px.",
       "note": "Measured after: pad and tray no longer overlap the playfield at any width, no HUD collisions on mobile or desktop, no text under 12px, no touch target under 44px, no horizontal scroll."
+    },
+    {
+      "date": "2026-08-19",
+      "change": "cssBytes 189859 -> 189942 (+83), totalBytes +83, brotli +28",
+      "why": "Deliberate; the ratchet blocked it. All CSS. Raised 48 font-size declarations below 12px to a 0.75rem floor across every stage stylesheet, made the runner control pad a true circle (inline-size 9.4rem fought its 169px grid, producing an ellipse at border-radius 50%), lightened the runner pad from 84/90% to 38/48% opacity, repaired its sub-480px grid (a 2-column override against 3-column grid-template-areas), and gave the adult season toggle a 44px touch target.",
+      "note": "Audited every stage view by mounting it in the live browser at 1280x800 and 375x812: newborn, runner, childhood, education, career, adult, later-life, encounters and gallery all report no text under 12px, no touch target under 44px, no viewport overflow and no horizontal scroll."
     }
   ],
   "accepted": {

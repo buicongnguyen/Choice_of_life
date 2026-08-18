@@ -48,7 +48,7 @@
 .col-adult-kicker {
   color: var(--adult-teal);
   display: block;
-  font-size: .72rem;
+  font-size: 0.75rem;
   font-weight: 850;
   letter-spacing: .12em;
   margin-bottom: .35rem;
@@ -90,8 +90,9 @@
   color: var(--adult-muted);
   cursor: pointer;
   font: inherit;
-  font-size: .74rem;
+  font-size: 0.75rem;
   font-weight: 800;
+  min-block-size: 44px;
   padding: .38rem .65rem;
 }
 
@@ -297,7 +298,7 @@
   background: rgba(255, 253, 247, .88);
   border-radius: 999px;
   color: var(--adult-ink);
-  font-size: .68rem;
+  font-size: 0.75rem;
   font-weight: 850;
   margin-top: -.18rem;
   padding: .18rem .45rem;
@@ -669,7 +670,7 @@
 
 .col-adult-choice__copy strong { font-size: .92rem; }
 .col-adult-choice__copy > span { color: var(--adult-muted); font-size: .78rem; line-height: 1.45; }
-.col-adult-choice__copy small { color: var(--adult-teal); font-size: .72rem; font-weight: 800; }
+.col-adult-choice__copy small { color: var(--adult-teal); font-size: 0.75rem; font-weight: 800; }
 
 .col-adult-person-grid {
   display: grid;
@@ -703,8 +704,8 @@
 }
 
 .col-adult-person-card__identity strong { color: var(--adult-ink); }
-.col-adult-person-card__identity span { color: #4d6866; font-size: .74rem; }
-.col-adult-person-card__identity small { color: var(--adult-muted); font-size: .68rem; overflow-wrap: anywhere; }
+.col-adult-person-card__identity span { color: #4d6866; font-size: 0.75rem; }
+.col-adult-person-card__identity small { color: var(--adult-muted); font-size: 0.75rem; overflow-wrap: anywhere; }
 .col-adult-person-card__identity .col-adult-outfit-label { color: var(--adult-teal); font-weight: 750; }
 
 .col-adult-person-card__button {
@@ -746,7 +747,7 @@
   border-radius: 999px;
   color: #7c8884;
   display: flex;
-  font-size: .7rem;
+  font-size: 0.75rem;
   font-weight: 850;
   height: 1.55rem;
   justify-content: center;
@@ -776,7 +777,7 @@
 }
 
 .col-adult-snapshot h4 { font-size: .86rem; }
-.col-adult-snapshot p { color: var(--adult-muted); font-size: .74rem; margin: .32rem 0 0; }
+.col-adult-snapshot p { color: var(--adult-muted); font-size: 0.75rem; margin: .32rem 0 0; }
 
 .col-adult-subheading { margin-top: 1.2rem !important; }
 
@@ -792,7 +793,7 @@
 }
 
 .col-adult-children strong { font-size: .78rem; margin-right: .2rem; }
-.col-adult-children span { background: #fff; border-radius: 999px; color: #715c51; font-size: .7rem; padding: .25rem .5rem; }
+.col-adult-children span { background: #fff; border-radius: 999px; color: #715c51; font-size: 0.75rem; padding: .25rem .5rem; }
 
 .col-adult-caregiver-panel {
   background: linear-gradient(135deg, #fff6f1, #fffdf8);
@@ -807,11 +808,11 @@
 .col-adult-caregiver-list { display: grid; gap: .55rem; grid-template-columns: repeat(2, 1fr); margin-top: .65rem; }
 .col-adult-caregiver { background: #fff; border-radius: .75rem; display: grid; gap: .12rem; padding: .55rem .65rem; }
 .col-adult-caregiver strong { font-size: .78rem; }
-.col-adult-caregiver span, .col-adult-caregiver small { color: var(--adult-muted); font-size: .7rem; }
+.col-adult-caregiver span, .col-adult-caregiver small { color: var(--adult-muted); font-size: 0.75rem; }
 
 .col-adult-cycle-note {
   color: var(--adult-muted);
-  font-size: .74rem;
+  font-size: 0.75rem;
   margin: 1rem 0 .5rem;
   text-align: center;
 }
@@ -835,14 +836,14 @@
   padding: .65rem;
 }
 
-.col-adult-recap dt { color: var(--adult-teal); font-size: .68rem; font-weight: 800; text-transform: uppercase; }
+.col-adult-recap dt { color: var(--adult-teal); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
 .col-adult-recap dd { color: var(--adult-ink); font-size: .8rem; margin: .2rem 0 0; }
 
 .col-adult-footer {
   align-items: center;
   color: var(--adult-muted);
   display: flex;
-  font-size: .72rem;
+  font-size: 0.75rem;
   justify-content: space-between;
 }
 
@@ -871,7 +872,7 @@
   .col-adult-age { text-align: left; }
   .col-adult-scores { gap: .4rem; }
   .col-adult-score { gap: .1rem; padding: .55rem; }
-  .col-adult-score span { font-size: .67rem; }
+  .col-adult-score span { font-size: 0.75rem; }
   .col-adult-choice-grid,
   .col-adult-choice-grid--family,
   .col-adult-caregiver-list,
