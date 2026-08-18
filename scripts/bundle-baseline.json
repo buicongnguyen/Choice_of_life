@@ -1,13 +1,13 @@
 {
-  "$comment": "Phase 0 bundle baseline (CHOICE_OF_LIFE_AAA_UPGRADE_PLAN.md §14 Phase 0, §0 L5/L9). These are the measured production numbers at the time the deploy was first gated on verification. `npm run budget` fails against the §13 release targets; this file records where the build actually stands so the ratchet can block regressions while Phase 1 brings the numbers down. Lower these values as the work lands. Never raise one without recording why.",
+  "$comment": "Phase 0 bundle baseline (CHOICE_OF_LIFE_AAA_UPGRADE_PLAN.md \u00a714 Phase 0, \u00a70 L5/L9). These are the measured production numbers at the time the deploy was first gated on verification. `npm run budget` fails against the \u00a713 release targets; this file records where the build actually stands so the ratchet can block regressions while Phase 1 brings the numbers down. Lower these values as the work lands. Never raise one without recording why.",
   "recordedAt": "2026-08-17",
   "recordedFrom": "npm run build on main, Node 26",
   "measurements": {
-    "totalBytes": 102347738,
-    "mainEntryJsBytes": 570574,
-    "cssBytes": 187472,
-    "criticalGzipBytes": 212112,
-    "criticalBrotliBytes": 172988,
+    "totalBytes": 102348208,
+    "mainEntryJsBytes": 570985,
+    "cssBytes": 187531,
+    "criticalGzipBytes": 212259,
+    "criticalBrotliBytes": 173221,
     "pngFiles": 94,
     "pngBytes": 99960248
   },
@@ -15,13 +15,19 @@
     {
       "date": "2026-08-17",
       "change": "mainEntryJsBytes 570175 -> 570574 (+399), totalBytes +399, gzip +73, brotli +72",
-      "why": "Deliberate. The ratchet correctly blocked this. The growth is the stage-player identity seed (playerIdentitySeed) plus the caregiver support thresholds and their catalog-derived reachability helper. Both fix defects that made player choices meaningless: the avatar re-rolled skin tone, face and accessory every chapter, and two of three education support tiers were unreachable. 399 bytes uncompressed is an acceptable price, and the compressed critical path stays well inside the 350 KiB §13 target at 212 KB gzip.",
+      "why": "Deliberate. The ratchet correctly blocked this. The growth is the stage-player identity seed (playerIdentitySeed) plus the caregiver support thresholds and their catalog-derived reachability helper. Both fix defects that made player choices meaningless: the avatar re-rolled skin tone, face and accessory every chapter, and two of three education support tiers were unreachable. 399 bytes uncompressed is an acceptable price, and the compressed critical path stays well inside the 350 KiB \u00a713 target at 212 KB gzip.",
       "note": "Runtime transfer improved substantially in the same change: removing the import-time Western atlas warm cuts about 3 MB of PNG off every page load. That does not show here because the sheets are still emitted into dist by `new URL(...)` references; only Phase 1 per-stage atlases will move totalBytes."
+    },
+    {
+      "date": "2026-08-17",
+      "change": "mainEntryJsBytes 570574 -> 570985 (+411), cssBytes +59, gzip +147, brotli +233",
+      "why": "Deliberate; the ratchet blocked it. The growth is the childhood scene render key, the encounter tray focus restoration, and two [hidden] catch-all CSS rules. All three fix defects that were visible to the player: characters rebuilt and stuttered several times a second, keyboard focus fell to <body> after every encounter choice, and the childhood play controls plus a duplicate later-life 'Return to title' stayed on screen while the code believed they were hidden.",
+      "note": "Compressed critical path remains inside the 350 KiB \u00a713 target at 212 KB gzip."
     }
   ],
   "accepted": {
     "totalBytes": "5.1x over the 20 MiB target. Cause: the build emits every character/career/occupation/summer/pet atlas for all four art sets and both genders. Phase 1 per-stage preload groups and compact runtime atlases are the fix.",
-    "mainEntryJsBytes": "14% over the 500 KB target uncompressed, but the compressed critical path (gzip 212 KB, brotli 173 KB) is already inside the 350 KiB §13 target, so this is a lower priority than the atlas weight.",
-    "pngFiles": "The Phase 1 budget profile bans PNG output outright while the game ships PNG atlases. Phase 1 must replace the ban with a per-file and total cap (§0 L5)."
+    "mainEntryJsBytes": "14% over the 500 KB target uncompressed, but the compressed critical path (gzip 212 KB, brotli 173 KB) is already inside the 350 KiB \u00a713 target, so this is a lower priority than the atlas weight.",
+    "pngFiles": "The Phase 1 budget profile bans PNG output outright while the game ships PNG atlases. Phase 1 must replace the ban with a per-file and total cap (\u00a70 L5)."
   }
 }

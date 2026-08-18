@@ -1890,6 +1890,14 @@ body {
   display: none !important;
 }
 
+.col-childhood-view [hidden] {
+  display: none !important;
+}
+
+.col-later-life-view [hidden] {
+  display: none !important;
+}
+
 .col-newborn-view h2,
 .col-newborn-view h3,
 .col-newborn-view p {

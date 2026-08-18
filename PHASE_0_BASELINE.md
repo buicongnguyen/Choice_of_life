@@ -241,6 +241,35 @@ The framing below is the verifier's, not the finder's.
   chosen set; all three characters reach `data-atlas-source="storybook"` with
   `atlas-ready`, so the on-demand path resolves with no placeholder left behind.
 
+- **The childhood scene rebuilt three characters on every tick.** `renderScene`
+  was the only render helper in `childhood-view.ts` without a key guard — its
+  siblings `renderChoice`, `renderSummary` and `renderRoster` all had one. Each
+  tick it discarded and re-created the player, friend and companion subtrees:
+  three canvases, three `drawImage` calls, nine fresh atlas listeners, and a
+  walk-cycle restart, so the characters visibly stuttered and never animated.
+  Now key-guarded on stage, friend identity and companion.
+
+- **`element.hidden` did nothing on two views.** A class rule that sets
+  `display` has the same specificity as the user-agent `[hidden]` rule and comes
+  from the author sheet, so it wins. `.col-childhood-play-controls` and
+  `.col-later-life-footer` both set `display: flex` with no `[hidden]` override,
+  so the childhood Pause/Advance controls stayed on screen behind the choice
+  tray, summary and completion panels — the plan's P0 "player/choice/control
+  overlap" — and the later-life ending showed a duplicate "Return to title".
+  The runner and newborn views already had `.col-<view> [hidden]` catch-alls;
+  childhood and later-life simply never got theirs. Both added, and
+  `hidden-contract.test.ts` now fails if a view root loses its catch-all.
+
+  This single root cause explains two separate audit findings.
+
+- **Every encounter choice dropped keyboard focus to `<body>`.** Rebuilding the
+  tray destroys the button the player just activated, and nothing took focus, so
+  the focus ring vanished and a screen reader's position collapsed to the top of
+  the document while the live region announced new content. Focus now moves to
+  the rebuilt heading, but only when the tray actually held it, so a player
+  reading elsewhere is never yanked back. `encounter-focus.test.ts` covers both
+  directions and was confirmed to fail against the old code.
+
 ### Confirmed, not yet fixed
 
 | Area | Defect | Verifier's note |

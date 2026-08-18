@@ -218,6 +218,22 @@ export function mountEncounterView(
   section.append(header, scoreRow, playfield, tray, story, footer);
   host.replaceChildren(section);
 
+  /**
+   * Rebuilding the tray destroys the button the player just activated. If focus
+   * was inside it, the browser drops focus to <body>: the focus ring vanishes
+   * and a screen reader's position collapses to the top of the document while
+   * the live region announces new content. Move focus to the new heading
+   * instead, but only when the tray actually held it, so a player reading
+   * elsewhere is never yanked back.
+   */
+  const restoreTrayFocus = (trayHadFocus: boolean): void => {
+    if (!trayHadFocus) return;
+    const heading = tray.querySelector("h3");
+    if (heading === null) return;
+    if (!heading.hasAttribute("tabindex")) heading.setAttribute("tabindex", "-1");
+    (heading as HTMLElement).focus();
+  };
+
   const renderTray = (state: EncounterChapterState): void => {
     const offeredRecovery = state.engine.recoveryHooks.find((hook) => hook.status === "offered");
     const presenting = getPresentingEncounter(state.engine, DEFAULT_ENCOUNTER_CATALOG);
@@ -230,6 +246,9 @@ export function mountEncounterView(
           : "moving";
     if (key === trayKey) return;
     trayKey = key;
+    const activeElement = document.activeElement;
+    const trayHadFocus = activeElement !== null && tray.contains(activeElement);
+    try {
     tray.replaceChildren();
 
     if (offeredRecovery) {
@@ -343,6 +362,9 @@ export function mountEncounterView(
           : "Consequences are catching up with the choices already made.",
       }),
     );
+    } finally {
+      restoreTrayFocus(trayHadFocus);
+    }
   };
 
   const renderStory = (state: EncounterChapterState): void => {

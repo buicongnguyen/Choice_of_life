@@ -273,6 +273,7 @@ export function mountChildhoodView(
   const ownerWindow = document.defaultView;
   let currentState: ChildhoodState | null = null;
   let disposed = false;
+  let sceneRenderKey = "";
   let choiceRenderKey = "";
   let summaryRenderKey = "";
   let rosterRenderKey = "";
@@ -442,6 +443,23 @@ export function mountChildhoodView(
     const definition = getCurrentChildhoodStage(state);
     const sceneText = STAGE_COPY[definition.stageId];
     const friend = getChildhoodFriendForStage(state);
+    // Without this guard the scene rebuilt three character subtrees on every
+    // tick of the stage clock: each rebuild discarded and re-created a canvas,
+    // re-ran drawImage, registered four fresh atlas listeners, and restarted
+    // the walk cycle - so the characters visibly stuttered and never animated.
+    // Its sibling renderers have always been key-guarded; this one was missed.
+    const sceneKey = [
+      definition.stageId,
+      friend.person.personId,
+      friend.person.gender,
+      friend.person.appearance.hairStyleId,
+      friend.person.appearance.hairColorId,
+      friend.person.appearance.clothingPaletteId,
+      state.companion?.companionId ?? "no-companion",
+      state.companion?.coatId ?? "",
+    ].join("|");
+    if (sceneKey === sceneRenderKey) return;
+    sceneRenderKey = sceneKey;
     sceneHeading.textContent = sceneText.sceneTitle;
     sceneDescription.textContent = sceneText.sceneCopy;
     propOne.textContent = sceneText.propOne;
