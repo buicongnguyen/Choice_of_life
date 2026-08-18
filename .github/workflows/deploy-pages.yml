@@ -24,7 +24,11 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The suite includes a full-life playthrough plus several git-history and
+    # child-build tests. Locally it runs in ~10 minutes; a CI runner is slower,
+    # and 30 minutes was cutting it too close to fail on the clock rather than on
+    # a real defect.
+    timeout-minutes: 50
     steps:
       - name: Checkout exact release commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
