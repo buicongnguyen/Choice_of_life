@@ -3,11 +3,11 @@
   "recordedAt": "2026-08-17",
   "recordedFrom": "npm run build on main, Node 26",
   "measurements": {
-    "totalBytes": 102350619,
-    "mainEntryJsBytes": 570985,
+    "totalBytes": 102351076,
+    "mainEntryJsBytes": 571442,
     "cssBytes": 189942,
-    "criticalGzipBytes": 212584,
-    "criticalBrotliBytes": 173455,
+    "criticalGzipBytes": 212647,
+    "criticalBrotliBytes": 173472,
     "pngFiles": 94,
     "pngBytes": 99960248
   },
@@ -35,6 +35,12 @@
       "change": "cssBytes 189859 -> 189942 (+83), totalBytes +83, brotli +28",
       "why": "Deliberate; the ratchet blocked it. All CSS. Raised 48 font-size declarations below 12px to a 0.75rem floor across every stage stylesheet, made the runner control pad a true circle (inline-size 9.4rem fought its 169px grid, producing an ellipse at border-radius 50%), lightened the runner pad from 84/90% to 38/48% opacity, repaired its sub-480px grid (a 2-column override against 3-column grid-template-areas), and gave the adult season toggle a 44px touch target.",
       "note": "Audited every stage view by mounting it in the live browser at 1280x800 and 375x812: newborn, runner, childhood, education, career, adult, later-life, encounters and gallery all report no text under 12px, no touch target under 44px, no viewport overflow and no horizontal scroll."
+    },
+    {
+      "date": "2026-08-19",
+      "change": "mainEntryJsBytes 570985 -> 571442 (+457), totalBytes +457, gzip +63, brotli +17",
+      "why": "Deliberate; the ratchet blocked it. Two correctness guards found by playing the game to its ending headlessly. All five stage reducers were exhaustive switches with no default, so any action outside the union returned undefined; the sessions assigned that back to their own state and every later call threw 'Cannot read properties of undefined', permanently bricking the chapter so the life could not be finished. They now throw, which the shell already converts into a clean player notice. chooseAdultRoute also validated its phase but not its route id, so an unknown id reached definition.label and surfaced a raw TypeError to the player as a notice.",
+      "note": "A full-life playthrough now runs as a test: new life through newborn, encounters, childhood, education, career, adult and later life to a biography."
     }
   ],
   "accepted": {

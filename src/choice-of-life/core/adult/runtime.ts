@@ -257,6 +257,13 @@ export function chooseAdultRoute(
     throw new Error("Adult route can only be chosen at the route choice");
   }
   const definition = ADULT_ROUTE_DEFINITIONS[routeId];
+  // Without this an unknown id reached `definition.label` below and threw a raw
+  // "Cannot read properties of undefined" TypeError, which the shell then showed
+  // to the player verbatim as a notice. Every sibling stage rejects an unknown
+  // route by name; this one did not.
+  if (definition === undefined) {
+    throw new RangeError(`Unknown adult route: ${routeId}`);
+  }
   const candidates =
     routeId === "partnered"
       ? generatePartnerCandidates({
@@ -956,7 +963,16 @@ export function reduceAdult(
       return setAdultSeason(state, action.season);
     case "advance-to-later-career":
       return advanceAdultToLaterCareer(state);
-  }
+      default:
+      // An exhaustive switch with no default returned `undefined` for any action
+      // outside the union. Sessions assign that straight back to their state, so
+      // one unrecognised action silently bricked the chapter and every later call
+      // failed with "Cannot read properties of undefined". Fail loudly instead;
+      // the shell already turns a throw into a clean player-facing notice.
+      throw new TypeError(
+        `Unsupported adult action: ${String((action as { type?: unknown }).type)}`,
+      );
+}
 }
 
 export function scoreDeltaByAdultSource(

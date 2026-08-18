@@ -753,5 +753,14 @@ export function reduceChildhood(
       return continueChildhoodStage(state);
     case "set-paused":
       return immutable({ ...state, paused: action.paused });
-  }
+      default:
+      // An exhaustive switch with no default returned `undefined` for any action
+      // outside the union. Sessions assign that straight back to their state, so
+      // one unrecognised action silently bricked the chapter and every later call
+      // failed with "Cannot read properties of undefined". Fail loudly instead;
+      // the shell already turns a throw into a clean player-facing notice.
+      throw new TypeError(
+        `Unsupported childhood action: ${String((action as { type?: unknown }).type)}`,
+      );
+}
 }
