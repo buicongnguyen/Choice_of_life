@@ -2037,7 +2037,7 @@ body {
 }
 
 .col-newborn-stage .col-newborn-score dt {
-  font-size: 0.55rem;
+  font-size: 0.75rem;
 }
 
 .col-newborn-stage .col-newborn-score dd {
@@ -2047,11 +2047,11 @@ body {
 }
 
 .col-newborn-stage .col-newborn-score-value {
-  font-size: 0.68rem;
+  font-size: 1rem;
 }
 
 .col-newborn-stage .col-newborn-score meter {
-  block-size: 0.25rem;
+  block-size: 0.35rem;
 }
 
 .col-newborn-stage .col-newborn-clock {
@@ -2070,21 +2070,21 @@ body {
 }
 
 .col-newborn-stage .col-newborn-clock label {
-  font-size: 0.55rem;
+  font-size: 0.75rem;
 }
 
 .col-newborn-stage .col-newborn-clock progress {
-  block-size: 0.25rem;
+  block-size: 0.35rem;
 }
 
 .col-newborn-stage .col-newborn-clock output {
-  font-size: 0.62rem;
+  font-size: 0.85rem;
 }
 
 .col-newborn-stage .col-newborn-stage-header {
   position: absolute;
   z-index: 5;
-  inset-block-start: 2.6rem;
+  inset-block-start: 4.35rem;
   inset-inline: 18%;
   display: block;
   padding: 0.35rem 0.7rem;
@@ -2101,7 +2101,7 @@ body {
 }
 
 .col-newborn-stage .col-eyebrow {
-  font-size: 0.55rem;
+  font-size: 0.75rem;
 }
 
 .col-newborn-stage .col-newborn-stage-copy {
@@ -2111,7 +2111,7 @@ body {
 .col-newborn-stage .col-newborn-pause-button {
   position: absolute;
   z-index: 8;
-  inset-block-start: 3.3rem;
+  inset-block-start: 4.35rem;
   inset-inline-end: 0.5rem;
 }
 
@@ -4661,4 +4661,122 @@ body {
     inline-size: 100%;
     justify-self: stretch;
   }
+}
+
+.col-newborn-stage .col-newborn-choice-tray {
+  position: static;
+  inline-size: 100%;
+  max-inline-size: none;
+  margin-block-start: 0.75rem;
+}
+
+.col-newborn-stage:has(.col-newborn-choice-tray:not([hidden])) {
+  block-size: auto;
+}
+
+.col-newborn-stage .col-newborn-controls {
+  inline-size: max-content;
+  border-color: rgb(255 255 255 / 38%);
+  background: linear-gradient(180deg, rgb(44 30 84 / 38%), rgb(17 27 52 / 48%));
+  box-shadow: 0 3px 0 rgb(0 0 0 / 16%), inset 0 0 0 4px rgb(255 255 255 / 8%);
+}
+
+@media (max-width: 46rem) {
+  .col-newborn-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+    block-size: auto;
+  }
+
+  .col-newborn-stage .col-newborn-playfield {
+    flex: none;
+    inline-size: 100%;
+    block-size: 20rem;
+  }
+
+  .col-newborn-stage .col-newborn-controls {
+    position: static;
+    align-self: center;
+    inline-size: max-content;
+    border-color: rgb(255 255 255 / 22%);
+    background: linear-gradient(180deg, rgb(44 30 84 / 62%), rgb(17 27 52 / 70%));
+  }
+
+  .col-newborn-stage .col-newborn-pause-button {
+    align-self: center;
+    inline-size: max-content;
+  }
+
+  .col-newborn-stage .col-newborn-scores {
+    max-inline-size: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .col-newborn-stage .col-newborn-clock {
+    inline-size: 100%;
+    max-inline-size: none;
+  }
+
+  .col-newborn-stage .col-newborn-score {
+    font-size: 0.8rem;
+  }
+
+  .col-newborn-stage .col-newborn-score-value {
+    font-size: 1.25rem;
+  }
+
+  .col-newborn-stage .col-newborn-score meter {
+    block-size: 0.45rem;
+  }
+
+  .col-newborn-position {
+    font-size: 0.85rem;
+  }
+
+  .col-newborn-stage .col-newborn-score dt {
+    font-size: 0.8rem;
+  }
+
+  .col-newborn-stage .col-eyebrow {
+    font-size: 0.78rem;
+  }
+
+  .col-newborn-stage .col-newborn-clock label,
+  .col-newborn-stage .col-newborn-clock output {
+    font-size: 0.8rem;
+  }
+
+  .col-newborn-stage .col-newborn-clock progress {
+    block-size: 0.6rem;
+  }
+
+  .col-newborn-stage .col-newborn-choice-tray {
+    position: static;
+    inline-size: 100%;
+    max-inline-size: none;
+  }
+
+  .col-newborn-stage .col-newborn-stage-header,
+  .col-newborn-stage .col-newborn-scores,
+  .col-newborn-stage .col-newborn-clock,
+  .col-newborn-stage .col-newborn-pause-button {
+    position: static;
+  }
+
+  .col-newborn-stage .col-newborn-stage-header,
+  .col-newborn-stage .col-newborn-scores,
+  .col-newborn-stage .col-newborn-clock {
+    inline-size: 100%;
+  }
+
+  .col-newborn-stage .col-newborn-stage-header { order: 1; }
+  .col-newborn-stage .col-newborn-scores { order: 2; }
+  .col-newborn-stage .col-newborn-clock { order: 3; }
+  .col-newborn-stage .col-newborn-playfield { order: 4; }
+  .col-newborn-stage .col-newborn-pause-button { order: 5; }
+  .col-newborn-stage .col-newborn-controls { order: 6; }
+  .col-newborn-stage .col-newborn-choice-tray { order: 7; }
 }

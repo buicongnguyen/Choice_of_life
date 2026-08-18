@@ -3,11 +3,11 @@
   "recordedAt": "2026-08-17",
   "recordedFrom": "npm run build on main, Node 26",
   "measurements": {
-    "totalBytes": 102348208,
+    "totalBytes": 102350536,
     "mainEntryJsBytes": 570985,
-    "cssBytes": 187531,
-    "criticalGzipBytes": 212259,
-    "criticalBrotliBytes": 173221,
+    "cssBytes": 189859,
+    "criticalGzipBytes": 212584,
+    "criticalBrotliBytes": 173427,
     "pngFiles": 94,
     "pngBytes": 99960248
   },
@@ -23,6 +23,12 @@
       "change": "mainEntryJsBytes 570574 -> 570985 (+411), cssBytes +59, gzip +147, brotli +233",
       "why": "Deliberate; the ratchet blocked it. The growth is the childhood scene render key, the encounter tray focus restoration, and two [hidden] catch-all CSS rules. All three fix defects that were visible to the player: characters rebuilt and stuttered several times a second, keyboard focus fell to <body> after every encounter choice, and the childhood play controls plus a duplicate later-life 'Return to title' stayed on screen while the code believed they were hidden.",
       "note": "Compressed critical path remains inside the 350 KiB \u00a713 target at 212 KB gzip."
+    },
+    {
+      "date": "2026-08-19",
+      "change": "cssBytes 187531 -> 189859 (+2328), totalBytes +2328, gzip +325, brotli +206",
+      "why": "Deliberate; the ratchet blocked it. All CSS, no JavaScript. Fixes the newborn stage UI: the control pad rendered as a near-opaque dark ellipse covering 37.5% of the playfield and 100% of the player on mobile (a specificity collision between an overlay design and a button-row design); the choice tray covered 79.2% of the playfield and 100% of both the player and the caregiver, violating plan \u00a78.1; and HUD text ran as small as 8.8px with the three core score values at 10.88px.",
+      "note": "Measured after: pad and tray no longer overlap the playfield at any width, no HUD collisions on mobile or desktop, no text under 12px, no touch target under 44px, no horizontal scroll."
     }
   ],
   "accepted": {
