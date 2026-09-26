@@ -1,0 +1,187 @@
+# Choice of Life 2.0 — evaluation and redesign
+
+Status: implemented on branch `redesign-3d` (2026-09-26). The last 2D build is
+tagged `legacy-2d-final` (and `v1.0.0` for the original release).
+
+## 1. Evaluation of the 2D build (1.x)
+
+I played the live flow from the title through the middle-school stage and read
+the stage, story and presentation code. The problems are structural, not polish.
+
+### Art
+
+| Finding | Evidence |
+|---|---|
+| No single art direction. | Detailed painted character sprites (ImageGen atlases, 197 MB of PNG sources) stand on flat CSS/canvas rectangles: a nursery with a road, trees and a pink band behind it; school buildings drawn as outlined boxes. |
+| The game is a web page with a small game inside it. | The runner is a panel inside a form. Setup, save banners, "What this life remembers" ledgers and friend cards stack under it and push the play area off screen on a 720p display. |
+| Nothing moves with weight. | Sprites slide; there is no camera, no lighting, no depth, no particles, no transitions between ages. |
+| Colour is muted. | Beige page, pastel panels, grey-blue floors. It never looks warm or vivid. |
+
+### Story
+
+| Finding | Evidence |
+|---|---|
+| There is no protagonist and no question. | The player is "you" with no name, no family, no want. Nothing asks "what will happen?" |
+| Nobody stays. | "Each school stage keeps its own unique, same-age friend": Leo, Chloe, Mei and Mateo each replace the last. A life story without recurring people has no stakes. |
+| Choices are lifestyle quizzes, not dilemmas. | "Stay for a warm cuddle / Explore a gentle game / Choose a steady routine"; "Study hard: Money +7" for a child. Every option is pleasant, so none matters. |
+| Callbacks are vague. | "Your old notes help the two of you recognize a familiar pattern." The player cannot connect it to anything they did. |
+| No loss, conflict or humour. | The tone is uniformly soft. There is no rival, no storm, no goodbye. |
+| System language leaks into the fiction. | "Encounters & consequences", "The deterministic starting state is saved", "Open runner laboratory (practice)". |
+
+### Play
+
+| Finding | Evidence |
+|---|---|
+| Three chapters in, the player has barely steered. | Childhood stages auto-advance ("The story moves automatically"). The encounter chapter is a list of buttons. |
+| Twelve stages use four different interaction models. | Newborn runner, encounter form, auto-story childhood, adult form; each has its own view (650–2,400 lines). |
+| The engineering is mostly scaffolding. | ~69k lines of TypeScript, of which the runner evaluation, oracle, replay and fixture-lock systems are larger than the game. Every push ran a 14-minute gate that still failed on its own exceptions. |
+
+**Verdict:** refinement cannot reach the bar. The redesign keeps the product
+constraints the owner set (three scores, lanes, trade-off choices, callbacks,
+no game over, a written ending) and rebuilds everything else.
+
+## 2. Product pillars for 2.0
+
+1. **One life, one promise.** A named protagonist, a recurring cast, and a
+   single dramatic question carried from the first chapter to the last scene.
+2. **A living toy world.** Full-screen, vivid, warm 3D dioramas with a Mario
+   Kart 8 quality bar: chunky bevelled forms, glossy colour, readable
+   silhouettes, soft shadows, particles and animation in everything.
+3. **Steer, then choose.** Every chapter is played: a three-lane runner with a
+   jump, chapter-specific movement, companions that change play, and cinematic
+   pauses for choices that are real trade-offs with named consequences.
+4. **Remembered.** Every major choice is echoed later by name, and the ending
+   is assembled from the people and decisions of this life.
+
+## 3. Story — "The Marigold Promise"
+
+**Hook (prologue, age 70).** Golden hour on the cliffs of Marigold Bay. An old
+person climbs toward a lighthouse holding a rusted key. *"Fifty-nine years ago,
+two kids buried a tin under this lighthouse and promised to open it together."*
+The game then flashes back to the day you were born. The whole life is the road
+back up that path, and the question is: **who will be standing at the lighthouse
+with you, and what did you make of the life in between?**
+
+### Cast
+
+| Person | Role | Arc |
+|---|---|---|
+| **You** (default name Kai) | Named, pronouns and look chosen by the player. | Grows from baby to elder on screen, mid-run. |
+| **Nana Pearl** | Retired lighthouse keeper, your grandmother. | Gives you your first spark; holds a secret about the light; dies in your teens and leaves a sealed letter in the tin. |
+| **Mom (Rosa)** | Night-shift nurse. | Exhausted and loving; has a stroke in your forties. |
+| **Dad (Theo)** | Runs a small boat-repair shed. | A storm wrecks it in your childhood; asks whether you'll take over; one last sail. |
+| **Juno Park** | Your best friend from age 6; the tin partner. | Moves away at 13; struggles in the city; marries far away; the promise is hers too. Whether she makes it to the lighthouse depends on you. |
+| **Biscuit** | A stray pup (if you take him in). | Runs beside you and fetches pickups; grows old; says goodbye when you're twenty. |
+| **Dex Moreau** | Charming classmate who loves shortcuts. | Offers stolen exam answers, then a get-rich startup; loses everything in the storm years; maybe forgiven. |
+| **Ms. Okafor** | Teacher, later director. | Your mentor if you earn it; offers the big promotion. |
+| **Sam Rivera** | Met at a rainy bus stop. | Optional partner; a family is optional too. |
+| **Lina** | A kid on the seawall with a broken kite, fifty years after Juno. | You become the grown-up who stops. |
+
+### Chapters
+
+Each chapter is one continuous run (about 2 minutes) through a single place,
+with 3–5 story encounters and a keystone choice. The protagonist visibly ages
+during the run.
+
+| # | Chapter | Age | Place and light | Movement | Key beats |
+|---|---|---|---|---|---|
+| — | Prologue | 70 | Cliff path, golden hour | Walk | The promise; flash back. |
+| 1 | **First Light** | 0→5 | Cottage on Gull Lane, warm morning | Crawl → toddle | Mom home from a night shift; your first word; **Nana's gift** (your spark). |
+| 2 | **The Tin** | 6→11 | Marigold Bay harbour and town, bright noon | Run (+Biscuit) | Juno and the broken kite; the storm wrecks Dad's shed; a pup in the rain; **what goes in the tin** (your dream). |
+| 3 | **Crosscurrents** | 12→17 | Coast road and boardwalk, golden afternoon | Bicycle | Juno moves away; Dex's stolen answers; **Nana's last summer** vs the finals; the light goes dark. |
+| 4 | **Leaving Harbour** | 18→24 | Station, train, Brightwater city, morning | Run | **The fork** (university, shipyard, Dad's shop or the road); Juno broke in the city; Sam at the bus stop; Biscuit's last summer. |
+| 5 | **The Climb** | 25→39 | Brightwater downtown, vivid noon | Rush-hour run (+Sam) | Okafor's offer; Dex's startup; Sam's question; Juno's wedding; **what you give your forties**. |
+| 6 | **The Storm** | 40→54 | Storm over city and bay | Run against wind gusts | Restructuring; Mom's stroke; Dex soaked and broke; the doctor's chair; **save the light**. |
+| 7 | **Golden Hour** | 55→69 | Summer lantern festival, sunset | Gentle walk | Lina's kite; the last shift; Dad's last sail; **the letter to Juno**. |
+| — | **The Promise** | 70 | The lighthouse at dusk | Walk | Who is there; open the tin; Nana's letter; the Book of Life. |
+
+### Consequences that pay off by name
+
+- **Your spark (ch. 1) and dream (ch. 2)** mark matching later options with ★
+  and shape your career. The ending compares what your eleven-year-old self put
+  in the tin with the life you lived, without judging either.
+- **Juno bond** accumulates from the kite, the bus stop, the letters, the
+  couch, the wedding and the storm. At the lighthouse she is waiting for you
+  ("You're late"), arrives breathless on the evening ferry, or sends her
+  granddaughter with a letter.
+- **Biscuit** changes play: he fetches nearby pickups until his goodbye.
+- **Sam** as a partner absorbs one hazard every 20 seconds in chapters 5–7.
+- **Juno's letters** become collectible golden envelopes if you promised to write.
+- **Dex**: taking the answers makes him trust you with his startup; warning
+  him earns an apology in the storm; forgiving him puts him at the festival.
+- **The lighthouse** is saved by your campaign, bought by you, rescued by Juno
+  if your bond is strong, or left dark behind a fence. The final scene shows it.
+- **Nana's last summer**: staying with her unlocks the story of the storm of
+  '71, which she repeats in her letter and you can pass on to Lina.
+
+### Ending
+
+The finale scene is assembled from flags: the lighthouse state, who stands at
+the top (Juno, Sam, your child, Lina, Dex), what comes out of the tin, and
+Nana's letter. The **Book of Life** then shows a life title (for example
+*Keeper of the Light*, *The One Who Came Home*, *The Wanderer*), the three
+final scores separately, one line per chapter, the people who mattered, and the
+keepsakes found (3 hidden per chapter).
+
+## 4. Play design
+
+- **Camera:** a side-on 3D diorama. The protagonist runs left to right at the
+  left third of the screen; time flows right to left, as in the original concept.
+- **Lanes:** three depth lanes (near, middle, far). Up/Down or W/S or swipe to
+  change lane; Space, tap or swipe up to jump (hop on the bike).
+- **Pickups:** heart (Health), star (Happiness), green coin (Money), each +1
+  or +2. **Keepsakes** (3 per chapter) sit on risky lines. **Letters** appear if
+  you promised to write.
+- **Hazards:** themed per chapter and tagged with the score they cost (puddles
+  and colds → Health, bills and broken things → Money, rain clouds and
+  deadlines → Happiness). Low hazards can be jumped; tall ones must be dodged.
+  Every generated row leaves at least one safe lane.
+- **Encounters:** the person appears ahead; the world slows, hazards clear,
+  the camera dollies into a two-shot, letterbox bars slide in, and the choice
+  cards show immediate effects plus a one-line hint. Time never runs out.
+- **Aging drift:** Health drifts down a little each chapter after 40.
+- **No game over:** a score reaching 0 triggers a one-time recovery scene
+  (a named person steps in) and resets it to 25.
+- **Assist:** Relaxed / Standard / Brisk pace; reduced motion; large text.
+- **Balance target:** choices drive about 70% of the final scores, running
+  about 30%.
+
+## 5. Art direction
+
+- **Bar:** Mario Kart 8 style stylised quality, used as a quality bar only (no
+  copied designs). Chunky toy forms, soft bevels on every edge, glossy saturated
+  PBR, big readable silhouettes, dense dressing.
+- **Palette:** coral `#ff6b4a`, marigold `#ffb627`, sea teal `#12a5b8`, deep
+  ocean `#0b6e8a`, leaf `#5cc639`, berry `#e8416f`, sky `#6ec8ff`, cream
+  `#fff1d6`. Shadows lean blue-violet, light leans warm. Beige is an accent, not
+  a base.
+- **Characters:** chibi proportions (head ≈ 40% of height), glossy eyes with
+  highlights, blush, simple brows and mouth. One parametric generator builds
+  every person from named joints (`Hips`, `Torso`, `Head`, `ArmL`, `ArmR`,
+  `LegL`, `LegR`) so the runtime can animate run, crawl, pedal, jump, wave and
+  stumble procedurally. Recolourable materials are named `Skin`, `Hair`,
+  `Top`, `Bottom`, `Shoes`, `Accent`.
+- **World:** modular kits per place (cottage, harbour town, coast road, city,
+  festival, lighthouse cliff) built in Blender by committed Python generators.
+  Each place has a near dressing row, a mid backdrop, and far silhouettes
+  (sea, hills, skyline, the lighthouse on its cliff as a constant landmark).
+- **Light:** one warm key sun with soft shadows, a hemisphere fill, fog tinted
+  to each chapter's sky, and per-chapter time of day. The storm chapter is dark
+  teal with warm windows; vivid colour stays in the lights.
+- **Effects:** pickup bursts, dust puffs, rain, wind leaves, lantern glow,
+  confetti, the aging sparkle, the lighthouse beam.
+
+## 6. Technology
+
+- **Runtime:** Vite + TypeScript + Three.js. All GLBs are generated by Blender
+  4.5 scripts in `art/` and committed to `public/models/`.
+- **Logic** (`src/game/`) has no DOM or Three.js imports and is unit-tested:
+  life state and effects, story data and conditions, the course generator (safe
+  lane guarantee), runner collisions, recovery, ending assembly and saves.
+- **Presentation** (`src/render/`, `src/ui/`, `src/audio/`): scene, chapter
+  environments, character rigs, camera director, effects, HUD, dialogue,
+  choice cards, title, pause and the Book of Life; procedural music and sound.
+- **QA:** `?qa=1` exposes `window.__COL__` for an autopilot. A Playwright
+  script plays the whole life on several routes and captures each chapter.
+- **Deploy:** push to `main` runs typecheck, tests and build, then publishes
+  to GitHub Pages.

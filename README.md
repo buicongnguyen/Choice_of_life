@@ -1,59 +1,40 @@
 # Choice of Life
 
-Choice of Life is a planned side-scrolling life runner about navigating time, opportunities, hazards, relationships, and long-term consequences.
+**One life. One promise.** Two kids bury a tin under the lighthouse in Marigold Bay and promise to open it together at seventy. You run the whole life in between: a 3D story runner through seven chapters, from crawling across the nursery floor to climbing the cliff path at seventy. Who is standing at the lighthouse when you get there depends on what you chose.
 
-The player stays near the left side of a three-lane scene while rooms and life events move from right to left. Helpful objects can be collected, harmful objects avoided, and important people met. NPC encounters briefly slow the world and present two or three decisions. Every life is summarized by exactly three visible scores:
+- Play: https://buicongnguyen.github.io/Choice_of_life/
+- Redesign rationale, story bible and art direction: [docs/REDESIGN.md](./docs/REDESIGN.md)
+- Art pipeline and asset contract: [art/README.md](./art/README.md)
 
-- Health
-- Happiness
-- Money (financial security)
+## How it plays
 
-## Current release
+- **Run** through each chapter on three lanes. ↑/↓ or W/S (or swipe) change lane; Space (or tap) jumps.
+- **Collect** small good things: hearts (Health), stars (Happiness), green coins (Money). Every six make a point. Keepsakes float over the hard places (three per chapter), and Juno's letters find you if you promised to write.
+- **Stumble** into puddles, block towers or deadline piles and you lose a little. There is no game over: if a score hits zero, someone who loves you steps in.
+- **Choose** when someone important stops you. Every choice is a trade-off with named consequences; many come back chapters later by name.
+- **Grow up** on screen: baby, toddler, child, teen on a bike, adult, elder. Biscuit fetches pickups; Sam catches you when you fall.
 
-This first public release is a planning scaffold and technical reference build. It preserves the reusable character, rendering, movement, testing, and deployment foundation inherited from Pixel Life Journey v5 while the new runner is built in phases. The inherited game is deliberately labeled as a reference build in the title screen; it is not presented as the finished Choice of Life design.
-
-- Live site: https://buicongnguyen.github.io/Choice_of_life/
-- Repository: https://github.com/buicongnguyen/Choice_of_life
-- Active implementation plan: [CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md](./CHOICE_OF_LIFE_IMPLEMENTATION_PLAN_V2.md)
-- Stage/content design reference: [CHOICE_OF_LIFE_PLAN.md](./CHOICE_OF_LIFE_PLAN.md)
-- Design summary: [DESIGN.md](./DESIGN.md)
-
-## Repository isolation
-
-The initial source tree was exported from tracked commit `3274d0658737f3429b9ee62c15b965ebeba51373` of `pixel-life-journey-v5` into a new folder and a fresh Git history. The source repository, its `.git` directory, generated output, dependencies, logs, and its untracked planning document were not copied or modified.
-
-Choice of Life uses its own package identity, GitHub remote, deployment workflow title, and `choice-of-life-v1-*` browser-storage namespace. It cannot overwrite active v5 saves on `buicongnguyen.github.io`.
-
-Inherited v5 worklogs remain under `docs/reference-v5/` only as historical reference. They are not the active design.
+The ending is assembled from your life: the lighthouse lit or dark, who came, what was in the tin, Nana's letter, and a Book of Life with your title, three scores, every chapter and the people who mattered.
 
 ## Development
 
-Requirements: Node.js 22 and npm.
+Node 22+.
 
-```bash
+```sh
 npm ci
-npm run release:stamp
-npm run verify
-npm run dev
+npm run dev      # http://localhost:4410
+npm test         # story, course safety, runner and asset-contract tests
+npm run build    # game/dist
+npm run e2e      # plays a whole life in Chromium with the autopilot (dev server on 4412 or GAME_URL)
 ```
 
-`npm run verify` runs the type check, full tests, production build, built-release verification, and current bundle budgets. The production build is written to `dist/`. Vite uses a relative asset base so the site works under the GitHub Pages project path.
+- `game/src/game` — pure logic: life state, story data, course generator (always leaves a free lane), fixed-step runner, ending. No DOM or Three.js.
+- `game/src/render` — Three.js: engine, sky moods, sea shader, world streaming, people and procedural animation, pickups, particles, camera director.
+- `game/src/ui`, `game/src/audio` — DOM overlay and procedural WebAudio score and effects.
+- `art/` — Blender 4.5 generators for every model (`node art/run-blender.mjs [group|name]` rebuilds and packs into `public/models`).
 
-## Planned implementation sequence
+QA: `?qa=1&auto=1&speed=8&policy=warm` plays a life by itself; `?view=cast` and `?view=models&names=a,b` are art review views.
 
-The active v2 plan builds the game through independently reviewed releases:
+## History
 
-1. isolated application shell and deterministic three-score domain;
-2. three-lane runner laboratory and reachability validator;
-3. playable Newborn stage;
-4. Mom encounter and idempotent consequences;
-5. High School and Education/Training demo slice;
-6. First Career and a provisional ending;
-7. continuous childhood, adult, later-life, accessibility, art, and release phases.
-
-Each release must pass code review, logic review, automated verification, an SSH push, exact-SHA Pages deployment, and live smoke testing before the next phase starts.
-
-## Publishing
-
-Pushes to `main` run type checking through the build, the full automated test suite, the Vite production build, and GitHub Pages deployment through `.github/workflows/deploy-pages.yml`.
-
+Version 1.x was a 2D runner built from painted sprites; it is preserved at the `v1.0.0` and `legacy-2d-final` tags. Its source still sits in `src/` and `scripts/` but is no longer built or deployed.

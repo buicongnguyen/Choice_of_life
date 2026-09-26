@@ -1,0 +1,11 @@
+import { chromium } from "playwright";
+const [out, wait = "4000"] = process.argv.slice(2);
+const base = process.env.GAME_URL ?? "http://localhost:4412/";
+const browser = await chromium.launch({ args: ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=d3d11"] });
+const page = await browser.newPage({ viewport: { width: Number(process.env.W ?? 1280), height: Number(process.env.H ?? 720) } });
+page.on("pageerror", (e) => console.log("pageerror", e.message));
+await page.goto(`${base}?qa=1`);
+await page.waitForFunction(() => window.__COL__?.ready, null, { timeout: 60000 });
+await page.waitForTimeout(Number(wait));
+await page.screenshot({ path: out });
+await browser.close();

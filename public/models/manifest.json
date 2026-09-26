@@ -1,0 +1,3547 @@
+{
+ "acc_backpack": {
+  "bytes": 8464,
+  "extras": {},
+  "group": "accessories",
+  "materials": [
+   "Accent",
+   "Flap"
+  ],
+  "nodes": [
+   "Accessory"
+  ],
+  "triangles": 1052
+ },
+ "acc_beard": {
+  "bytes": 9044,
+  "extras": {},
+  "group": "accessories",
+  "materials": [
+   "Hair"
+  ],
+  "nodes": [
+   "Accessory"
+  ],
+  "triangles": 1488
+ },
+ "acc_bow": {
+  "bytes": 6096,
+  "extras": {},
+  "group": "accessories",
+  "materials": [
+   "Accent"
+  ],
+  "nodes": [
+   "Accessory"
+  ],
+  "triangles": 744
+ },
+ "acc_cane": {
+  "bytes": 5380,
+  "extras": {},
+  "group": "accessories",
+  "materials": [
+   "Accent",
+   "Rubber"
+  ],
+  "nodes": [
+   "Accessory"
+  ],
+  "triangles": 520
+ },
+ "acc_cap": {
+  "bytes": 8092,
+  "extras": {},
+  "group": "accessories",
+  "materials": [
+   "Accent",
+   "Button"
+  ],
+  "nodes": [
+   "Accessory"
+  ],
+  "triangles": 1104
+ },
+ "acc_glasses": {
+  "bytes": 11456,
+  "extras": {},
+  "group": "accessories",
+  "materials": [
+   "Accent",
+   "Glass"
+  ],
+  "nodes": [
+   "Accessory"
+  ],
+  "triangles": 1532
+ },
+ "acc_mustache": {
+  "bytes": 5464,
+  "extras": {},
+  "group": "accessories",
+  "materials": [
+   "Hair"
+  ],
+  "nodes": [
+   "Accessory"
+  ],
+  "triangles": 576
+ },
+ "acc_satchel": {
+  "bytes": 5440,
+  "extras": {},
+  "group": "accessories",
+  "materials": [
+   "Accent",
+   "Flap"
+  ],
+  "nodes": [
+   "Accessory"
+  ],
+  "triangles": 452
+ },
+ "acc_stethoscope": {
+  "bytes": 5440,
+  "extras": {},
+  "group": "accessories",
+  "materials": [
+   "Accent",
+   "Metal"
+  ],
+  "nodes": [
+   "Accessory"
+  ],
+  "triangles": 436
+ },
+ "acc_sunhat": {
+  "bytes": 14256,
+  "extras": {},
+  "group": "accessories",
+  "materials": [
+   "Accent",
+   "Flower",
+   "HatBand"
+  ],
+  "nodes": [
+   "Accessory"
+  ],
+  "triangles": 2164
+ },
+ "acc_umbrella": {
+  "bytes": 10212,
+  "extras": {},
+  "group": "accessories",
+  "materials": [
+   "Accent",
+   "Grip",
+   "Metal",
+   "Stripe"
+  ],
+  "nodes": [
+   "Accessory"
+  ],
+  "triangles": 772
+ },
+ "apartment": {
+  "bytes": 53328,
+  "extras": {
+   "band": "backdrop",
+   "depth": 8.476,
+   "front_y": 3.5,
+   "height": 15.98,
+   "min_y": 2.375,
+   "width": 9.7
+  },
+  "group": "city",
+  "materials": [
+   "Accent",
+   "Brick",
+   "Flower",
+   "Lamp",
+   "Leaf",
+   "Metal",
+   "Trim",
+   "Window"
+  ],
+  "nodes": [
+   "apartment"
+  ],
+  "triangles": 4836
+ },
+ "aquarium_lab": {
+  "bytes": 38652,
+  "extras": {
+   "band": "backdrop",
+   "depth": 9.55,
+   "front_y": 3.5,
+   "height": 12.3,
+   "min_y": 2.35,
+   "width": 14
+  },
+  "group": "workplaces",
+  "materials": [
+   "Accent",
+   "Fish",
+   "Ink",
+   "Lamp",
+   "Ocean",
+   "Teal",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "aquarium_lab"
+  ],
+  "triangles": 4458
+ },
+ "armchair": {
+  "bytes": 26480,
+  "extras": {
+   "height": 1.074
+  },
+  "group": "home",
+  "materials": [
+   "Chair",
+   "ChairButton",
+   "Coral",
+   "Cream",
+   "Honey",
+   "Marigold"
+  ],
+  "nodes": [
+   "armchair"
+  ],
+  "triangles": 3612
+ },
+ "bakery": {
+  "bytes": 49216,
+  "extras": {
+   "depth": 5,
+   "front": 3.5,
+   "height": 7.85,
+   "width": 5.4
+  },
+  "group": "harbour",
+  "materials": [
+   "Accent",
+   "Bread",
+   "Leaf",
+   "Roof",
+   "Stone",
+   "Trim",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "bakery"
+  ],
+  "triangles": 4800
+ },
+ "barrel": {
+  "bytes": 10288,
+  "extras": {
+   "height": 1.021
+  },
+  "group": "harbour",
+  "materials": [
+   "Iron",
+   "Wood",
+   "WoodDark"
+  ],
+  "nodes": [
+   "barrel"
+  ],
+  "triangles": 756
+ },
+ "beach_hut": {
+  "bytes": 20016,
+  "extras": {
+   "height": 3.39
+  },
+  "group": "coast",
+  "materials": [
+   "Buoy",
+   "Deck",
+   "Door",
+   "Roof",
+   "Trim",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "beach_hut"
+  ],
+  "triangles": 1556
+ },
+ "bench": {
+  "bytes": 13204,
+  "extras": {
+   "height": 1.034
+  },
+  "group": "harbour",
+  "materials": [
+   "Gold",
+   "Iron",
+   "Wood"
+  ],
+  "nodes": [
+   "bench"
+  ],
+  "triangles": 1248
+ },
+ "bench_city": {
+  "bytes": 12936,
+  "extras": {
+   "depth": 0.689,
+   "height": 0.99,
+   "width": 1.95
+  },
+  "group": "city",
+  "materials": [
+   "Frame",
+   "Metal",
+   "Plaque",
+   "Wood"
+  ],
+  "nodes": [
+   "bench_city"
+  ],
+  "triangles": 1156
+ },
+ "bicycle": {
+  "bytes": 37128,
+  "extras": {
+   "crank_length": 0.13,
+   "height": 0.9100000143051148,
+   "kind": "bicycle",
+   "wheel_radius": 0.33
+  },
+  "group": "vehicles",
+  "materials": [
+   "Basket",
+   "Frame",
+   "Grip",
+   "Rubber",
+   "Saddle",
+   "Steel",
+   "Trim"
+  ],
+  "nodes": [
+   "Root",
+   "Frame",
+   "Bars",
+   "Crank",
+   "PedalL",
+   "PedalR",
+   "Seat",
+   "WheelB",
+   "WheelF"
+  ],
+  "triangles": 3400
+ },
+ "bike_rack": {
+  "bytes": 22220,
+  "extras": {
+   "depth": 0.66,
+   "height": 1.025,
+   "width": 1.9
+  },
+  "group": "city",
+  "materials": [
+   "Basket",
+   "Flower",
+   "Frame",
+   "Leaf",
+   "Rubber",
+   "Saddle",
+   "Steel"
+  ],
+  "nodes": [
+   "bike_rack"
+  ],
+  "triangles": 1408
+ },
+ "boardwalk_tile": {
+  "bytes": 19468,
+  "extras": {
+   "height": 0.008,
+   "surface": 0,
+   "tile": 8
+  },
+  "group": "coast",
+  "materials": [
+   "Beam",
+   "Nail",
+   "Plank",
+   "Plank2",
+   "Plank3",
+   "Sand",
+   "Shell"
+  ],
+  "nodes": [
+   "boardwalk_tile"
+  ],
+  "triangles": 2074
+ },
+ "boat_fishing": {
+  "bytes": 23868,
+  "extras": {
+   "draft": 0.55,
+   "height": 4.05,
+   "length": 6
+  },
+  "group": "harbour",
+  "materials": [
+   "Bottom",
+   "Deck",
+   "Float",
+   "Hull",
+   "Lamp",
+   "Roof",
+   "Trim",
+   "Window"
+  ],
+  "nodes": [
+   "boat_fishing"
+  ],
+  "triangles": 2360
+ },
+ "boat_shed": {
+  "bytes": 46976,
+  "extras": {
+   "depth": 4.6,
+   "height": 4.501,
+   "width": 6.141
+  },
+  "group": "home",
+  "materials": [
+   "Coral",
+   "Cream",
+   "Marigold",
+   "Rope",
+   "Teal",
+   "Window",
+   "Wood",
+   "WoodLight"
+  ],
+  "nodes": [
+   "boat_shed"
+  ],
+  "triangles": 4882
+ },
+ "boat_small": {
+  "bytes": 16928,
+  "extras": {
+   "draft": 0.28,
+   "height": 0.577,
+   "length": 3.2
+  },
+  "group": "harbour",
+  "materials": [
+   "Bottom",
+   "Hull",
+   "Oar",
+   "Rope",
+   "Trim",
+   "Wood"
+  ],
+  "nodes": [
+   "boat_small"
+  ],
+  "triangles": 1468
+ },
+ "body_adult_dress": {
+  "bytes": 62164,
+  "extras": {
+   "age": "adult",
+   "height": 1.3971000450134277,
+   "outfit": "dress"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9740
+ },
+ "body_adult_jacket": {
+  "bytes": 62356,
+  "extras": {
+   "age": "adult",
+   "height": 1.3971000450134277,
+   "outfit": "jacket"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Bottom",
+   "Button",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9636
+ },
+ "body_adult_overalls": {
+  "bytes": 62956,
+  "extras": {
+   "age": "adult",
+   "height": 1.3971000450134277,
+   "outfit": "overalls"
+  },
+  "group": "characters",
+  "materials": [
+   "Blush",
+   "Bottom",
+   "Button",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 10148
+ },
+ "body_adult_scrubs": {
+  "bytes": 58532,
+  "extras": {
+   "age": "adult",
+   "height": 1.3971000450134277,
+   "outfit": "scrubs"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Bottom",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9284
+ },
+ "body_adult_suit": {
+  "bytes": 64100,
+  "extras": {
+   "age": "adult",
+   "height": 1.3971000450134277,
+   "outfit": "suit"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Bottom",
+   "Button",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9772
+ },
+ "body_adult_sweater": {
+  "bytes": 59404,
+  "extras": {
+   "age": "adult",
+   "height": 1.3971000450134277,
+   "outfit": "sweater"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Bottom",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9212
+ },
+ "body_baby": {
+  "bytes": 60092,
+  "extras": {
+   "age": "baby",
+   "height": 0.5600000143051147,
+   "outfit": "onesie"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Skin",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter",
+   "Hips",
+   "LegL",
+   "LegR"
+  ],
+  "triangles": 9384
+ },
+ "body_child_dress": {
+  "bytes": 64952,
+  "extras": {
+   "age": "child",
+   "height": 1.0820999897003174,
+   "outfit": "dress"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9740
+ },
+ "body_child_hoodie": {
+  "bytes": 65096,
+  "extras": {
+   "age": "child",
+   "height": 1.0820999897003174,
+   "outfit": "hoodie"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Bottom",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9792
+ },
+ "body_child_tee": {
+  "bytes": 64020,
+  "extras": {
+   "age": "child",
+   "height": 1.0820999897003174,
+   "outfit": "tee"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Bottom",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9740
+ },
+ "body_elder_cardigan": {
+  "bytes": 67796,
+  "extras": {
+   "age": "elder",
+   "height": 1.337099983024597,
+   "outfit": "cardigan"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Bottom",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 10420
+ },
+ "body_elder_dress": {
+  "bytes": 63472,
+  "extras": {
+   "age": "elder",
+   "height": 1.337099983024597,
+   "outfit": "dress"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9740
+ },
+ "body_teen_dress": {
+  "bytes": 63296,
+  "extras": {
+   "age": "teen",
+   "height": 1.2891999984741211,
+   "outfit": "dress"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9740
+ },
+ "body_teen_hoodie": {
+  "bytes": 64728,
+  "extras": {
+   "age": "teen",
+   "height": 1.2891999984741211,
+   "outfit": "hoodie"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Bottom",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9792
+ },
+ "body_teen_tee": {
+  "bytes": 63588,
+  "extras": {
+   "age": "teen",
+   "height": 1.2891999984741211,
+   "outfit": "tee"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Bottom",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9740
+ },
+ "body_teen_varsity": {
+  "bytes": 62012,
+  "extras": {
+   "age": "teen",
+   "height": 1.2891999984741211,
+   "outfit": "varsity"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Blush",
+   "Bottom",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shirt",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 9588
+ },
+ "body_toddler_overalls": {
+  "bytes": 64636,
+  "extras": {
+   "age": "toddler",
+   "height": 0.9010000038146972,
+   "outfit": "overalls"
+  },
+  "group": "characters",
+  "materials": [
+   "Blush",
+   "Bottom",
+   "Button",
+   "Eye",
+   "EyeShine",
+   "Hair",
+   "Mouth",
+   "Shoes",
+   "Skin",
+   "Sole",
+   "Top"
+  ],
+  "nodes": [
+   "Root",
+   "Hips",
+   "LegL",
+   "LegR",
+   "Torso",
+   "ArmL",
+   "HandL",
+   "ArmR",
+   "HandR",
+   "Back",
+   "Chest",
+   "Head",
+   "HeadCenter"
+  ],
+  "triangles": 10148
+ },
+ "bollard": {
+  "bytes": 11032,
+  "extras": {
+   "height": 0.61
+  },
+  "group": "harbour",
+  "materials": [
+   "Band",
+   "Iron",
+   "Rope",
+   "Stone"
+  ],
+  "nodes": [
+   "bollard"
+  ],
+  "triangles": 718
+ },
+ "bookshelf": {
+  "bytes": 46584,
+  "extras": {
+   "height": 2.37
+  },
+  "group": "home",
+  "materials": [
+   "Berry",
+   "Coral",
+   "Cream",
+   "Honey",
+   "Leaf",
+   "Marigold",
+   "ShelfBack",
+   "Sky"
+  ],
+  "nodes": [
+   "bookshelf"
+  ],
+  "triangles": 4884
+ },
+ "bridge_far": {
+  "bytes": 32224,
+  "extras": {
+   "band": "far",
+   "deck_z": 10,
+   "depth": 7.5,
+   "height": 30.75,
+   "suggest_y": 70,
+   "width": 81
+  },
+  "group": "city",
+  "materials": [
+   "Cable",
+   "Concrete",
+   "Deck",
+   "Lamp",
+   "Steel"
+  ],
+  "nodes": [
+   "bridge_far"
+  ],
+  "triangles": 2524
+ },
+ "bunting": {
+  "bytes": 16848,
+  "extras": {
+   "height": 3.45,
+   "span": 8
+  },
+  "group": "harbour",
+  "materials": [
+   "Flag0",
+   "Flag1",
+   "Flag2",
+   "Flag3",
+   "Flag4",
+   "Pole",
+   "String",
+   "Stripe"
+  ],
+  "nodes": [
+   "bunting"
+  ],
+  "triangles": 1120
+ },
+ "bus": {
+  "bytes": 34020,
+  "extras": {
+   "band": "road",
+   "depth": 2.846,
+   "height": 3.2,
+   "length": 11.47,
+   "wheel_radius": 0.5,
+   "width": 11.47
+  },
+  "group": "city",
+  "materials": [
+   "Body",
+   "Hub",
+   "Lamp",
+   "Rubber",
+   "Stripe",
+   "Upper",
+   "Window"
+  ],
+  "nodes": [
+   "bus"
+  ],
+  "triangles": 3320
+ },
+ "bus_stop": {
+  "bytes": 18536,
+  "extras": {
+   "height": 2.97
+  },
+  "group": "coast",
+  "materials": [
+   "Coral",
+   "Frame",
+   "Ink",
+   "Roof",
+   "Sign",
+   "Window",
+   "Wood"
+  ],
+  "nodes": [
+   "bus_stop"
+  ],
+  "triangles": 1336
+ },
+ "campus": {
+  "bytes": 51756,
+  "extras": {
+   "band": "backdrop",
+   "depth": 9.978,
+   "front_y": 3.5,
+   "height": 15,
+   "min_y": 2.672,
+   "width": 14.3
+  },
+  "group": "city",
+  "materials": [
+   "Accent",
+   "Brick",
+   "Dome",
+   "Lamp",
+   "Leaf",
+   "Plum",
+   "Stone",
+   "Window"
+  ],
+  "nodes": [
+   "campus"
+  ],
+  "triangles": 4920
+ },
+ "car": {
+  "bytes": 25788,
+  "extras": {
+   "band": "road",
+   "depth": 1.942,
+   "height": 1.53,
+   "length": 3.96,
+   "wheel_radius": 0.34,
+   "width": 3.96
+  },
+  "group": "city",
+  "materials": [
+   "Body",
+   "CarGlass",
+   "Hub",
+   "Lamp",
+   "Rubber",
+   "TailLight",
+   "Trim"
+  ],
+  "nodes": [
+   "car"
+  ],
+  "triangles": 2416
+ },
+ "cliff_big": {
+  "bytes": 31648,
+  "extras": {
+   "height": 12.15,
+   "top": 12,
+   "top_x": 4,
+   "top_y": 1
+  },
+  "group": "harbour",
+  "materials": [
+   "Foam",
+   "Grass",
+   "Grass2",
+   "Rock",
+   "Rock2",
+   "Rock3"
+  ],
+  "nodes": [
+   "cliff_big"
+  ],
+  "triangles": 4878
+ },
+ "cliff_path_tile": {
+  "bytes": 32984,
+  "extras": {
+   "height": 0.402,
+   "surface": 0,
+   "tile": 8
+  },
+  "group": "coast",
+  "materials": [
+   "Clover",
+   "Dirt",
+   "Dirt2",
+   "Flower",
+   "Flower2",
+   "Grass",
+   "Grass2",
+   "Rock"
+  ],
+  "nodes": [
+   "cliff_path_tile"
+  ],
+  "triangles": 4266
+ },
+ "crate_stack": {
+  "bytes": 14340,
+  "extras": {
+   "height": 0.9
+  },
+  "group": "harbour",
+  "materials": [
+   "Rope",
+   "Stencil",
+   "Wood",
+   "WoodDark"
+  ],
+  "nodes": [
+   "crate_stack"
+  ],
+  "triangles": 1044
+ },
+ "crib": {
+  "bytes": 41488,
+  "extras": {
+   "height": 1.95
+  },
+  "group": "home",
+  "materials": [
+   "Coral",
+   "Cream",
+   "Honey",
+   "Marigold",
+   "Sheet",
+   "Teal"
+  ],
+  "nodes": [
+   "crib"
+  ],
+  "triangles": 4752
+ },
+ "dining_table": {
+  "bytes": 43360,
+  "extras": {
+   "height": 1.5
+  },
+  "group": "home",
+  "materials": [
+   "Berry",
+   "Coral",
+   "Cream",
+   "Honey",
+   "Leaf",
+   "Marigold",
+   "Sky",
+   "Teal"
+  ],
+  "nodes": [
+   "dining_table"
+  ],
+  "triangles": 4424
+ },
+ "dog": {
+  "bytes": 40624,
+  "extras": {
+   "height": 0.65,
+   "kind": "dog"
+  },
+  "group": "characters",
+  "materials": [
+   "Accent",
+   "Button",
+   "Ear",
+   "Eye",
+   "EyeShine",
+   "Fur",
+   "FurLight",
+   "Mouth",
+   "Nose"
+  ],
+  "nodes": [
+   "Root",
+   "Body",
+   "Head",
+   "EarL",
+   "EarR",
+   "LegBL",
+   "LegBR",
+   "LegFL",
+   "LegFR",
+   "Tail"
+  ],
+  "triangles": 6128
+ },
+ "dune_grass": {
+  "bytes": 11364,
+  "extras": {
+   "height": 0.54
+  },
+  "group": "coast",
+  "materials": [
+   "Grass",
+   "Grass2",
+   "Grass3",
+   "Sand"
+  ],
+  "nodes": [
+   "dune_grass"
+  ],
+  "triangles": 626
+ },
+ "fence_warning": {
+  "bytes": 18628,
+  "extras": {
+   "height": 2.07
+  },
+  "group": "harbour",
+  "materials": [
+   "Foot",
+   "Ink",
+   "Lamp",
+   "Mesh",
+   "Orange",
+   "Red",
+   "White"
+  ],
+  "nodes": [
+   "fence_warning"
+  ],
+  "triangles": 1146
+ },
+ "festival_stall": {
+  "bytes": 29596,
+  "extras": {
+   "height": 3.3
+  },
+  "group": "festival",
+  "materials": [
+   "Canopy",
+   "Canopy2",
+   "Counter",
+   "Goods",
+   "Goods2",
+   "Jar",
+   "Lamp",
+   "Wood"
+  ],
+  "nodes": [
+   "festival_stall"
+  ],
+  "triangles": 2844
+ },
+ "fish_market": {
+  "bytes": 42496,
+  "extras": {
+   "depth": 2.2,
+   "height": 3.08,
+   "width": 4
+  },
+  "group": "harbour",
+  "materials": [
+   "Board",
+   "Brass",
+   "Canopy",
+   "Fish",
+   "Fish2",
+   "Ice",
+   "Trim",
+   "Wood"
+  ],
+  "nodes": [
+   "fish_market"
+  ],
+  "triangles": 4328
+ },
+ "floor_lamp": {
+  "bytes": 21000,
+  "extras": {
+   "height": 1.735
+  },
+  "group": "home",
+  "materials": [
+   "Brass",
+   "Coral",
+   "Lamp",
+   "Marigold",
+   "Teal"
+  ],
+  "nodes": [
+   "floor_lamp"
+  ],
+  "triangles": 2566
+ },
+ "flower_bed": {
+  "bytes": 39540,
+  "extras": {
+   "height": 0.553
+  },
+  "group": "home",
+  "materials": [
+   "Berry",
+   "Coral",
+   "Edging",
+   "Leaf",
+   "LeafDark",
+   "Marigold",
+   "Petal",
+   "Soil"
+  ],
+  "nodes": [
+   "flower_bed"
+  ],
+  "triangles": 3814
+ },
+ "fridge": {
+  "bytes": 28472,
+  "extras": {
+   "height": 1.78
+  },
+  "group": "home",
+  "materials": [
+   "Berry",
+   "Chrome",
+   "Coral",
+   "Leaf",
+   "Marigold",
+   "Mint",
+   "Paper",
+   "Teal"
+  ],
+  "nodes": [
+   "fridge"
+  ],
+  "triangles": 3120
+ },
+ "garden_fence": {
+  "bytes": 40676,
+  "extras": {
+   "front": 3.5,
+   "height": 1.2,
+   "tile": 8
+  },
+  "group": "home",
+  "materials": [
+   "Berry",
+   "Coral",
+   "Leaf",
+   "Marigold",
+   "Picket",
+   "Post",
+   "Vine"
+  ],
+  "nodes": [
+   "garden_fence"
+  ],
+  "triangles": 4288
+ },
+ "garden_floor": {
+  "bytes": 59080,
+  "extras": {
+   "height": 0,
+   "tile": 8
+  },
+  "group": "home",
+  "materials": [
+   "Bloom",
+   "BloomPink",
+   "Buttercup",
+   "Clover",
+   "Grass",
+   "GrassDeep",
+   "Soil",
+   "Stone"
+  ],
+  "nodes": [
+   "garden_floor"
+  ],
+  "triangles": 4750
+ },
+ "guardrail": {
+  "bytes": 11736,
+  "extras": {
+   "front": 3.15,
+   "height": 0.945
+  },
+  "group": "coast",
+  "materials": [
+   "Base",
+   "Groove",
+   "Post",
+   "Rail",
+   "Reflector"
+  ],
+  "nodes": [
+   "guardrail"
+  ],
+  "triangles": 800
+ },
+ "gull": {
+  "bytes": 19332,
+  "extras": {
+   "height": 0.5099999868869781,
+   "kind": "gull",
+   "wingspan": 1.5
+  },
+  "group": "vehicles",
+  "materials": [
+   "Beak",
+   "EyeShine",
+   "Feather",
+   "Feet",
+   "Grey",
+   "Ink",
+   "Spot"
+  ],
+  "nodes": [
+   "Root",
+   "Body",
+   "Head",
+   "WingL",
+   "WingR"
+  ],
+  "triangles": 1436
+ },
+ "hair_balding": {
+  "bytes": 17728,
+  "extras": {},
+  "group": "hair",
+  "materials": [
+   "Hair"
+  ],
+  "nodes": [
+   "Hair"
+  ],
+  "triangles": 3488
+ },
+ "hair_bob": {
+  "bytes": 21936,
+  "extras": {},
+  "group": "hair",
+  "materials": [
+   "Hair"
+  ],
+  "nodes": [
+   "Hair"
+  ],
+  "triangles": 4196
+ },
+ "hair_bun": {
+  "bytes": 23456,
+  "extras": {},
+  "group": "hair",
+  "materials": [
+   "Hair",
+   "HairTie"
+  ],
+  "nodes": [
+   "Hair"
+  ],
+  "triangles": 4436
+ },
+ "hair_buzz": {
+  "bytes": 16280,
+  "extras": {},
+  "group": "hair",
+  "materials": [
+   "Hair"
+  ],
+  "nodes": [
+   "Hair"
+  ],
+  "triangles": 3104
+ },
+ "hair_curly": {
+  "bytes": 23764,
+  "extras": {},
+  "group": "hair",
+  "materials": [
+   "Hair"
+  ],
+  "nodes": [
+   "Hair"
+  ],
+  "triangles": 4368
+ },
+ "hair_long": {
+  "bytes": 25716,
+  "extras": {},
+  "group": "hair",
+  "materials": [
+   "Hair"
+  ],
+  "nodes": [
+   "Hair"
+  ],
+  "triangles": 4936
+ },
+ "hair_pigtails": {
+  "bytes": 24276,
+  "extras": {},
+  "group": "hair",
+  "materials": [
+   "Hair",
+   "HairTie"
+  ],
+  "nodes": [
+   "Hair"
+  ],
+  "triangles": 4636
+ },
+ "hair_ponytail": {
+  "bytes": 22252,
+  "extras": {},
+  "group": "hair",
+  "materials": [
+   "Hair",
+   "HairTie"
+  ],
+  "nodes": [
+   "Hair"
+  ],
+  "triangles": 4200
+ },
+ "hair_short": {
+  "bytes": 20404,
+  "extras": {},
+  "group": "hair",
+  "materials": [
+   "Hair"
+  ],
+  "nodes": [
+   "Hair"
+  ],
+  "triangles": 3912
+ },
+ "hair_spiky": {
+  "bytes": 24772,
+  "extras": {},
+  "group": "hair",
+  "materials": [
+   "Hair"
+  ],
+  "nodes": [
+   "Hair"
+  ],
+  "triangles": 4744
+ },
+ "high_chair": {
+  "bytes": 22340,
+  "extras": {
+   "facing": "3/4 toward -X",
+   "height": 1.04
+  },
+  "group": "home",
+  "materials": [
+   "Coral",
+   "Cream",
+   "Honey",
+   "Marigold",
+   "Teal"
+  ],
+  "nodes": [
+   "high_chair"
+  ],
+  "triangles": 2480
+ },
+ "high_school": {
+  "bytes": 53624,
+  "extras": {
+   "depth": 7,
+   "front": 1.5,
+   "height": 10.1,
+   "width": 12
+  },
+  "group": "harbour",
+  "materials": [
+   "Accent",
+   "Brick",
+   "Flag",
+   "Leaf",
+   "Roof",
+   "Stone",
+   "Trim",
+   "Window"
+  ],
+  "nodes": [
+   "high_school"
+  ],
+  "triangles": 4928
+ },
+ "hill_far": {
+  "bytes": 21624,
+  "extras": {
+   "height": 9.714
+  },
+  "group": "harbour",
+  "materials": [
+   "Field",
+   "Grass",
+   "Grass2",
+   "Tree",
+   "Trunk"
+  ],
+  "nodes": [
+   "hill_far"
+  ],
+  "triangles": 3084
+ },
+ "home_floor": {
+  "bytes": 16880,
+  "extras": {
+   "height": 0,
+   "tile": 8
+  },
+  "group": "home",
+  "materials": [
+   "FloorBase",
+   "Honey",
+   "HoneyDeep",
+   "HoneyLight",
+   "WoodSeam"
+  ],
+  "nodes": [
+   "home_floor"
+  ],
+  "triangles": 1332
+ },
+ "home_wall": {
+  "bytes": 27236,
+  "extras": {
+   "front": 3.5,
+   "height": 3.4,
+   "tile": 8
+  },
+  "group": "home",
+  "materials": [
+   "Marigold",
+   "Paper",
+   "Stripe",
+   "Trim",
+   "Wainscot"
+  ],
+  "nodes": [
+   "home_wall"
+  ],
+  "triangles": 2144
+ },
+ "home_wall_door": {
+  "bytes": 47212,
+  "extras": {
+   "front": 3.5,
+   "height": 3.4,
+   "tile": 8
+  },
+  "group": "home",
+  "materials": [
+   "Brass",
+   "Marigold",
+   "Paper",
+   "Stripe",
+   "Trim",
+   "Wainscot",
+   "Window"
+  ],
+  "nodes": [
+   "home_wall_door"
+  ],
+  "triangles": 4712
+ },
+ "home_wall_window": {
+  "bytes": 44244,
+  "extras": {
+   "front": 3.5,
+   "height": 3.4,
+   "tile": 8
+  },
+  "group": "home",
+  "materials": [
+   "Curtain",
+   "Leaf",
+   "Marigold",
+   "Paper",
+   "Stripe",
+   "Trim",
+   "Wainscot",
+   "Window"
+  ],
+  "nodes": [
+   "home_wall_window"
+  ],
+  "triangles": 4724
+ },
+ "hospital": {
+  "bytes": 43952,
+  "extras": {
+   "band": "backdrop",
+   "depth": 10.93,
+   "front_y": 3.5,
+   "height": 14.85,
+   "min_y": 1.67,
+   "width": 12.2
+  },
+  "group": "city",
+  "materials": [
+   "Accent",
+   "Band",
+   "Cross",
+   "Frame",
+   "Lamp",
+   "Leaf",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "hospital"
+  ],
+  "triangles": 4226
+ },
+ "house_a": {
+  "bytes": 40704,
+  "extras": {
+   "depth": 5,
+   "front": 3.5,
+   "height": 8.05,
+   "width": 4.6
+  },
+  "group": "harbour",
+  "materials": [
+   "Accent",
+   "Flower",
+   "Leaf",
+   "Roof",
+   "Stone",
+   "Trim",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "house_a"
+  ],
+  "triangles": 3964
+ },
+ "house_b": {
+  "bytes": 42204,
+  "extras": {
+   "depth": 5,
+   "front": 3.5,
+   "height": 9.3,
+   "width": 4.2
+  },
+  "group": "harbour",
+  "materials": [
+   "Accent",
+   "Flower",
+   "Leaf",
+   "Roof",
+   "Stone",
+   "Trim",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "house_b"
+  ],
+  "triangles": 4280
+ },
+ "house_c": {
+  "bytes": 47812,
+  "extras": {
+   "depth": 5,
+   "front": 3.5,
+   "height": 7.95,
+   "width": 5.2
+  },
+  "group": "harbour",
+  "materials": [
+   "Accent",
+   "Flower",
+   "Leaf",
+   "Roof",
+   "Stone",
+   "Trim",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "house_c"
+  ],
+  "triangles": 4580
+ },
+ "house_d": {
+  "bytes": 46944,
+  "extras": {
+   "depth": 5,
+   "front": 3.5,
+   "height": 7.75,
+   "width": 4.8
+  },
+  "group": "harbour",
+  "materials": [
+   "Accent",
+   "Flower",
+   "Leaf",
+   "Roof",
+   "Stone",
+   "Trim",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "house_d"
+  ],
+  "triangles": 4632
+ },
+ "hydrant": {
+  "bytes": 15824,
+  "extras": {
+   "depth": 0.535,
+   "height": 0.815,
+   "width": 0.59
+  },
+  "group": "city",
+  "materials": [
+   "Brass",
+   "Cap",
+   "Metal",
+   "Paint"
+  ],
+  "nodes": [
+   "hydrant"
+  ],
+  "triangles": 1416
+ },
+ "hz_barrel": {
+  "bytes": 15344,
+  "extras": {
+   "height": 0.435,
+   "kind": "low"
+  },
+  "group": "hazards_harbour",
+  "materials": [
+   "Iron",
+   "Paint",
+   "Wood",
+   "WoodDark"
+  ],
+  "nodes": [
+   "hz_barrel"
+  ],
+  "triangles": 1188
+ },
+ "hz_bin": {
+  "bytes": 9840,
+  "extras": {
+   "height": 1.035,
+   "kind": "tall"
+  },
+  "group": "hazards_harbour",
+  "materials": [
+   "Bin",
+   "Lid",
+   "Mark",
+   "Rubber"
+  ],
+  "nodes": [
+   "hz_bin"
+  ],
+  "triangles": 634
+ },
+ "hz_bin_tipped": {
+  "bytes": 19456,
+  "extras": {
+   "band": "lane",
+   "depth": 1.033,
+   "height": 0.845,
+   "kind": "tall",
+   "width": 2.539
+  },
+  "group": "hazards_city",
+  "materials": [
+   "Apple",
+   "Bag",
+   "Bin",
+   "Can",
+   "Dark",
+   "Paper",
+   "Peel"
+  ],
+  "nodes": [
+   "hz_bin_tipped"
+  ],
+  "triangles": 1462
+ },
+ "hz_blocks": {
+  "bytes": 15472,
+  "extras": {
+   "height": 1.196,
+   "kind": "tall",
+   "score": "money"
+  },
+  "group": "hazards_home",
+  "materials": [
+   "Berry",
+   "Coral",
+   "Cream",
+   "Leaf",
+   "Marigold",
+   "Teal"
+  ],
+  "nodes": [
+   "hz_blocks"
+  ],
+  "triangles": 1138
+ },
+ "hz_branch": {
+  "bytes": 14640,
+  "extras": {
+   "band": "lane",
+   "depth": 1.318,
+   "height": 0.44,
+   "kind": "low",
+   "width": 2.245
+  },
+  "group": "hazards_city",
+  "materials": [
+   "Bark",
+   "Leaf",
+   "LeafDark",
+   "LeafLight",
+   "Splinter"
+  ],
+  "nodes": [
+   "hz_branch"
+  ],
+  "triangles": 1108
+ },
+ "hz_cat": {
+  "bytes": 18700,
+  "extras": {
+   "height": 0.434,
+   "kind": "low",
+   "score": "happiness"
+  },
+  "group": "hazards_home",
+  "materials": [
+   "Button",
+   "Cushion",
+   "Eye",
+   "Fur",
+   "FurLight",
+   "FurStripe",
+   "Pink"
+  ],
+  "nodes": [
+   "hz_cat"
+  ],
+  "triangles": 1468
+ },
+ "hz_coffee_spill": {
+  "bytes": 12496,
+  "extras": {
+   "band": "lane",
+   "depth": 1.11,
+   "height": 0.424,
+   "kind": "low",
+   "width": 2.132
+  },
+  "group": "hazards_city",
+  "materials": [
+   "Coffee",
+   "Cup",
+   "Foam",
+   "Lid",
+   "Sleeve"
+  ],
+  "nodes": [
+   "hz_coffee_spill"
+  ],
+  "triangles": 958
+ },
+ "hz_cone": {
+  "bytes": 5684,
+  "extras": {
+   "height": 0.45,
+   "kind": "low"
+  },
+  "group": "hazards_harbour",
+  "materials": [
+   "Base",
+   "Orange",
+   "Reflect"
+  ],
+  "nodes": [
+   "hz_cone"
+  ],
+  "triangles": 228
+ },
+ "hz_crates": {
+  "bytes": 14420,
+  "extras": {
+   "height": 1.16,
+   "kind": "tall"
+  },
+  "group": "hazards_harbour",
+  "materials": [
+   "Crate",
+   "Crate2",
+   "Fish",
+   "Ice",
+   "Rim"
+  ],
+  "nodes": [
+   "hz_crates"
+  ],
+  "triangles": 976
+ },
+ "hz_deckchair": {
+  "bytes": 7596,
+  "extras": {
+   "height": 0.97,
+   "kind": "tall"
+  },
+  "group": "hazards_harbour",
+  "materials": [
+   "Canvas",
+   "Canvas2",
+   "Wood"
+  ],
+  "nodes": [
+   "hz_deckchair"
+  ],
+  "triangles": 280
+ },
+ "hz_laundry": {
+  "bytes": 17196,
+  "extras": {
+   "height": 0.92,
+   "kind": "tall",
+   "score": "happiness"
+  },
+  "group": "hazards_home",
+  "materials": [
+   "Berry",
+   "Coral",
+   "Cream",
+   "Marigold",
+   "Teal",
+   "Wicker"
+  ],
+  "nodes": [
+   "hz_laundry"
+  ],
+  "triangles": 1486
+ },
+ "hz_milk_puddle": {
+  "bytes": 10992,
+  "extras": {
+   "height": 0.222,
+   "kind": "low",
+   "score": "health"
+  },
+  "group": "hazards_home",
+  "materials": [
+   "Bottle",
+   "Collar",
+   "Marks",
+   "Milk",
+   "Teat"
+  ],
+  "nodes": [
+   "hz_milk_puddle"
+  ],
+  "triangles": 810
+ },
+ "hz_paper_stack": {
+  "bytes": 19884,
+  "extras": {
+   "band": "lane",
+   "depth": 1.26,
+   "height": 1.047,
+   "kind": "tall",
+   "width": 1.28
+  },
+  "group": "hazards_city",
+  "materials": [
+   "Clip",
+   "Folder",
+   "Folder2",
+   "Folder3",
+   "Folder4",
+   "Paper",
+   "Tag"
+  ],
+  "nodes": [
+   "hz_paper_stack"
+  ],
+  "triangles": 1372
+ },
+ "hz_picnic": {
+  "bytes": 13088,
+  "extras": {
+   "height": 0.435,
+   "kind": "low"
+  },
+  "group": "hazards_harbour",
+  "materials": [
+   "Apple",
+   "Bottle",
+   "BottleCap",
+   "Gingham",
+   "Gingham2",
+   "Wicker",
+   "WickerDark"
+  ],
+  "nodes": [
+   "hz_picnic"
+  ],
+  "triangles": 676
+ },
+ "hz_puddle": {
+  "bytes": 12632,
+  "extras": {
+   "height": 0.056,
+   "kind": "low"
+  },
+  "group": "hazards_harbour",
+  "materials": [
+   "Leaf",
+   "Pebble",
+   "Ripple",
+   "Water"
+  ],
+  "nodes": [
+   "hz_puddle"
+  ],
+  "triangles": 880
+ },
+ "hz_sandcastle": {
+  "bytes": 16156,
+  "extras": {
+   "height": 0.44,
+   "kind": "low"
+  },
+  "group": "hazards_harbour",
+  "materials": [
+   "Bucket",
+   "Flag",
+   "Sand",
+   "SandDark",
+   "Spade",
+   "Stick"
+  ],
+  "nodes": [
+   "hz_sandcastle"
+  ],
+  "triangles": 1018
+ },
+ "hz_scooter": {
+  "bytes": 15988,
+  "extras": {
+   "band": "lane",
+   "depth": 0.6,
+   "height": 1.105,
+   "kind": "tall",
+   "width": 1.365
+  },
+  "group": "hazards_city",
+  "materials": [
+   "Accent",
+   "Deck",
+   "Frame",
+   "Grip",
+   "Lamp",
+   "Tyre"
+  ],
+  "nodes": [
+   "hz_scooter"
+  ],
+  "triangles": 1208
+ },
+ "hz_storm_puddle": {
+  "bytes": 13344,
+  "extras": {
+   "band": "lane",
+   "depth": 1.486,
+   "height": 0.125,
+   "kind": "low",
+   "width": 2.355
+  },
+  "group": "hazards_city",
+  "materials": [
+   "Leaf",
+   "Ripple",
+   "Water",
+   "WetRim"
+  ],
+  "nodes": [
+   "hz_storm_puddle"
+  ],
+  "triangles": 1056
+ },
+ "hz_suitcase": {
+  "bytes": 12984,
+  "extras": {
+   "band": "lane",
+   "depth": 0.841,
+   "height": 0.325,
+   "kind": "low",
+   "width": 1.019
+  },
+  "group": "hazards_city",
+  "materials": [
+   "Rubber",
+   "Shell",
+   "Sticker",
+   "Sticker2",
+   "Sticker3",
+   "Sticker4"
+  ],
+  "nodes": [
+   "hz_suitcase"
+  ],
+  "triangles": 826
+ },
+ "hz_wet_sign": {
+  "bytes": 14728,
+  "extras": {
+   "band": "lane",
+   "depth": 0.64,
+   "height": 1.065,
+   "kind": "tall",
+   "width": 0.62
+  },
+  "group": "hazards_city",
+  "materials": [
+   "Ink",
+   "Sign",
+   "Text",
+   "Wave"
+  ],
+  "nodes": [
+   "hz_wet_sign"
+  ],
+  "triangles": 1012
+ },
+ "ice_cream_cart": {
+  "bytes": 21976,
+  "extras": {
+   "height": 2.84
+  },
+  "group": "coast",
+  "materials": [
+   "Body",
+   "Rubber",
+   "Scoop",
+   "Scoop2",
+   "Scoop3",
+   "Stripe",
+   "Trim",
+   "Waffle"
+  ],
+  "nodes": [
+   "ice_cream_cart"
+  ],
+  "triangles": 1784
+ },
+ "keepsake": {
+  "bytes": 14332,
+  "extras": {
+   "center": 0.235,
+   "height": 0.46,
+   "kind": "memory"
+  },
+  "group": "pickups",
+  "materials": [
+   "Lamp",
+   "Pearl",
+   "Shine",
+   "StarGold",
+   "SwirlCoral",
+   "SwirlTeal"
+  ],
+  "nodes": [
+   "keepsake"
+  ],
+  "triangles": 1262
+ },
+ "kitchen_counter": {
+  "bytes": 37744,
+  "extras": {
+   "height": 1.335
+  },
+  "group": "home",
+  "materials": [
+   "Apple",
+   "Cabinet",
+   "Coral",
+   "Honey",
+   "Leaf",
+   "Marigold",
+   "Steel",
+   "Teal"
+  ],
+  "nodes": [
+   "kitchen_counter"
+  ],
+  "triangles": 4784
+ },
+ "lamp_post": {
+  "bytes": 18276,
+  "extras": {
+   "height": 3.79,
+   "light_z": 3.02
+  },
+  "group": "harbour",
+  "materials": [
+   "Flower",
+   "Gold",
+   "Iron",
+   "Lamp",
+   "Leaf",
+   "Stone"
+  ],
+  "nodes": [
+   "lamp_post"
+  ],
+  "triangles": 1312
+ },
+ "lantern_string": {
+  "bytes": 22324,
+  "extras": {
+   "height": 3.76,
+   "span": 8
+  },
+  "group": "festival",
+  "materials": [
+   "Cap",
+   "Cap2",
+   "Cap3",
+   "Lamp",
+   "Pole",
+   "String"
+  ],
+  "nodes": [
+   "lantern_string"
+  ],
+  "triangles": 2616
+ },
+ "letter": {
+  "bytes": 11280,
+  "extras": {
+   "center": 0.2,
+   "height": 0.37
+  },
+  "group": "pickups",
+  "materials": [
+   "Ink",
+   "Paper",
+   "PaperFold",
+   "Seal",
+   "SealHeart",
+   "Stamp"
+  ],
+  "nodes": [
+   "letter"
+  ],
+  "triangles": 590
+ },
+ "lighthouse": {
+  "bytes": 61944,
+  "extras": {
+   "door_y": -1.87,
+   "height": 16.1,
+   "light_z": 13.6
+  },
+  "group": "harbour",
+  "materials": [
+   "Grass",
+   "Lamp",
+   "Red",
+   "Rock",
+   "Roof",
+   "Teal",
+   "White",
+   "Window"
+  ],
+  "nodes": [
+   "lighthouse"
+  ],
+  "triangles": 8850
+ },
+ "newsroom": {
+  "bytes": 37836,
+  "extras": {
+   "band": "backdrop",
+   "depth": 9.85,
+   "front_y": 3.5,
+   "height": 14.18,
+   "min_y": 2.05,
+   "width": 12.4
+  },
+  "group": "workplaces",
+  "materials": [
+   "Accent",
+   "Lamp",
+   "Metal",
+   "Paper",
+   "Sign",
+   "Trim",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "newsroom"
+  ],
+  "triangles": 3506
+ },
+ "newsstand": {
+  "bytes": 25960,
+  "extras": {
+   "depth": 1.9,
+   "height": 3.38,
+   "width": 2.9
+  },
+  "group": "city",
+  "materials": [
+   "Awning",
+   "Body",
+   "Lamp",
+   "Magazine",
+   "Magazine2",
+   "Metal",
+   "Roof",
+   "Trim"
+  ],
+  "nodes": [
+   "newsstand"
+  ],
+  "triangles": 1844
+ },
+ "office": {
+  "bytes": 42328,
+  "extras": {
+   "band": "backdrop",
+   "depth": 9.78,
+   "front_y": 3.5,
+   "height": 15.4,
+   "min_y": 1.87,
+   "width": 10.3
+  },
+  "group": "city",
+  "materials": [
+   "Accent",
+   "Fin",
+   "Frame",
+   "Lamp",
+   "Leaf",
+   "Plum",
+   "Trim",
+   "Window"
+  ],
+  "nodes": [
+   "office"
+  ],
+  "triangles": 3822
+ },
+ "pickup_coin": {
+  "bytes": 13164,
+  "extras": {
+   "center": 0.27,
+   "height": 0.544,
+   "stat": "money"
+  },
+  "group": "pickups",
+  "materials": [
+   "Coin",
+   "CoinMint",
+   "Shine"
+  ],
+  "nodes": [
+   "pickup_coin"
+  ],
+  "triangles": 1076
+ },
+ "pickup_heart": {
+  "bytes": 11812,
+  "extras": {
+   "center": 0.27,
+   "height": 0.514,
+   "stat": "health"
+  },
+  "group": "pickups",
+  "materials": [
+   "Heart",
+   "HeartRim",
+   "Shine"
+  ],
+  "nodes": [
+   "pickup_heart"
+  ],
+  "triangles": 1252
+ },
+ "pickup_star": {
+  "bytes": 11976,
+  "extras": {
+   "center": 0.28,
+   "height": 0.552,
+   "stat": "happiness"
+  },
+  "group": "pickups",
+  "materials": [
+   "Shine",
+   "Star",
+   "StarRim"
+  ],
+  "nodes": [
+   "pickup_star"
+  ],
+  "triangles": 1252
+ },
+ "pier": {
+  "bytes": 24028,
+  "extras": {
+   "deck": 1,
+   "height": 2,
+   "tile": 8
+  },
+  "group": "harbour",
+  "materials": [
+   "Algae",
+   "Beam",
+   "Buoy",
+   "Iron",
+   "Plank",
+   "Plank2",
+   "Rope",
+   "White"
+  ],
+  "nodes": [
+   "pier"
+  ],
+  "triangles": 2632
+ },
+ "plant_big": {
+  "bytes": 37116,
+  "extras": {
+   "height": 1.713
+  },
+  "group": "home",
+  "materials": [
+   "Leaf",
+   "LeafDark",
+   "Soil",
+   "Stem",
+   "Teal",
+   "Terracotta"
+  ],
+  "nodes": [
+   "plant_big"
+  ],
+  "triangles": 3548
+ },
+ "planter": {
+  "bytes": 12688,
+  "extras": {
+   "height": 0.78
+  },
+  "group": "harbour",
+  "materials": [
+   "Box",
+   "Flower",
+   "Flower2",
+   "Flower3",
+   "Leaf",
+   "LeafDark",
+   "Soil",
+   "Trim"
+  ],
+  "nodes": [
+   "planter"
+  ],
+  "triangles": 1028
+ },
+ "platform_tile": {
+  "bytes": 32428,
+  "extras": {
+   "band": "ground",
+   "length": 8,
+   "rail_y": 5.3,
+   "rail_z": -0.87,
+   "surface_z": 0
+  },
+  "group": "city",
+  "materials": [
+   "Ballast",
+   "Concrete",
+   "Concrete2",
+   "Coping",
+   "Rail",
+   "Sleeper",
+   "Tactile",
+   "Wall"
+  ],
+  "nodes": [
+   "platform_tile"
+  ],
+  "triangles": 2752
+ },
+ "plaza_tile": {
+  "bytes": 63024,
+  "extras": {
+   "band": "ground",
+   "length": 8,
+   "surface_z": 0
+  },
+  "group": "city",
+  "materials": [
+   "Brick",
+   "Brick2",
+   "Flower",
+   "Flower2",
+   "Grout",
+   "Hedge",
+   "Kerb",
+   "Lawn"
+  ],
+  "nodes": [
+   "plaza_tile"
+  ],
+  "triangles": 4574
+ },
+ "road_tile": {
+  "bytes": 23136,
+  "extras": {
+   "height": 0.413,
+   "surface": 0,
+   "tile": 8
+  },
+  "group": "coast",
+  "materials": [
+   "Asphalt",
+   "Asphalt2",
+   "BikeLine",
+   "Grass",
+   "Kerb",
+   "Paint",
+   "Pebble",
+   "Sand"
+  ],
+  "nodes": [
+   "road_tile"
+  ],
+  "triangles": 2412
+ },
+ "rock_low": {
+  "bytes": 8312,
+  "extras": {
+   "height": 0.706
+  },
+  "group": "coast",
+  "materials": [
+   "Moss",
+   "Rock",
+   "Rock2",
+   "Sand"
+  ],
+  "nodes": [
+   "rock_low"
+  ],
+  "triangles": 678
+ },
+ "rocking_horse": {
+  "bytes": 37724,
+  "extras": {
+   "facing": "-X",
+   "height": 1.115
+  },
+  "group": "home",
+  "materials": [
+   "Coral",
+   "Eye",
+   "EyeShine",
+   "Horse",
+   "Marigold",
+   "Rocker",
+   "Teal"
+  ],
+  "nodes": [
+   "rocking_horse"
+  ],
+  "triangles": 4824
+ },
+ "rug_round": {
+  "bytes": 26416,
+  "extras": {
+   "height": 0.026
+  },
+  "group": "home",
+  "materials": [
+   "RugCoil",
+   "RugCoral",
+   "RugCream",
+   "RugSun",
+   "RugTeal"
+  ],
+  "nodes": [
+   "rug_round"
+  ],
+  "triangles": 3082
+ },
+ "sailboat": {
+  "bytes": 18112,
+  "extras": {
+   "draft": 0.45,
+   "height": 6.72,
+   "length": 5
+  },
+  "group": "harbour",
+  "materials": [
+   "Bottom",
+   "Deck",
+   "Hull",
+   "Jib",
+   "Metal",
+   "Sail",
+   "Stripe",
+   "Window"
+  ],
+  "nodes": [
+   "sailboat"
+  ],
+  "triangles": 1636
+ },
+ "sandbags": {
+  "bytes": 17844,
+  "extras": {
+   "band": "foreground",
+   "depth": 0.44,
+   "height": 0.573,
+   "kind": "dressing",
+   "width": 2.435
+  },
+  "group": "hazards_city",
+  "materials": [
+   "Rope",
+   "Sand",
+   "Sand2",
+   "Tape",
+   "TapeInk"
+  ],
+  "nodes": [
+   "sandbags"
+  ],
+  "triangles": 1312
+ },
+ "school": {
+  "bytes": 50520,
+  "extras": {
+   "depth": 6,
+   "front": 1.9,
+   "height": 11.2,
+   "width": 10
+  },
+  "group": "harbour",
+  "materials": [
+   "Accent",
+   "Bell",
+   "Brick",
+   "Leaf",
+   "Roof",
+   "Stone",
+   "Trim",
+   "Window"
+  ],
+  "nodes": [
+   "school"
+  ],
+  "triangles": 4812
+ },
+ "seawall": {
+  "bytes": 18752,
+  "extras": {
+   "front": 3.5,
+   "height": 1.26,
+   "tile": 8
+  },
+  "group": "harbour",
+  "materials": [
+   "Capstone",
+   "Iron",
+   "Mortar",
+   "Seaweed",
+   "Stone",
+   "Stone2",
+   "Stone3"
+  ],
+  "nodes": [
+   "seawall"
+  ],
+  "triangles": 1942
+ },
+ "shipyard": {
+  "bytes": 46080,
+  "extras": {
+   "band": "backdrop",
+   "depth": 7.8,
+   "dock_floor_z": -2.4,
+   "front_y": 3.5,
+   "height": 17.72,
+   "min_y": 3.5,
+   "width": 14.2
+  },
+  "group": "workplaces",
+  "materials": [
+   "Concrete",
+   "Crane",
+   "Cream",
+   "Hull",
+   "Lamp",
+   "Metal",
+   "Red",
+   "Window"
+  ],
+  "nodes": [
+   "shipyard"
+  ],
+  "triangles": 4675
+ },
+ "shop_books": {
+  "bytes": 38864,
+  "extras": {
+   "band": "backdrop",
+   "depth": 7.37,
+   "front_y": 3.5,
+   "height": 11.62,
+   "min_y": 2.83,
+   "width": 8
+  },
+  "group": "city",
+  "materials": [
+   "Accent",
+   "Coral",
+   "Denim",
+   "Lamp",
+   "Leaf",
+   "Trim",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "shop_books"
+  ],
+  "triangles": 3400
+ },
+ "shop_cafe": {
+  "bytes": 46060,
+  "extras": {
+   "band": "backdrop",
+   "depth": 7.678,
+   "front_y": 3.5,
+   "height": 10.97,
+   "min_y": 3.072,
+   "width": 8.2
+  },
+  "group": "city",
+  "materials": [
+   "Accent",
+   "Awning",
+   "Lamp",
+   "Leaf",
+   "Metal",
+   "Trim",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "shop_cafe"
+  ],
+  "triangles": 4540
+ },
+ "shop_laundry": {
+  "bytes": 40644,
+  "extras": {
+   "band": "backdrop",
+   "depth": 7.15,
+   "front_y": 3.5,
+   "height": 10.84,
+   "min_y": 2.95,
+   "width": 7.8
+  },
+  "group": "city",
+  "materials": [
+   "Accent",
+   "Gold",
+   "Lamp",
+   "Machine",
+   "Metal",
+   "Trim",
+   "Wall",
+   "Window"
+  ],
+  "nodes": [
+   "shop_laundry"
+  ],
+  "triangles": 4300
+ },
+ "sidewalk_tile": {
+  "bytes": 25436,
+  "extras": {
+   "band": "ground",
+   "length": 8,
+   "road_z": -0.14,
+   "surface_z": 0
+  },
+  "group": "city",
+  "materials": [
+   "Asphalt",
+   "Grout",
+   "Kerb",
+   "Metal",
+   "Paving",
+   "PavingWarm",
+   "RoadPaint"
+  ],
+  "nodes": [
+   "sidewalk_tile"
+  ],
+  "triangles": 1604
+ },
+ "signpost": {
+  "bytes": 11248,
+  "extras": {
+   "height": 2.56
+  },
+  "group": "coast",
+  "materials": [
+   "Coral",
+   "Marigold",
+   "Stone",
+   "Teal",
+   "White",
+   "Wood"
+  ],
+  "nodes": [
+   "signpost"
+  ],
+  "triangles": 660
+ },
+ "skyline_far": {
+  "bytes": 31928,
+  "extras": {
+   "band": "far",
+   "depth": 18.5,
+   "height": 37.805,
+   "suggest_y": 60,
+   "width": 80.359
+  },
+  "group": "city",
+  "materials": [
+   "Lamp",
+   "TowerBack",
+   "TowerCoral",
+   "TowerDenim",
+   "TowerPlum",
+   "TowerTeal",
+   "Trim",
+   "Window"
+  ],
+  "nodes": [
+   "skyline_far"
+  ],
+  "triangles": 2370
+ },
+ "sofa": {
+  "bytes": 38100,
+  "extras": {
+   "height": 1.028
+  },
+  "group": "home",
+  "materials": [
+   "Berry",
+   "Cream",
+   "Honey",
+   "Marigold",
+   "Sofa",
+   "SofaButton",
+   "Teal"
+  ],
+  "nodes": [
+   "sofa"
+  ],
+  "triangles": 4848
+ },
+ "station": {
+  "bytes": 51976,
+  "extras": {
+   "band": "backdrop",
+   "depth": 9.66,
+   "front_y": 3.5,
+   "height": 13.1,
+   "min_y": 2.04,
+   "width": 12.3
+  },
+  "group": "city",
+  "materials": [
+   "Accent",
+   "Brick",
+   "Lamp",
+   "Metal",
+   "Roof",
+   "Steel",
+   "Stone",
+   "Window"
+  ],
+  "nodes": [
+   "station"
+  ],
+  "triangles": 4986
+ },
+ "street_tile": {
+  "bytes": 40084,
+  "extras": {
+   "height": 0.19,
+   "surface": 0,
+   "tile": 8
+  },
+  "group": "harbour",
+  "materials": [
+   "Cobble",
+   "Cobble2",
+   "Cobble3",
+   "Grout",
+   "Iron",
+   "Kerb",
+   "Paving"
+  ],
+  "nodes": [
+   "street_tile"
+  ],
+  "triangles": 4672
+ },
+ "street_tree": {
+  "bytes": 15084,
+  "extras": {
+   "depth": 1.97,
+   "height": 3.97,
+   "width": 2.922
+  },
+  "group": "city",
+  "materials": [
+   "Bark",
+   "Leaf",
+   "LeafDark",
+   "LeafLight",
+   "Metal",
+   "Soil"
+  ],
+  "nodes": [
+   "street_tree"
+  ],
+  "triangles": 1476
+ },
+ "taxi": {
+  "bytes": 36364,
+  "extras": {
+   "band": "road",
+   "depth": 2.042,
+   "height": 1.77,
+   "length": 4.72,
+   "wheel_radius": 0.35,
+   "width": 4.72
+  },
+  "group": "city",
+  "materials": [
+   "Body",
+   "CarGlass",
+   "Checker",
+   "Lamp",
+   "Rubber",
+   "TailLight",
+   "Trim"
+  ],
+  "nodes": [
+   "taxi"
+  ],
+  "triangles": 3528
+ },
+ "tin": {
+  "bytes": 16496,
+  "extras": {
+   "center": 0.15,
+   "height": 0.305,
+   "kind": "time_capsule"
+  },
+  "group": "pickups",
+  "materials": [
+   "Coral",
+   "Lamp",
+   "Rust",
+   "Sea",
+   "Tin",
+   "TinBand",
+   "White"
+  ],
+  "nodes": [
+   "tin"
+  ],
+  "triangles": 1314
+ },
+ "tower_a": {
+  "bytes": 48612,
+  "extras": {
+   "band": "backdrop",
+   "depth": 8.64,
+   "front_y": 3.5,
+   "height": 21.04,
+   "min_y": 2.26,
+   "width": 9.4
+  },
+  "group": "city",
+  "materials": [
+   "Accent",
+   "Lamp",
+   "Metal",
+   "Trim",
+   "Wall",
+   "WallDark",
+   "Window",
+   "Wood"
+  ],
+  "nodes": [
+   "tower_a"
+  ],
+  "triangles": 4790
+ },
+ "tower_b": {
+  "bytes": 47624,
+  "extras": {
+   "band": "backdrop",
+   "depth": 7.385,
+   "front_y": 3.5,
+   "height": 20.37,
+   "min_y": 2.615,
+   "width": 8.2
+  },
+  "group": "city",
+  "materials": [
+   "Accent",
+   "Band",
+   "Lamp",
+   "Metal",
+   "Trim",
+   "Wall",
+   "WallDark",
+   "Window"
+  ],
+  "nodes": [
+   "tower_b"
+  ],
+  "triangles": 4794
+ },
+ "tower_c": {
+  "bytes": 45048,
+  "extras": {
+   "band": "backdrop",
+   "depth": 9.05,
+   "front_y": 3.5,
+   "height": 15.93,
+   "min_y": 2.55,
+   "width": 10.14
+  },
+  "group": "city",
+  "materials": [
+   "Accent",
+   "Lamp",
+   "Leaf",
+   "Trim",
+   "Wall",
+   "WallDark",
+   "Window",
+   "Wood"
+  ],
+  "nodes": [
+   "tower_c"
+  ],
+  "triangles": 4452
+ },
+ "toy_chest": {
+  "bytes": 28220,
+  "extras": {
+   "height": 1.208
+  },
+  "group": "home",
+  "materials": [
+   "Coral",
+   "Cream",
+   "Honey",
+   "Inside",
+   "Leaf",
+   "Marigold",
+   "Teal"
+  ],
+  "nodes": [
+   "toy_chest"
+  ],
+  "triangles": 3016
+ },
+ "traffic_light": {
+  "bytes": 19208,
+  "extras": {
+   "depth": 0.71,
+   "height": 4.53,
+   "width": 1.53
+  },
+  "group": "city",
+  "materials": [
+   "Back",
+   "Housing",
+   "Lamp",
+   "LensAmber",
+   "LensRed",
+   "Pole",
+   "Sign",
+   "Trim"
+  ],
+  "nodes": [
+   "traffic_light"
+  ],
+  "triangles": 1472
+ },
+ "train": {
+  "bytes": 40316,
+  "extras": {
+   "band": "backdrop",
+   "depth": 2.96,
+   "floor_z": 1.16,
+   "height": 5.335,
+   "length": 12.77,
+   "wheel_radius": 0.42,
+   "width": 12.77
+  },
+  "group": "city",
+  "materials": [
+   "Body",
+   "Door",
+   "Lamp",
+   "Metal",
+   "Roof",
+   "Stripe",
+   "Window"
+  ],
+  "nodes": [
+   "train"
+  ],
+  "triangles": 4140
+ },
+ "tree_pine": {
+  "bytes": 16236,
+  "extras": {
+   "height": 4.875
+  },
+  "group": "harbour",
+  "materials": [
+   "Bark",
+   "Cone",
+   "Leaf",
+   "Leaf2",
+   "Leaf3"
+  ],
+  "nodes": [
+   "tree_pine"
+  ],
+  "triangles": 2052
+ },
+ "tree_round": {
+  "bytes": 30068,
+  "extras": {
+   "height": 4.496
+  },
+  "group": "home",
+  "materials": [
+   "Apple",
+   "Bark",
+   "BarkDark",
+   "Coral",
+   "Leaf",
+   "LeafDark",
+   "LeafLight",
+   "Marigold"
+  ],
+  "nodes": [
+   "tree_round"
+  ],
+  "triangles": 4452
+ },
+ "workshop": {
+  "bytes": 35888,
+  "extras": {
+   "band": "backdrop",
+   "depth": 9.14,
+   "front_y": 3.5,
+   "height": 8.15,
+   "min_y": 2.81,
+   "width": 13.402
+  },
+  "group": "workplaces",
+  "materials": [
+   "Door",
+   "Lamp",
+   "Metal",
+   "Roof",
+   "Trim",
+   "Wall",
+   "Window",
+   "Wood"
+  ],
+  "nodes": [
+   "workshop"
+  ],
+  "triangles": 3137
+ }
+}
