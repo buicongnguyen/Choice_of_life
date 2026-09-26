@@ -9,8 +9,8 @@
 ## How it plays
 
 - **Run** through each chapter on three lanes. ↑/↓ or W/S (or swipe) change lane; Space (or tap) jumps.
-- **Collect** small good things: hearts (Health), stars (Happiness), green coins (Money). Every six make a point. Keepsakes float over the hard places (three per chapter), and Juno's letters find you if you promised to write.
-- **Stumble** into puddles, block towers or deadline piles and you lose a little. There is no game over: if a score hits zero, someone who loves you steps in.
+- **Collect** small good things: hearts (Health), stars (Happiness), green coins (Money). Every ten make a point. Keepsakes float over the hard places (three per chapter), and Juno's letters find you if you promised to write.
+- **Stumble** into puddles, block towers or deadline piles and you lose a little (one point for something you could have jumped, two for something you had to dodge). There is no game over: if a score hits zero, someone who loves you steps in.
 - **Choose** when someone important stops you. Every choice is a trade-off with named consequences; many come back chapters later by name.
 - **Grow up** on screen: baby, toddler, child, teen on a bike, adult, elder. Biscuit fetches pickups; Sam catches you when you fall.
 

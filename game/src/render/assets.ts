@@ -126,8 +126,8 @@ export function modelBox(name: string): THREE.Box3 {
   return sizes.get(name)?.clone() ?? new THREE.Box3(new THREE.Vector3(-0.5, 0, -0.5), new THREE.Vector3(0.5, 1, 0.5));
 }
 
-/** Gives an instance its own copies of the named materials, recoloured. */
-export function recolour(root: THREE.Object3D, colours: Record<string, string | THREE.Color>) {
+/** Gives an instance its own copies of the named materials, recoloured. Returns the copies (caller disposes). */
+export function recolour(root: THREE.Object3D, colours: Record<string, string | THREE.Color>): THREE.Material[] {
   const copies = new Map<THREE.Material, THREE.Material>();
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
@@ -146,6 +146,7 @@ export function recolour(root: THREE.Object3D, colours: Record<string, string | 
     };
     mesh.material = Array.isArray(mesh.material) ? mesh.material.map(swap) : swap(mesh.material);
   });
+  return [...copies.values()];
 }
 
 export function findNode(root: THREE.Object3D, name: string): THREE.Object3D | undefined {

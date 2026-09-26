@@ -74,12 +74,8 @@ export function nextEncounter(s: LifeState): EncounterDef | undefined {
 
 /** What your work years add to financial security as a chapter begins. */
 export function incomeFor(s: LifeState, index: number): number {
-  if (index === 5) {
-    if (has(s, "own_venture")) return 3;
-    if (s.path === "shop") return 4;
-    return 6;
-  }
-  if (index === 6) return has(s, "northport") || has(s, "top") ? 7 : 4;
+  if (index === 5) return s.path === "shop" ? 4 : 6;
+  if (index === 6) return has(s, "northport") || has(s, "top") ? 7 : has(s, "own_venture") ? 5 : 4;
   if (index === 7) return has(s, "top") || has(s, "northport") ? 6 : 4;
   return 0;
 }
@@ -88,8 +84,12 @@ export function incomeFor(s: LifeState, index: number): number {
 export function startChapter(s: LifeState, index: number): Record<ScoreKey, number> {
   s.chapter = index;
   s.resolved = [];
+  s.progress = undefined;
   const drift = CHAPTERS[index].drift ?? {};
-  return applyEffects(s, { ...drift, money: (drift.money ?? 0) + incomeFor(s, index) }, "event");
+  const delta = applyEffects(s, { ...drift, money: (drift.money ?? 0) + incomeFor(s, index) }, "event");
+  s.started = index;
+  s.chapterStart = { ...s.scores };
+  return delta;
 }
 
 /** Deterministic consequences resolved when a chapter closes. */
@@ -123,9 +123,11 @@ export interface Recovery {
 function rescuerFor(s: LifeState, score: ScoreKey): string {
   const partner = has(s, "partner") ? "Sam" : null;
   const juno = bond(s, "juno") >= 7 && s.chapter >= 4 ? "Juno" : null;
-  const parent = s.chapter < 7 ? (score === "money" ? "Dad" : "Mom") : null;
+  // After Mom's stroke (chapter 6) it's Dad who comes; by chapter 7 they are both gone.
+  const momAble = s.chapter < 6 || (s.chapter === 6 && !s.resolved.includes("the-call"));
+  const parent = s.chapter < 7 ? (score === "money" || !momAble ? "Dad" : "Mom") : null;
   if (s.chapter <= 3) return score === "money" ? "Dad" : "Mom";
-  return partner ?? juno ?? parent ?? "Your neighbour, Mrs Achebe";
+  return partner ?? juno ?? parent ?? "Mrs Achebe from next door";
 }
 
 /** A score at zero is never game over: someone steps in once per chapter. */
@@ -134,11 +136,20 @@ export function recover(s: LifeState): Recovery | undefined {
   if (!score) return undefined;
   const who = rescuerFor(s, score);
   s.recoveries.push(`${s.chapter}:${score}`);
-  const text = {
-    health: `You collapse halfway through an ordinary day. ${who} gets you to a doctor, then to bed, then to a sensible routine. It takes a month.`,
-    happiness: `Everything goes grey for a while. ${who} turns up with terrible snacks and refuses to leave until you laugh.`,
-    money: `The account hits zero. ${who} lends you money they don't really have, and won't take it back.`,
-  }[score];
+  const child = s.chapter <= 3;
+  const text = (
+    child
+      ? {
+          health: `You come down with something nasty and spend a week in bed. ${who} reads to you every night until you're better.`,
+          happiness: `A bad week, the kind that feels like a year. ${who} lets you stay up late on the harbour wall until you feel like yourself again.`,
+          money: `Your piggy bank is empty and the school trip is on Friday. ${who} quietly pays for it and never mentions it again.`,
+        }
+      : {
+          health: `You collapse halfway through an ordinary day. ${who} gets you to a doctor, then to bed, then to a sensible routine. It takes a month.`,
+          happiness: `Everything goes grey for a while. ${who} turns up with terrible snacks and refuses to leave until you laugh.`,
+          money: `The account hits zero. ${who} lends you money from a jar marked RAINY DAY, and won't take it back.`,
+        }
+  )[score];
   const title = { health: "Running on Empty", happiness: "Grey Days", money: "Broke" }[score];
   s.scores[score] = RECOVERY_LEVEL;
   const side: Effects = score === "health" ? { money: -4 } : score === "happiness" ? { health: -2 } : { happiness: -3 };
@@ -147,36 +158,53 @@ export function recover(s: LifeState): Recovery | undefined {
 }
 
 // --------------------------------------------------------------------------- collectibles
-export function collectKeepsake(s: LifeState, index: number): string | undefined {
+/** A keepsake lifts whichever score needs it most (a memory is what gets you through). */
+export function collectKeepsake(s: LifeState, index: number): { text: string; score: ScoreKey } | undefined {
   const text = CHAPTERS[s.chapter].keepsakes[index];
   const id = `${s.chapter}:${index}`;
   if (!text || s.keepsakes.includes(id)) return undefined;
   s.keepsakes.push(id);
-  applyEffects(s, { happiness: 3, memory: text }, "keepsake");
-  return text;
+  const score = lowestScore(s);
+  applyEffects(s, { [score]: 1, memory: text }, "keepsake");
+  return { text, score };
 }
 
-export const JUNO_LETTERS = [
-  "Brightwater has a thousand people on every street and not one of them knows about the tide pools.",
-  "My new school has a machine that sells soup. SOUP. In a CAN. From a MACHINE.",
-  "Mum says I have to stop signing my letters “your prisoner”. Love, your prisoner.",
-  "I saw the sea from the top of the car park. It's the wrong colour here. Tell yours I said hi.",
-  "Enclosed: one pressed flower and one terrible drawing of you. Keep both.",
-  "I got a job! It's terrible! I love it!",
-  "Don't you dare stop writing when you're famous.",
-  "Still counting down to seventy. It's a lot of years. I'm very patient. (I'm not.)",
-];
+export function lowestScore(s: LifeState): ScoreKey {
+  return (["health", "happiness", "money"] as ScoreKey[]).reduce((a, b) => (s.scores[b] < s.scores[a] ? b : a));
+}
 
-export function collectLetter(s: LifeState): string {
-  const text = JUNO_LETTERS[s.stats.letters % JUNO_LETTERS.length];
+/** Four letters in chapter 3 (school years) and four in chapter 4 (the city), by position. */
+export const JUNO_LETTERS: Record<number, string[]> = {
+  3: [
+    "Brightwater has a thousand people on every street and not one of them knows about the tide pools.",
+    "My new school has a machine that sells soup. SOUP. In a CAN. From a MACHINE.",
+    "Mum says I have to stop signing my letters “your prisoner”. Love, your prisoner.",
+    "Enclosed: one pressed flower and one terrible drawing of you. Keep both.",
+  ],
+  4: [
+    "I got a fourth job! It's terrible! I love it!",
+    "I saw the sea from the top of the car park. It's the wrong colour here. Tell yours I said hi.",
+    "Don't you dare stop writing when you're famous.",
+    "Still counting down to seventy. It's a lot of years. I'm very patient. (I'm not.)",
+  ],
+};
+
+export function collectLetter(s: LifeState, slot: number): string {
+  const list = JUNO_LETTERS[s.chapter] ?? JUNO_LETTERS[3];
+  const text = list[Math.max(0, Math.min(list.length - 1, slot))];
   s.stats.letters += 1;
-  applyEffects(s, { happiness: 2, bonds: { juno: s.stats.letters % 4 === 0 ? 1 : 0 } }, "letter");
+  applyEffects(s, { happiness: 1, bonds: { juno: s.stats.letters % 4 === 0 ? 1 : 0 } }, "letter");
   if (s.stats.letters === 1) s.memories.push({ chapter: s.chapter, kind: "letter", text: `Juno's first letter: “${text}”` });
   return text;
 }
 
-/** Small good things add up: every sixth pickup of a kind is worth one point. */
-export const PICKUPS_PER_POINT = 6;
+/** Letters stop once Juno is living on your sofa (she's right there). */
+export function lettersActive(s: LifeState): boolean {
+  return has(s, "letters") && !has(s, "juno_sofa");
+}
+
+/** Small good things add up: every tenth pickup of a kind is worth one point. */
+export const PICKUPS_PER_POINT = 10;
 export const HAZARD_COST = 2;
 
 export function runnerPickup(s: LifeState, score: ScoreKey): { delta: Record<ScoreKey, number>; meter: number } {
@@ -190,13 +218,17 @@ export function runnerPickup(s: LifeState, score: ScoreKey): { delta: Record<Sco
   return { delta: { health: 0, happiness: 0, money: 0 }, meter };
 }
 
-export function runnerHit(s: LifeState, score: ScoreKey) {
+/** Low hazards (you could have jumped) sting a little; tall ones (you had to dodge) cost more. */
+export function hazardCost(kind: "low" | "tall"): number {
+  return kind === "tall" ? HAZARD_COST : 1;
+}
+
+export function runnerHit(s: LifeState, score: ScoreKey, kind: "low" | "tall" = "tall") {
   s.stats.bumps += 1;
-  return applyEffects(s, { [score]: -HAZARD_COST }, "event");
+  return applyEffects(s, { [score]: -hazardCost(kind) }, "event");
 }
 
 export function runnerStreak(s: LifeState, count: number) {
   s.stats.bestStreak = Math.max(s.stats.bestStreak, count);
-  const lowest = (["health", "happiness", "money"] as ScoreKey[]).reduce((a, b) => (s.scores[b] < s.scores[a] ? b : a));
-  return applyEffects(s, { [lowest]: 1 }, "event");
+  return applyEffects(s, { [lowestScore(s)]: 1 }, "event");
 }

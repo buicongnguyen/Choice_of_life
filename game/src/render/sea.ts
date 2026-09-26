@@ -34,8 +34,10 @@ export class Sea {
           float h = amp * (wave(world.xz, vec2(0.8, 0.6), 0.35, 1.3) + 0.6 * wave(world.xz, vec2(-0.4, 0.9), 0.62, 1.9) + 0.3 * wave(world.xz, vec2(0.2, -1.0), 1.4, 2.7));
           world.y += h;
           float e = 0.25;
-          float hx = amp * (wave(world.xz + vec2(e, 0.0), vec2(0.8, 0.6), 0.35, 1.3) + 0.6 * wave(world.xz + vec2(e, 0.0), vec2(-0.4, 0.9), 0.62, 1.9));
-          float hz = amp * (wave(world.xz + vec2(0.0, e), vec2(0.8, 0.6), 0.35, 1.3) + 0.6 * wave(world.xz + vec2(0.0, e), vec2(-0.4, 0.9), 0.62, 1.9));
+          vec2 px = world.xz + vec2(e, 0.0);
+          vec2 pz = world.xz + vec2(0.0, e);
+          float hx = amp * (wave(px, vec2(0.8, 0.6), 0.35, 1.3) + 0.6 * wave(px, vec2(-0.4, 0.9), 0.62, 1.9) + 0.3 * wave(px, vec2(0.2, -1.0), 1.4, 2.7));
+          float hz = amp * (wave(pz, vec2(0.8, 0.6), 0.35, 1.3) + 0.6 * wave(pz, vec2(-0.4, 0.9), 0.62, 1.9) + 0.3 * wave(pz, vec2(0.2, -1.0), 1.4, 2.7));
           vNormal = normalize(vec3(h - hx, e, h - hz));
           vWorld = world.xyz;
           vec4 mvPosition = viewMatrix * world;

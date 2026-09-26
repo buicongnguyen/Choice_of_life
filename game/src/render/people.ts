@@ -42,11 +42,12 @@ export class Person {
   readonly headRadius: number;
   readonly height: number;
   private hipsRestY = 0;
+  private ownMaterials: THREE.Material[] = [];
 
   constructor(readonly spec: CharacterSpec) {
     this.model = instance(spec.body);
     this.isDog = spec.body === "dog";
-    recolour(this.model, spec.colours);
+    this.ownMaterials.push(...recolour(this.model, spec.colours));
     for (const name of this.isDog ? DOG_JOINTS : JOINTS) {
       const node = findNode(this.model, name);
       if (node) {
@@ -63,14 +64,14 @@ export class Person {
 
     if (spec.hair && headCentre) {
       const hair = instance(`hair_${spec.hair}`);
-      recolour(hair, { Hair: spec.colours.Hair ?? "#4a2c1d" });
+      this.ownMaterials.push(...recolour(hair, { Hair: spec.colours.Hair ?? "#4a2c1d" }));
       hair.scale.setScalar(this.headRadius);
       headCentre.add(hair);
     }
     for (const acc of spec.accessories ?? []) {
       const item = instance(`acc_${acc}`);
       if (HEAD_ACCESSORIES.has(acc) && headCentre) {
-        if (acc === "beard" || acc === "mustache") recolour(item, { Hair: spec.colours.Hair ?? "#5a3a26" });
+        if (acc === "beard" || acc === "mustache") this.ownMaterials.push(...recolour(item, { Hair: spec.colours.Hair ?? "#5a3a26" }));
         item.scale.setScalar(this.headRadius);
         headCentre.add(item);
       } else {
@@ -259,6 +260,8 @@ export class Person {
 
   dispose() {
     this.root.removeFromParent();
+    for (const m of this.ownMaterials) m.dispose();
+    this.ownMaterials = [];
   }
 }
 

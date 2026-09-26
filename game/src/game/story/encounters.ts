@@ -1,4 +1,4 @@
-import { bond, careerFor, has } from "../life";
+import { bond, capitalise, careerFor, has, pronouns } from "../life";
 import type { Dream, LifeState } from "../types";
 import type { EncounterDef, Line, OptionDef, PersonId } from "./model";
 
@@ -67,14 +67,14 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "cuddle",
         label: "Reach up for a cuddle",
         detail: "Warm, close, and very sure she's real.",
-        effects: { happiness: 4, bonds: { family: 1 }, memory: "Mom's scrubs smelled of soap and night air." },
+        effects: { happiness: 3, bonds: { family: 1 }, memory: "Mom's scrubs smelled of soap and night air." },
         result: [nar("She laughs into your hair. Her scrubs smell of soap and night air.")],
       },
       {
         id: "sunrise",
         label: "Babble at the sunrise",
         detail: "Point at the window like you invented it.",
-        effects: { happiness: 2, health: 2, flags: ["curious"], memory: "You and Mom watched the sun come up over the bay." },
+        effects: { happiness: 1, health: 2, flags: ["curious"], memory: "You and Mom watched the sun come up over the bay." },
         result: [nar("You both watch the sun come up over the bay. She forgets to be tired for a whole minute.")],
       },
       {
@@ -104,28 +104,28 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "mama",
         label: "“Mama!”",
         detail: "A classic for a reason.",
-        effects: { happiness: 2, bonds: { family: 1 }, flags: ["word_mama"], memory: "Your first word was “Mama”." },
+        effects: { happiness: 1, bonds: { family: 1 }, flags: ["word_mama"], memory: "Your first word was “Mama”." },
         result: [say("mom", "Did everyone hear that? I'm having it framed.")],
       },
       {
         id: "dada",
         label: "“Dada!”",
         detail: "He has been rehearsing you for weeks.",
-        effects: { happiness: 2, bonds: { family: 1 }, flags: ["word_dada"], memory: "Your first word was “Dada”." },
+        effects: { happiness: 1, bonds: { family: 1 }, flags: ["word_dada"], memory: "Your first word was “Dada”." },
         result: [say("dad", "Yes! YES! Somebody write down the time!")],
       },
       {
         id: "nana",
         label: "“Nana!”",
         detail: "She has been bribing you with biscuits.",
-        effects: { happiness: 2, bonds: { family: 1 }, flags: ["word_nana"], memory: "Your first word was “Nana”." },
+        effects: { happiness: 1, bonds: { family: 1 }, flags: ["word_nana"], memory: "Your first word was “Nana”." },
         result: [say("nana", "Well. Clearly the child has taste.")],
       },
       {
         id: "boat",
         label: "“Boat!”",
         detail: "You mean it with your whole chest.",
-        effects: { happiness: 3, flags: ["word_boat"], memory: "Your first word was “boat”." },
+        effects: { happiness: 2, flags: ["word_boat"], memory: "Your first word was “boat”." },
         result: [
           nar("Dad laughs so hard he has to sit on the floor."),
           nar("He will tell this story at every one of your birthdays for the rest of his life."),
@@ -151,28 +151,28 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "spyglass",
         label: "The brass spyglass",
         detail: "It makes far things feel close.",
-        effects: { happiness: 2, spark: "explorer", memory: "Nana gave you her brass spyglass." },
+        effects: { happiness: 1, spark: "explorer", memory: "Nana gave you her brass spyglass." },
         result: [say("nana", "I used it to watch for boats coming home. Now you can watch for whatever's out there.")],
       },
       {
         id: "book",
         label: "The book of sea stories",
         detail: "Its pages smell of salt and pipe smoke.",
-        effects: { happiness: 2, spark: "storyteller", memory: "Nana gave you her book of sea stories." },
+        effects: { happiness: 1, spark: "storyteller", memory: "Nana gave you her book of sea stories." },
         result: [say("nana", "Every story in there is true. Some of them even happened.")],
       },
       {
         id: "toolbox",
         label: "The little toolbox",
         detail: "Real tools, just small.",
-        effects: { happiness: 2, spark: "maker", memory: "Nana gave you Grandad Will's little toolbox." },
+        effects: { happiness: 1, spark: "maker", memory: "Nana gave you Grandad Will's little toolbox." },
         result: [say("nana", "Your grandad fixed half the boats in this bay with those. Mind your fingers.")],
       },
       {
         id: "first-aid",
         label: "The first-aid tin",
         detail: "Plasters, a tiny torch, and peppermints.",
-        effects: { happiness: 2, spark: "healer", memory: "Nana gave you her first-aid tin." },
+        effects: { happiness: 1, spark: "healer", memory: "Nana gave you her first-aid tin." },
         result: [say("nana", "Your mother had one just like it at your age. Look how she turned out.")],
       },
     ],
@@ -200,7 +200,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         detail: "Tape, string, and one of your pencils.",
         star: ["maker", "healer"],
         effects: {
-          happiness: 3,
+          happiness: 2,
           bonds: { juno: 2 },
           flags: ["kite_fixed"],
           memory: "You and Juno fixed the kite with tape and a pencil. It flew crooked. It flew.",
@@ -214,7 +214,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         star: ["explorer"],
         effects: {
           health: 3,
-          happiness: 2,
+          happiness: 1,
           bonds: { juno: 2 },
           flags: ["tidepools"],
           memory: "You showed Juno the tide pools, and you both got soaked.",
@@ -227,7 +227,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         detail: "Nana swears it's true.",
         star: ["storyteller"],
         effects: {
-          happiness: 2,
+          happiness: 1,
           bonds: { juno: 2 },
           flags: ["ghost_story"],
           memory: "You told Juno about the lighthouse ghost. She wanted to go and check.",
@@ -279,7 +279,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         detail: "You'll convince Mom and Dad. Probably.",
         hint: "He'll run with you and fetch what you miss.",
         effects: {
-          happiness: 5,
+          happiness: 4,
           money: -4,
           flags: ["biscuit", "biscuit_home"],
           memory: "You brought Biscuit home inside your jumper.",
@@ -295,7 +295,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         detail: "She's got room. She's been lonely.",
         hint: "He'll live with Nana, and run with you.",
         effects: {
-          happiness: 3,
+          happiness: 2,
           health: 2,
           bonds: { family: 1 },
           flags: ["biscuit", "biscuit_nana"],
@@ -380,7 +380,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         label: "A drawing: you, in a white coat",
         detail: (s) => `“Doctor ${s.name}.” The stethoscope is enormous.`,
         star: (s) => s.spark === "healer",
-        effects: { happiness: 3, dream: "healer", flags: ["tin_buried"] },
+        effects: { happiness: 2, dream: "healer", flags: ["tin_buried"] },
         result: [say("juno", "You'll be good at that. You always know when I'm sad.")],
       },
       {
@@ -388,7 +388,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         label: "The little boat you and Dad built",
         detail: "It floats. Mostly.",
         star: (s) => s.spark === "maker",
-        effects: { happiness: 3, dream: "maker", flags: ["tin_buried"] },
+        effects: { happiness: 2, dream: "maker", flags: ["tin_buried"] },
         result: [say("juno", "Put your initials on the bottom. So future you knows it's yours.")],
       },
       {
@@ -396,7 +396,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         label: "Your notebook of stories",
         detail: "Forty-three pages. Six dragons.",
         star: (s) => s.spark === "storyteller",
-        effects: { happiness: 3, dream: "storyteller", flags: ["tin_buried"] },
+        effects: { happiness: 2, dream: "storyteller", flags: ["tin_buried"] },
         result: [say("juno", "Promise you'll write one about me.")],
       },
       {
@@ -404,13 +404,14 @@ export const ENCOUNTERS: EncounterDef[] = [
         label: "A map with a big red X",
         detail: "The X means “everywhere else”.",
         star: (s) => s.spark === "explorer",
-        effects: { happiness: 3, dream: "explorer", flags: ["tin_buried"] },
+        effects: { happiness: 2, dream: "explorer", flags: ["tin_buried"] },
         result: [say("juno", "Take me with you. Okay? Wherever it is.")],
       },
     ],
-    after: [
+    after: (s) => [
       nar("Juno puts in her father's compass. Nana puts in a sealed envelope and won't say what's inside."),
       say("nana", "Promises are like lighthouses. They don't move. People do. That's what makes them useful."),
+      say("nana", `And Juno: look after this one for me. ${capitalise(pronouns(s.pronoun).subj)} ${s.pronoun === "they" ? "run" : "runs"} everywhere.`),
       say("juno", "Seventy. Promise?"),
       say("you", "Promise."),
     ],
@@ -450,7 +451,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "joke",
         label: "A joke, so neither of you cries",
         detail: "It's a very bad joke.",
-        effects: { happiness: 2, bonds: { juno: 1 }, memory: "The worst joke you ever told, at the bus stop." },
+        effects: { happiness: 1, bonds: { juno: 1 }, memory: "The worst joke you ever told, at the bus stop." },
         result: [nar("It works for eleven seconds. Then you both cry anyway.")],
       },
     ],
@@ -513,7 +514,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         detail: "She tells stories. You listen.",
         hint: "Some stories only get told once.",
         effects: {
-          happiness: 4,
+          happiness: 3,
           money: -2,
           bonds: { family: 2 },
           flags: ["nana_story"],
@@ -539,7 +540,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "both",
         label: "Both: work at her bedside",
         detail: "Sleep is for later.",
-        effects: { health: -4, money: 4, happiness: 2, flags: ["finals_bedside"], memory: "You finished your finals project at Nana's bedside." },
+        effects: { health: -4, money: 4, happiness: 1, flags: ["finals_bedside"], memory: "You finished your finals project at Nana's bedside." },
         result: [
           nar("You finish your project at the foot of her bed. She reads over your shoulder and fixes one thing."),
           nar("It was the right thing."),
@@ -556,9 +557,10 @@ export const ENCOUNTERS: EncounterDef[] = [
     speaker: "dad",
     cast: ["mom"],
     lines: [
-      nar("The lighthouse has never been so quiet."),
+      nar("Nana Pearl dies in September, with the window open so she can hear the sea."),
+      nar("A month later, the council switches the lighthouse off for good. Ships have satellites now."),
       say("dad", "She'd have hated this. Well. She'd have said she didn't mind, and then hated it."),
-      say("mom", "She left you something. It's in the tin, apparently. She said you'd know when."),
+      say("mom", "She went up the cliff with a spade in August. Wouldn't say why. Said you'd know when."),
     ],
     options: [continueOption({ happiness: -6, flags: ["nana_gone"], memory: "The autumn Nana died and the light went dark." })],
   },
@@ -584,7 +586,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         label: "University in Brightwater",
         detail: "Lectures, libraries, and a loan you'll pay off at forty.",
         star: ["healer", "storyteller", "explorer"],
-        effects: { money: -10, happiness: 2, path: "uni", flags: ["uni"], memory: "You caught the 7:14 to university." },
+        effects: { money: -10, happiness: 1, path: "uni", flags: ["uni"], memory: "You caught the 7:14 to university." },
         result: [nar("The letter comes in August. Mom cries in the kitchen. Dad says he has something in his eye.")],
       },
       {
@@ -602,7 +604,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         star: ["maker"],
         effects: {
           money: 2,
-          happiness: 2,
+          happiness: 1,
           bonds: { family: 3 },
           path: "shop",
           flags: ["stayed"],
@@ -618,7 +620,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         label: "A year on the road",
         detail: "One backpack. No plan.",
         star: ["explorer", "storyteller"],
-        effects: { happiness: 5, money: -6, health: 2, path: "travel", flags: ["traveled"], memory: "A year on the road with one backpack." },
+        effects: { happiness: 4, money: -6, health: 2, path: "travel", flags: ["traveled"], memory: "A year on the road with one backpack." },
         result: [
           nar("Mountains. Deserts. A very rude goat. You send postcards to Nana's old address, just because."),
           nar("When you come back, you write it all down, and someone pays you for it."),
@@ -635,7 +637,7 @@ export const ENCOUNTERS: EncounterDef[] = [
     speaker: "juno",
     lines: (s) => [
       s.path === "shop"
-        ? nar("Juno turns up in Marigold Bay for a weekend and doesn't leave for three days. She has three jobs in the city and a sofa she doesn't own.")
+        ? nar("Juno turns up in Marigold Bay for a weekend and doesn't leave for three weeks. She has three jobs in the city and a sofa she doesn't own.")
         : nar("You find Juno working the late shift at a café by the station. She has three jobs and a sofa she doesn't own."),
       say("juno", "The travel company thing fell through. Turns out you need money to make money. Who knew."),
       ...(has(s, "letters") ? [say("juno", "I kept every letter, you know. Even the one about the seagull.")] : []),
@@ -647,7 +649,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "sofa",
         label: "Offer her your sofa",
         detail: "It's lumpy, but it's free.",
-        effects: { happiness: 2, money: -3, bonds: { juno: 3 }, flags: ["juno_sofa"], memory: "Juno lived on your sofa for four months." },
+        effects: { happiness: 1, money: -3, bonds: { juno: 3 }, flags: ["juno_sofa"], memory: "Juno lived on your sofa for four months." },
         result: [nar("She stays four months. You learn she sings in the shower, badly, with total confidence.")],
       },
       {
@@ -685,7 +687,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "share",
         label: "Share your umbrella",
         detail: "It's a small umbrella.",
-        effects: { happiness: 2, bonds: { sam: 2 }, flags: ["met_sam"], memory: "You met Sam under one small umbrella." },
+        effects: { happiness: 1, bonds: { sam: 2 }, flags: ["met_sam"], memory: "You met Sam under one small umbrella." },
         result: [nar("The bus is forty minutes late. You don't notice.")],
       },
       {
@@ -713,29 +715,36 @@ export const ENCOUNTERS: EncounterDef[] = [
     speaker: "dad",
     cast: ["biscuit"],
     when: (s) => has(s, "biscuit"),
-    lines: [say("dad", "He's slowing down, love. Sleeps by the door all day. Waiting for you, I think.")],
+    lines: (s) => [
+      s.path === "shop"
+        ? say("dad", "He's slowing down, love. Doesn't come down to the shed any more. Waits for you by the door.")
+        : say("dad", "He's slowing down, love. Sleeps by the door all day. Waiting for you, I think."),
+    ],
     prompt: "What do you do?",
     options: [
       {
         id: "summer",
-        label: "Go home for the whole summer",
+        label: (s) => (s.path === "shop" ? "Close the shed for the summer" : "Go home for the whole summer"),
         detail: "Everything else can wait.",
-        effects: { happiness: 4, money: -4, bonds: { family: 1 }, flags: ["biscuit_goodbye"], memory: "Biscuit's last summer at the tide pools." },
+        effects: { happiness: 3, money: -4, bonds: { family: 1 }, flags: ["biscuit_goodbye"], memory: "Biscuit's last summer at the tide pools." },
         result: [nar("You take him to the tide pools every morning. He doesn't swim any more. He watches you swim, and that's enough for him.")],
       },
       {
         id: "weekends",
-        label: "Visit every weekend",
-        detail: "The 7:14, both ways.",
-        effects: { happiness: 2, health: -2, money: -2 },
+        label: (s) => (s.path === "shop" ? "Knock off early every day" : "Visit every weekend"),
+        detail: (s) => (s.path === "shop" ? "The boats can wait till morning." : "The 7:14, both ways."),
+        effects: { happiness: 1, health: -2, money: -2 },
         result: [nar("Every Friday he's at the door before you knock.")],
       },
       {
         id: "calls",
-        label: "Video-call him every night",
-        detail: "He tilts his head at your voice.",
+        label: (s) => (s.path === "shop" ? "Keep working; he'll be there when you get home" : "Video-call him every night"),
+        detail: (s) => (s.path === "shop" ? "Busy season. Bills don't wait." : "He tilts his head at your voice."),
         effects: { money: 2, happiness: -3 },
-        result: [nar("Dad holds the phone to Biscuit's ear. His tail thumps twice. It's something.")],
+        result: (s) =>
+          s.path === "shop"
+            ? [nar("He is. Every night, on the step, tail going before you reach the gate.")]
+            : [nar("Dad holds the phone to Biscuit's ear. His tail thumps twice. It's something.")],
       },
     ],
   },
@@ -744,7 +753,7 @@ export const ENCOUNTERS: EncounterDef[] = [
     chapter: 4,
     at: 0.8,
     kind: "choice",
-    title: "Dad Takes the Train",
+    title: (s) => (s.path === "shop" ? "Dad's Day Off" : "Dad Takes the Train"),
     speaker: "dad",
     when: (s) => !has(s, "biscuit"),
     lines: (s) => [
@@ -756,17 +765,23 @@ export const ENCOUNTERS: EncounterDef[] = [
     options: [
       {
         id: "day-off",
-        label: "Take the day off and show him around",
-        detail: "The harbour, the market, the good chips.",
-        effects: { happiness: 3, money: -2, bonds: { family: 2 }, memory: "The day Dad came to see your world." },
-        result: [nar("He likes the harbour best. Of course he does.")],
+        label: (s) => (s.path === "shop" ? "Close the shed and take him fishing" : "Take the day off and show him around"),
+        detail: (s) => (s.path === "shop" ? "He hasn't had a day off in thirty years." : "The harbour, the market, the good chips."),
+        effects: { happiness: 2, money: -2, bonds: { family: 2 }, memory: "The day you and Dad took off together." },
+        result: (s) =>
+          s.path === "shop"
+            ? [nar("You catch nothing. He talks the whole time. It's the best day of the year.")]
+            : [nar("He likes the harbour best. Of course he does.")],
       },
       {
         id: "work",
-        label: "Show him where you work",
-        detail: "He wants to meet everyone.",
+        label: (s) => (s.path === "shop" ? "Let him run the shed for a day" : "Show him where you work"),
+        detail: (s) => (s.path === "shop" ? "He's been itching to." : "He wants to meet everyone."),
         effects: { money: 2, bonds: { family: 1 } },
-        result: [nar("He shakes everyone's hand. Everyone. Including a delivery driver who was just passing.")],
+        result: (s) =>
+          s.path === "shop"
+            ? [nar("By noon he has rearranged every shelf. By two he has put them all back. He's very happy.")]
+            : [nar("He shakes everyone's hand. Everyone. Including a delivery driver who was just passing.")],
       },
     ],
   },
@@ -817,7 +832,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         because: (s) => (has(s, "mentor") ? "Ms Okafor remembers you" : ""),
         effects: (s) => ({
           money: has(s, "mentor") ? -2 : -5,
-          happiness: 4,
+          happiness: 3,
           flags: ["own_venture"],
           memory: "You started something of your own.",
         }),
@@ -876,8 +891,8 @@ export const ENCOUNTERS: EncounterDef[] = [
     title: "Sam's Question",
     speaker: "sam",
     when: (s) => has(s, "met_sam"),
-    lines: [
-      nar("A rooftop at dusk. The city hums underneath you."),
+    lines: (s) => [
+      s.path === "shop" ? nar("The harbour wall at dusk. The bay hums underneath you.") : nar("A rooftop at dusk. The city hums underneath you."),
       say("sam", "I've been thinking about the next ten years. I keep putting you in them."),
       say("sam", "So. What do you want?"),
     ],
@@ -888,7 +903,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         label: "A family: kids, noise, all of it",
         detail: "Sleep is overrated anyway.",
         hint: "Sam will have your back when things go wrong.",
-        effects: { happiness: 5, money: -6, bonds: { sam: 3, family: 1 }, flags: ["partner", "kids"], memory: "You and Sam chose a family." },
+        effects: { happiness: 4, money: -6, bonds: { sam: 3, family: 1 }, flags: ["partner", "kids"], memory: "You and Sam chose a family." },
         result: [nar("Two years later Mika arrives, furious about everything, and instantly the centre of the universe.")],
       },
       {
@@ -896,7 +911,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         label: "A life together, just us",
         detail: "Two chairs on a small balcony.",
         hint: "Sam will have your back when things go wrong.",
-        effects: { happiness: 4, bonds: { sam: 3 }, flags: ["partner"], memory: "You and Sam built a life for two." },
+        effects: { happiness: 3, bonds: { sam: 3 }, flags: ["partner"], memory: "You and Sam built a life for two." },
         result: [nar("You get a flat with a balcony too small for two chairs. You fit two chairs on it anyway.")],
       },
       {
@@ -913,26 +928,26 @@ export const ENCOUNTERS: EncounterDef[] = [
     chapter: 5,
     at: 0.58,
     kind: "choice",
-    title: "The Stapler",
+    title: (s) => (s.path === "shop" ? "The Chisel" : "The Stapler"),
     speaker: "sam",
     when: (s) => !has(s, "met_sam"),
-    lines: [
-      nar("Someone at work keeps stealing your stapler. Their name is Sam."),
-      say("sam", "In my defence, it's a very good stapler."),
-    ],
+    lines: (s) =>
+      s.path === "shop"
+        ? [nar("A customer keeps borrowing your best chisel. Their name is Sam."), say("sam", "In my defence, it's a very good chisel.")]
+        : [nar("Someone at work keeps stealing your stapler. Their name is Sam."), say("sam", "In my defence, it's a very good stapler.")],
     prompt: "What do you do?",
     options: [
       {
         id: "dinner",
         label: "Ask Sam to dinner",
-        detail: "Bring the stapler as a chaperone.",
+        detail: (s) => (s.path === "shop" ? "Bring the chisel as a chaperone." : "Bring the stapler as a chaperone."),
         hint: "Sam will have your back when things go wrong.",
-        effects: { happiness: 3, bonds: { sam: 2 }, flags: ["met_sam", "partner"], memory: "Dinner with Sam turned into the rest of your life." },
+        effects: { happiness: 2, bonds: { sam: 2 }, flags: ["met_sam", "partner", "stapler_sam"], memory: "Dinner with Sam turned into the rest of your life." },
         result: [nar("Dinner turns into a walk. The walk turns into the rest of your life.")],
       },
       {
         id: "stapler",
-        label: "Buy a second stapler",
+        label: (s) => (s.path === "shop" ? "Buy a second chisel" : "Buy a second stapler"),
         detail: "Problem solved.",
         effects: { happiness: 1, flags: ["single"] },
         result: [nar("Problem solved. Some problems you slightly wish you hadn't solved.")],
@@ -959,7 +974,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         detail: "You'll write it on the plane.",
         because: (s) => (has(s, "juno_plan") ? "Juno's company is flying everyone out" : ""),
         effects: (s) => ({
-          happiness: 3,
+          happiness: 2,
           health: -1,
           money: has(s, "juno_plan") ? 0 : -4,
           bonds: { juno: 3 },
@@ -1002,13 +1017,16 @@ export const ENCOUNTERS: EncounterDef[] = [
         label: "Push for the top",
         detail: "Corner office or bust.",
         effects: { money: 10, health: -8, flags: ["top"], memory: "You pushed for the top in your forties." },
-        result: [nar("You get the corner office. It has an excellent view of the building next door.")],
+        result: (s) =>
+          s.path === "shop"
+            ? [nar("You take on every boat in the bay. The shed has never been busier, and you have never been more tired.")]
+            : [nar("You get the corner office. It has an excellent view of the building next door.")],
       },
       {
         id: "balance",
         label: "Guard your evenings",
         detail: "The phone goes in a drawer at seven.",
-        effects: { health: 6, happiness: 2, money: -2, flags: ["balanced"], memory: "You guarded your evenings." },
+        effects: { health: 6, happiness: 1, money: -2, flags: ["balanced"], memory: "You guarded your evenings." },
         result: [nar("Your phone stays in the drawer after seven. Somehow the world keeps turning.")],
       },
       {
@@ -1016,7 +1034,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         label: "Pour yourself into your people",
         detail: "Birthdays, recitals, bad karaoke.",
         effects: (s) => ({
-          happiness: 5,
+          happiness: 4,
           money: -4,
           bonds: { family: 2, juno: 1, ...(has(s, "partner") ? { sam: 1 } : {}) },
           flags: ["people"],
@@ -1041,8 +1059,11 @@ export const ENCOUNTERS: EncounterDef[] = [
         : s.path === "shop"
           ? nar("Three winters in a row, the tourists don't come. Nobody needs a boat fixed if nobody's sailing.")
           : has(s, "top")
-            ? nar("The company restructures. You survive it. Half your team doesn't. You start grinding your teeth at night.")
-            : nar("The company restructures. Your job is “no longer required”. Your badge stops working at 4 p.m."),
+            ? nar(`The ${workplace(s)} restructures. You survive it. Half your team doesn't. You start grinding your teeth at night.`)
+            : nar(`The ${workplace(s)} restructures. Your job is “no longer required”. Your badge stops working at 4 p.m.`),
+      ...(!has(s, "own_venture") && s.path !== "shop" && !has(s, "top")
+        ? [nar(`Eight months later, a smaller ${workplace(s)} across town takes you on. You never quite trust a badge again.`)]
+        : []),
       ...(has(s, "dex_invest")
         ? [nar("And LifeHack collapses. The news calls it “a cautionary tale”. Your savings call it gone.")]
         : []),
@@ -1068,7 +1089,7 @@ export const ENCOUNTERS: EncounterDef[] = [
     speaker: "dad",
     cast: ["mom"],
     lines: [
-      say("dad", "It's your mum. She's had a stroke. She's all right, she's… she's all right."),
+      say("dad", "It's your mom. She's had a stroke. She's all right, she's… she's all right."),
       say("dad", "But I can't lift her, love. I tried."),
     ],
     prompt: "What do you do?",
@@ -1130,7 +1151,7 @@ export const ENCOUNTERS: EncounterDef[] = [
       {
         id: "room",
         label: "Give him somewhere to start over",
-        detail: "A spare room. A second chance.",
+        detail: (s) => (has(s, "parents_with_us") ? "The sofa. A second chance." : "A spare room. A second chance."),
         effects: { money: -3, happiness: 1, bonds: { dex: 3 }, flags: ["helped_dex"], memory: "You gave Dex a room when he had nothing." },
         result: [nar("He stays six weeks and leaves the place cleaner than he found it. There's a note: “I owe you one. Or several.”")],
       },
@@ -1206,15 +1227,15 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "campaign",
         label: "Lead the campaign to save it",
         detail: "Petitions, bake sales, one very loud meeting.",
-        effects: { happiness: 5, money: -6, health: -3, flags: ["saved_light"], memory: "You led the campaign that saved the lighthouse." },
-        result: [nar("Four hundred people turn up to the council meeting. Mr Ferris brings pickled onions. The vote is overturned.")],
+        effects: { happiness: 4, money: -6, health: -3, flags: ["saved_light"], memory: "You led the campaign that saved the lighthouse." },
+        result: [nar("Four hundred people turn up to the council meeting. Mr Ferris's daughter brings a jar of his famous pickled onions. The vote is overturned.")],
       },
       {
         id: "buy",
         label: "Buy the lighthouse yourself",
         detail: "Every penny you have.",
         lock: (s) => (s.scores.money >= 45 ? null : "Needs Money 45"),
-        effects: { money: -20, happiness: 4, flags: ["own_light"], memory: "You bought Nana's lighthouse." },
+        effects: { money: -20, happiness: 3, flags: ["own_light"], memory: "You bought Nana's lighthouse." },
         result: [nar("You now own a cracked lighthouse, a view, and a roof bill. Nana would laugh until she cried.")],
       },
       {
@@ -1244,7 +1265,7 @@ export const ENCOUNTERS: EncounterDef[] = [
     speaker: "lina",
     lines: [
       nar("A girl is sitting on the seawall, holding a kite with a snapped spine."),
-      nar("For a second, you are eleven years old."),
+      nar("For a second, you are six years old again."),
       say("lina", "It was my grandad's. He's… not coming to the festival this year."),
     ],
     prompt: "What do you do?",
@@ -1253,7 +1274,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "fix",
         label: "Fix the kite together",
         detail: "Tape, string and a pencil. Some things don't change.",
-        effects: { happiness: 4, flags: ["lina_kite"], memory: "You fixed Lina's kite. It flew crooked. It flew." },
+        effects: { happiness: 3, flags: ["lina_kite"], memory: "You fixed Lina's kite. It flew crooked. It flew." },
         result: [nar("It flies crooked. It flies. Somewhere, a very old part of you is very happy.")],
       },
       {
@@ -1267,7 +1288,7 @@ export const ENCOUNTERS: EncounterDef[] = [
           })[s.dream ?? "explorer"],
         detail: "The thing you know best.",
         star: () => true,
-        effects: { happiness: 3, flags: ["lina_taught"], memory: "You taught Lina the thing you know best." },
+        effects: { happiness: 2, flags: ["lina_taught"], memory: "You taught Lina the thing you know best." },
         result: [nar("She listens the way you used to listen to Nana. It's a lot of responsibility, being someone's Nana Pearl.")],
       },
       {
@@ -1276,14 +1297,14 @@ export const ENCOUNTERS: EncounterDef[] = [
         detail: "Nana's story, passed on.",
         because: "Because you stayed with Nana that last summer",
         when: (s) => has(s, "nana_story"),
-        effects: { happiness: 4, flags: ["passed_story"], memory: "You passed Nana's story on to Lina." },
+        effects: { happiness: 3, flags: ["passed_story"], memory: "You passed Nana's story on to Lina." },
         result: [say("lina", "Is that true?"), say("you", "Every word. Some of it even happened.")],
       },
       {
         id: "buy",
         label: "Buy her a new kite from the stall",
         detail: "The dragon one.",
-        effects: { happiness: 2, money: -2, flags: ["lina_dragon"] },
+        effects: { happiness: 1, money: -2, flags: ["lina_dragon"] },
         result: (s) => [nar(`It's shaped like a dragon. She names it ${s.name}.`)],
       },
     ],
@@ -1295,7 +1316,7 @@ export const ENCOUNTERS: EncounterDef[] = [
     kind: "choice",
     title: "The Last Shift",
     speaker: (s) => (has(s, "partner") ? "sam" : null),
-    lines: (s) => [nar(`Sixty-two. The ${workplace(s)} throws you a retirement party you're not sure you want.`)],
+    lines: (s) => [nar(`Sixty. The ${workplace(s)} throws you a retirement party you're not sure you want.`)],
     prompt: "When do you stop?",
     options: [
       {
@@ -1309,16 +1330,22 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "garden",
         label: "Retire to the garden",
         detail: "Tomatoes. So many tomatoes.",
-        effects: { health: 6, happiness: 2, flags: ["garden"], memory: "The tomato years." },
+        effects: { health: 6, happiness: 1, flags: ["garden"], memory: "The tomato years." },
         result: [nar("You give tomatoes to everyone on Gull Lane, whether they want them or not.")],
       },
       {
         id: "travel",
         label: "Retire, and finally travel",
-        detail: "The red X on the map.",
+        detail: (s) => (s.dream === "explorer" ? "The red X on the map." : "All the places you said “one day” about."),
         star: ["explorer"],
-        effects: { happiness: 5, money: -6, health: 1, flags: ["retired_travel"], memory: "You finally went to the places on the map." },
-        result: [nar("You see the places on the map in the tin. Some of them, anyway. The rest can wait for the next life.")],
+        effects: { happiness: 4, money: -6, health: 1, flags: ["retired_travel"], memory: "You finally went to the places on the map." },
+        result: (s) => [
+          nar(
+            s.dream === "explorer"
+              ? "You see the places on the map in the tin. Some of them, anyway. The rest can wait for the next life."
+              : "You see the places you always said “one day” about. Some of them, anyway. The rest can wait for the next life.",
+          ),
+        ],
       },
     ],
   },
@@ -1339,7 +1366,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "sail",
         label: "Take him out on the water",
         detail: "Life jackets. Both of you.",
-        effects: { happiness: 4, health: -1, bonds: { family: 2 }, flags: ["last_sail"], memory: "Dad's last sail round the bay." },
+        effects: { happiness: 3, health: -1, bonds: { family: 2 }, flags: ["last_sail"], memory: "Dad's last sail round the bay." },
         result: [
           nar("The wind is perfect. He steers the whole way."),
           say("dad", "Your Nana would have loved this."),
@@ -1350,7 +1377,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "pier",
         label: "Walk him to the end of the pier instead",
         detail: "Close enough to smell it.",
-        effects: { happiness: 2, health: 1, bonds: { family: 1 } },
+        effects: { happiness: 1, health: 1, bonds: { family: 1 } },
         result: [nar("He points out every boat he ever fixed. It's most of them.")],
       },
       {
@@ -1369,7 +1396,7 @@ export const ENCOUNTERS: EncounterDef[] = [
     kind: "choice",
     title: "The Best Fish in the Bay",
     speaker: "dex",
-    when: (s) => bond(s, "dex") >= 1,
+    when: (s) => bond(s, "dex") >= 1 || has(s, "helped_dex"),
     lines: (s) => [
       nar("At the festival, an old man is selling the best grilled fish in Marigold Bay. It's Dex."),
       say("dex", "Turns out I'm good at one honest thing. Took me sixty years to find it."),
@@ -1381,7 +1408,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "forgive",
         label: "Forgive him. For all of it.",
         detail: "It's been long enough.",
-        effects: { happiness: 3, bonds: { dex: 3 }, flags: ["forgave_dex"], memory: "You forgave Dex at the lantern festival." },
+        effects: { happiness: 2, bonds: { dex: 3 }, flags: ["forgave_dex"], memory: "You forgave Dex at the lantern festival." },
         result: [nar("He wraps you a fish you didn't pay for."), say("dex", "Consider it interest.")],
       },
       {
@@ -1400,25 +1427,27 @@ export const ENCOUNTERS: EncounterDef[] = [
     kind: "choice",
     title: "Ms Okafor",
     speaker: "okafor",
-    when: (s) => bond(s, "dex") < 1,
-    lines: [
+    when: (s) => bond(s, "dex") < 1 && !has(s, "helped_dex"),
+    lines: (s) => [
       nar("Ms Okafor is ninety, in a folding chair at the front of the lantern parade, with a blanket and opinions."),
-      say("okafor", "I taught four thousand children. I remember nine. You're one of them."),
+      has(s, "mentor")
+        ? say("okafor", "I taught four thousand children. I remember nine. You're one of them.")
+        : say("okafor", "You never stayed after school. I remember you anyway. You looked out of the window like it owed you money."),
     ],
     prompt: "What do you say?",
     options: [
       {
         id: "thank",
         label: "Thank her, properly",
-        detail: "Forty years late.",
-        effects: { happiness: 3, bonds: { okafor: 2 }, memory: "You finally thanked Ms Okafor." },
+        detail: (s) => (has(s, "mentor") ? "Fifty years late." : "For the one thing she said that stuck."),
+        effects: { happiness: 2, bonds: { okafor: 2 }, memory: "You finally thanked Ms Okafor." },
         result: [say("okafor", "Took you long enough. Sit down, the good lanterns are coming.")],
       },
       {
         id: "ask",
         label: "Ask what she'd do differently",
         detail: "She's never been shy.",
-        effects: { happiness: 2, health: 1 },
+        effects: { happiness: 1, health: 1 },
         result: [say("okafor", "Less marking. More swimming. Now go and swim.")],
       },
     ],
@@ -1431,7 +1460,7 @@ export const ENCOUNTERS: EncounterDef[] = [
     title: "The Letter",
     speaker: null,
     lines: (s) => [
-      nar("One year until you're seventy. You sit down to write to Juno."),
+      nar("Seventy is close now. You sit down to write to Juno."),
       bond(s, "juno") >= 9
         ? nar("You still write to her every month. This one only needs a line.")
         : bond(s, "juno") >= 5
@@ -1444,21 +1473,22 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "remind",
         label: "“The lighthouse. Next summer. You promised.”",
         detail: "Short and stubborn.",
-        effects: { bonds: { juno: 1 }, flags: ["wrote_juno"] },
+        effects: { bonds: { juno: 1 }, flags: ["wrote_juno", "letter_remind"] },
         result: [nar("You post it before you can change your mind.")],
       },
       {
         id: "ticket",
         label: "Send a train ticket home with it",
         detail: "First class. She's earned the legroom.",
+        when: (s) => !has(s, "juno_helped"),
         effects: { money: -4, bonds: { juno: 2 }, flags: ["wrote_juno", "sent_ticket"] },
-        result: [nar("A first-class ticket on the 7:14, with a note: “Window seat. Sea on the left.”")],
+        result: [nar("A first-class ticket on the 7:14 home, with a note: “Window seat. Sea on the right.”")],
       },
       {
         id: "thanks",
         label: "“Thank you. For all of it.”",
         detail: "The shortest letter you've ever written.",
-        effects: { happiness: 2, bonds: { juno: 2 }, flags: ["wrote_juno"] },
+        effects: { happiness: 1, bonds: { juno: 2 }, flags: ["wrote_juno", "letter_thanks"] },
         result: [nar("It's the shortest letter you've ever written. It takes you three days.")],
       },
     ],

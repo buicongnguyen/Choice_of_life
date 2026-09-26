@@ -40,7 +40,9 @@ export const HAZARD_HALF_LENGTH = 0.55;
 export const START_CLEAR = 26;
 export const END_CLEAR = 22;
 /** Encounters clear the lane this far before and after the person. */
-export const ZONE_BEFORE = 42;
+export const ZONE_BEFORE = 48;
+/** The story takes the wheel this far before the person (always inside the cleared zone). */
+export const APPROACH = 44;
 export const ZONE_AFTER = 16;
 
 const ASSIST_DENSITY: Record<Assist, number> = { relaxed: 0.6, standard: 1, brisk: 1.3 };
@@ -95,10 +97,12 @@ export function generateCourse(chapter: ChapterDef, encounters: EncounterDef[], 
   const density = (chapter.density * ASSIST_DENSITY[life.assist]) / 100;
   const spacing = 1 / Math.max(density, 0.001);
   // Keepsake and letter positions are chosen first so the pattern loop can leave room.
-  const keepsakeXs = [0.27, 0.56, 0.79].map((f) => freeX(f * chapter.length, blocked));
+  // Collectibles also stay out of the walk-up to a person, where the lane is locked.
+  const reservedBlocked = (x: number) => blocked(x) || marks.some((m) => x > m.x - ZONE_BEFORE - 12 && x < m.x + ZONE_AFTER);
+  const keepsakeXs = [0.27, 0.56, 0.79].map((f) => freeX(f * chapter.length, reservedBlocked));
   // Letters are laid out whenever a chapter can have them; the runner only lets you collect
   // them once you've promised to write (which can happen earlier in the same chapter).
-  const letters = chapter.letters ? [0.24, 0.46, 0.64, 0.86].map((f) => freeX(f * chapter.length, blocked)) : [];
+  const letters = chapter.letters ? [0.24, 0.46, 0.64, 0.86].map((f) => freeX(f * chapter.length, reservedBlocked)) : [];
   const reserved = [...keepsakeXs, ...letters];
   const nearReserved = (x: number) => reserved.some((rx) => Math.abs(rx - x) < 9);
 
@@ -141,7 +145,7 @@ export function generateCourse(chapter: ChapterDef, encounters: EncounterDef[], 
   }
 
   keepsakeXs.forEach((kx, index) => placeKeepsake(r, kx, index, lows, talls, chapter, hazard, add));
-  for (const lx of letters) add({ kind: "letter", x: lx, lane: r.int(0, 2) as Lane, y: 0.75 });
+  letters.forEach((lx, index) => add({ kind: "letter", x: lx, lane: r.int(0, 2) as Lane, y: 0.75, index }));
 
   if (chapter.wind) {
     for (let gx = START_CLEAR + 40; gx < chapter.length - END_CLEAR; gx += r.range(55, 85)) {
@@ -169,7 +173,8 @@ function placeKeepsake(
   const others = LANES.filter((l) => l !== lane);
   const guard = talls.length ? r.pick(talls) : r.pick(chapter.hazards);
   hazard(x, r.pick(others), guard);
-  add({ kind: "keepsake", x, lane, y: low ? 1.35 : 0.8, index });
+  // Over a low hazard the keepsake floats out of standing reach: you have to jump for it.
+  add({ kind: "keepsake", x, lane, y: low ? 1.55 : 0.8, index });
 }
 
 function freeX(x: number, blocked: (x: number) => boolean): number {

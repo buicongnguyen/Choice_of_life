@@ -12,6 +12,14 @@ export interface Prefs {
   quality: "high" | "low";
 }
 
+const prefersReducedMotion = () => {
+  try {
+    return typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+};
+
 export const DEFAULT_PREFS: Prefs = { volume: 0.7, music: true, reducedMotion: false, largeText: false, quality: "high" };
 
 export interface Store {
@@ -76,7 +84,9 @@ export function clearLife(store: Store | null = storage()) {
 export function loadPrefs(store: Store | null = storage()): Prefs {
   try {
     const raw = store?.getItem(PREFS_KEY);
-    return raw ? { ...DEFAULT_PREFS, ...(JSON.parse(raw) as Partial<Prefs>) } : { ...DEFAULT_PREFS };
+    // First visit: follow the system's reduced-motion setting.
+    const base = { ...DEFAULT_PREFS, reducedMotion: prefersReducedMotion() };
+    return raw ? { ...base, ...(JSON.parse(raw) as Partial<Prefs>) } : base;
   } catch {
     return { ...DEFAULT_PREFS };
   }

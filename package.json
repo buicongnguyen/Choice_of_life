@@ -44,7 +44,9 @@
     "legacy:check:core": "tsc -p tsconfig.choice-of-life-core.json",
     "legacy:test": "vitest run --exclude src/choice-of-life/core/runner/evaluation-replay.test.ts --exclude scripts/runner-laboratory-evaluator.test.ts && vitest run src/choice-of-life/core/runner/evaluation-replay.test.ts --pool=threads --poolOptions.threads.singleThread && vitest run scripts/runner-laboratory-evaluator.test.ts",
     "legacy:test:watch": "vitest",
-    "legacy:test:ci": "vitest run --exclude src/choice-of-life/core/runner/evaluation-replay.test.ts --exclude scripts/runner-laboratory-evaluator.test.ts --exclude scripts/fixture-lock.test.mjs --exclude scripts/runner-laboratory-evaluator-cli.test.ts && vitest run src/choice-of-life/core/runner/evaluation-replay.test.ts --pool=threads --poolOptions.threads.singleThread"
+    "legacy:test:ci": "vitest run --exclude src/choice-of-life/core/runner/evaluation-replay.test.ts --exclude scripts/runner-laboratory-evaluator.test.ts --exclude scripts/fixture-lock.test.mjs --exclude scripts/runner-laboratory-evaluator-cli.test.ts && vitest run src/choice-of-life/core/runner/evaluation-replay.test.ts --pool=threads --poolOptions.threads.singleThread",
+    "e2e:regressions": "node game/tests/regressions.mjs",
+    "balance": "vite-node game/src/game/balance.probe.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

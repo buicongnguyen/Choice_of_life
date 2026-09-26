@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import { audio } from "./audio/audio";
-import { END_CLEAR, generateCourse, LANE_Z, type Course, type Lane } from "./game/course";
+import { APPROACH, END_CLEAR, generateCourse, LANE_Z, type Course, type Lane } from "./game/course";
 import { createLife, has } from "./game/life";
 import { Runner, STEP, type RunnerEvent } from "./game/runner";
 import { clearLife, loadLife, loadPrefs, saveLife, savePrefs, type Prefs } from "./game/save";
@@ -14,7 +14,9 @@ import {
   closeChapter,
   collectKeepsake,
   collectLetter,
+  hazardCost,
   incomeFor,
+  lettersActive,
   optionViews,
   recover,
   runnerHit,
@@ -101,12 +103,27 @@ class Game {
   /** The place layout the current world was built for (re-laid out if a choice changes it). */
   private placesKey = "";
   private walkers: { person: Person; to: THREE.Vector3; speed: number }[] = [];
+  /** The prologue and finale can't be paused or quit mid-scene. */
+  private cutscene = false;
+  /** Bumped on every teardown so late async work (people still loading) knows to drop itself. */
+  private chapterToken = 0;
+  private bikeParts: { node: THREE.Object3D; ratio: number }[] = [];
+  private bikeSeatNode?: THREE.Object3D;
+  private titleWorld?: World;
+  private alpha = 0;
+  private scratch = new THREE.Vector3();
 
   constructor(private params: URLSearchParams) {}
 
   async boot() {
     const canvas = document.getElementById("scene") as HTMLCanvasElement;
-    this.engine = new Engine(canvas, { quality: this.params.get("q") === "low" ? "low" : this.prefs.quality });
+    try {
+      this.engine = new Engine(canvas, { quality: this.params.get("q") === "low" ? "low" : this.prefs.quality });
+    } catch (error) {
+      const ui = document.getElementById("ui")!;
+      ui.innerHTML = `<div class="modal"><div class="panel"><h2>3D graphics are unavailable</h2><p>Choice of Life needs WebGL. Try another browser, or turn on hardware acceleration in your browser's settings.</p></div></div>`;
+      throw error;
+    }
     this.director = new CameraDirector(this.engine.camera);
     this.ui = new UI(document.getElementById("ui")!);
     this.ui.onTap = () => {
@@ -142,7 +159,7 @@ class Game {
   // ======================================================================= input
   private bindInput(canvas: HTMLCanvasElement) {
     window.addEventListener("keydown", (e) => {
-      if (e.repeat || this.mode !== "run") return;
+      if (e.repeat || this.mode !== "run" || this.paused) return;
       if (e.code === "ArrowUp" || e.code === "KeyW") this.lane(-1);
       else if (e.code === "ArrowDown" || e.code === "KeyS") this.lane(1);
       else if (e.code === "Space") {
@@ -151,8 +168,12 @@ class Game {
       } else if (e.code === "Escape" || e.code === "KeyP") void this.pause();
     });
     let start: { x: number; y: number; t: number } | null = null;
-    canvas.addEventListener("pointerdown", (e) => {
+    // Touch UI shows from the first screen on touch devices, not only after a tap on the canvas.
+    if (window.matchMedia?.("(pointer: coarse)").matches) document.body.classList.add("touch");
+    document.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "touch") document.body.classList.add("touch");
+    });
+    canvas.addEventListener("pointerdown", (e) => {
       start = { x: e.clientX, y: e.clientY, t: performance.now() };
     });
     canvas.addEventListener("pointerup", (e) => {
@@ -164,7 +185,8 @@ class Game {
       start = null;
     });
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden && this.mode === "run" && !this.qa?.autopilot) void this.pause();
+      audio.setHidden(document.hidden);
+      if (document.hidden && this.mode === "run" && !this.cutscene && !this.qa?.autopilot) void this.pause();
     });
   }
 
@@ -186,17 +208,19 @@ class Game {
     document.body.classList.toggle("reduced-motion", p.reducedMotion);
     document.body.classList.toggle("large-text", p.largeText);
     this.director.reducedMotion = p.reducedMotion;
+    this.engine.reducedMotion = p.reducedMotion;
     this.engine.setQuality(this.params.get("q") === "low" ? "low" : p.quality);
   }
 
   private async pause() {
-    if (this.mode !== "run" || this.paused) return;
+    if (this.mode !== "run" || this.paused || this.cutscene) return;
     this.paused = true;
     const choice = await this.ui.pauseMenu(this.prefs, (p) => this.applyPrefs(p), true);
     this.paused = false;
+    this.input = {};
     this.clock.getDelta();
     if (choice === "quit") {
-      if (this.life) saveLife(this.life);
+      this.saveProgress();
       this.teardownChapter();
       this.ui.showHud(false);
       void this.titleLoop();
@@ -223,6 +247,7 @@ class Game {
       }
       if (this.runner) this.afterRunnerStep();
     }
+    this.alpha = this.mode === "run" ? Math.min(1, this.accumulator / STEP) : 1;
     this.updateScene(dt);
     this.engine.render(dt);
     requestAnimationFrame(() => this.frame());
@@ -233,15 +258,17 @@ class Game {
     if (this.player && this.runner) {
       const r = this.runner;
       const p = this.player;
-      p.root.position.set(r.x, r.y, r.z);
+      // Render between the last two fixed simulation steps so motion is smooth at any refresh rate.
+      const a = this.alpha;
+      const rx = r.prevX + (r.x - r.prevX) * a;
+      const ry = r.prevY + (r.y - r.prevY) * a;
+      const rz = r.prevZ + (r.z - r.prevZ) * a;
+      p.root.position.set(rx, ry, rz);
       if (this.bike) {
-        this.bike.position.set(r.x, r.y, r.z);
+        this.bike.position.set(rx, ry, rz);
         this.bike.rotation.z = THREE.MathUtils.lerp(this.bike.rotation.z, (LANE_Z[r.lane] - r.z) * 0.12, 0.2);
         const spin = (r.speed * dt) / 0.33;
-        for (const name of ["WheelF", "WheelB", "Crank"]) {
-          const w = findNode(this.bike, name);
-          if (w) w.rotation.x += spin * (name === "Crank" ? 0.45 : 1);
-        }
+        for (const part of this.bikeParts) part.node.rotation.x += spin * part.ratio;
         p.root.position.copy(this.bikeSeat());
       }
       p.speed = r.speed;
@@ -252,7 +279,7 @@ class Game {
         const target = Math.PI / 2 - (LANE_Z[r.lane] - r.z) * 0.18;
         p.root.rotation.y = THREE.MathUtils.lerp(p.root.rotation.y, target, 0.25);
       }
-      this.focus.set(r.x, 0, r.z);
+      this.focus.set(rx, 0, rz);
       this.followCompanions(dt);
       if (this.world) {
         this.world.update(this.engine.camera.position.x, t);
@@ -276,7 +303,8 @@ class Game {
       w.person.anim = "run";
       w.person.speed = w.speed;
       w.person.face(Math.atan2(d.x, d.z));
-      w.person.root.position.addScaledVector(d.normalize(), Math.min(dist, w.speed * dt));
+      d.normalize();
+      w.person.root.position.addScaledVector(d, Math.min(dist, w.speed * dt));
     }
     this.walkers = this.walkers.filter((w) => w.person.root.position.distanceTo(w.to) >= 0.05);
     for (const list of this.npcs.values()) for (const n of list) n.update(dt);
@@ -285,10 +313,10 @@ class Game {
     this.biscuit?.update(dt);
     this.sam?.update(dt);
     this.director.update(dt, this.focus, this.runner?.speed ?? 0);
-    this.engine.followShadows(new THREE.Vector3(this.focus.x + 4, 0, 0));
+    this.engine.followShadows(this.scratch.set(this.focus.x + 4, 0, 0));
     this.ambient(dt);
-    this.particles.update(dt);
-    this.rain.update(dt, this.engine.camera.position);
+    this.particles.update(dt, this.engine.renderer.domElement.height);
+    this.rain.update(dt, this.focus);
   }
 
   private dustClock = 0;
@@ -354,6 +382,7 @@ class Game {
     const life = createLife({ ...DEFAULT_LOOK, seed: 7 });
     life.flags = ["saved_light"];
     const world = await World.prepare({ ...CHAPTERS[0], length: 120 }, life, {});
+    this.titleWorld = world;
     this.titleScene = new THREE.Group();
     this.titleScene.add(world.group);
     this.engine.scene.add(this.titleScene);
@@ -371,6 +400,8 @@ class Game {
   private hideTitleScene() {
     this.titleScene?.removeFromParent();
     this.titleScene = undefined;
+    this.titleWorld?.dispose();
+    this.titleWorld = undefined;
     this.previewPerson?.dispose();
     this.previewPerson = undefined;
   }
@@ -412,11 +443,12 @@ class Game {
     const chapter = CHAPTERS[index];
     this.chapter = chapter;
     let drift: Record<ScoreKey, number> | null = null;
-    if (!resume) {
+    if (!resume || life.started !== index) {
       drift = startChapter(life, index);
       saveLife(life);
+      resume = false;
     }
-    this.chapterStartScores = { ...life.scores };
+    this.chapterStartScores = life.chapterStart ? { ...life.chapterStart } : { ...life.scores };
     this.ui.loading("Loading…");
     await this.setupChapter(chapter, resume);
     this.ui.loading(null);
@@ -439,6 +471,8 @@ class Game {
     }
     this.mode = "run";
     this.clock.getDelta();
+    // Entry drift can itself empty a score.
+    void this.checkRecovery();
     await this.waitForChapterEnd();
     if ((this.mode as Mode) === "title") return;
     await this.endChapter();
@@ -452,9 +486,15 @@ class Game {
     const encounterXs = Object.fromEntries(this.course.encounters.map((m) => [m.id, m.x]));
     // Resume just after the last resolved encounter so nothing is replayed.
     let startX = 0;
+    let collected: number[] = [];
     if (resume) {
       const done = this.course.encounters.filter((m) => life.resolved.includes(m.id));
       if (done.length) startX = done[done.length - 1].x + 1;
+      // A mid-run save knows exactly where you were and what you'd already picked up.
+      if (life.progress?.chapter === chapter.index) {
+        startX = Math.max(startX, life.progress.x);
+        collected = life.progress.collected;
+      }
     }
     const specs: CharacterSpec[] = chapter.stages.map((stage) => playerSpec(life, stage.age, chapter.index));
     for (const e of encounters) {
@@ -475,9 +515,12 @@ class Game {
     this.engine.setMood(chapter.sky);
     this.engine.refreshGlow();
     this.rain.intensity = this.engine.mood.rain;
-    const shield = has(life, "partner") && chapter.index >= 5;
-    this.runner = new Runner(this.course, { speed: this.speedFor(chapter), magnet: this.hasBiscuit(chapter.index), shield, letters: has(life, "letters") }, startX);
-    spawns.showLetters = has(life, "letters");
+    // Sam's shield covers chapters 5-7; in the finale Sam is part of the gathering instead.
+    const shield = has(life, "partner") && chapter.index >= 5 && chapter.index < FINALE;
+    this.runner = new Runner(this.course, { speed: this.speedFor(chapter), magnet: this.hasBiscuit(chapter.index), shield, letters: lettersActive(life) }, startX);
+    this.runner.preCollect(collected);
+    spawns.markDone(collected);
+    spawns.showLetters = lettersActive(life);
     this.placesKey = JSON.stringify(resolve(chapter.places, life));
     await this.setPlayerStage(stageAt(chapter, startX / chapter.length).age, false);
     if (this.hasBiscuit(chapter.index)) this.biscuit = await this.companion("biscuit");
@@ -496,6 +539,11 @@ class Game {
   }
 
   private teardownChapter() {
+    this.chapterToken++;
+    this.walkers = [];
+    this.cutscene = false;
+    this.bikeParts = [];
+    this.bikeSeatNode = undefined;
     this.world?.dispose();
     this.spawns?.dispose();
     this.player?.dispose();
@@ -518,7 +566,13 @@ class Game {
   private async setPlayerStage(age: AgeKey, sparkle: boolean) {
     if (age === this.playerAge || this.swapping) return;
     this.swapping = true;
+    const token = this.chapterToken;
     const person = await createPerson(playerSpec(this.life!, age, this.chapter!.index));
+    if (token !== this.chapterToken) {
+      person.dispose();
+      this.swapping = false;
+      return;
+    }
     this.player?.dispose();
     this.player = person;
     this.playerAge = age;
@@ -530,6 +584,10 @@ class Game {
       this.bike = instance("bicycle");
       this.bike.rotation.y = Math.PI / 2;
       this.engine.scene.add(this.bike);
+      this.bikeParts = (["WheelF", "WheelB", "Crank"] as const)
+        .map((name) => ({ node: findNode(this.bike!, name)!, ratio: name === "Crank" ? 0.45 : 1 }))
+        .filter((p) => p.node);
+      this.bikeSeatNode = findNode(this.bike, "Seat");
     }
     if (sparkle && this.runner) {
       this.particles.emit(new THREE.Vector3(this.runner.x, 0.8, this.runner.z), { count: 70, colour: ["#fff3c4", "#ffd84a", "#8fe3ff", "#ff9ecb"], speed: 5, life: 1.1, size: 0.45, gravity: 1 });
@@ -538,10 +596,10 @@ class Game {
   }
 
   private bikeSeat(): THREE.Vector3 {
-    const pos = new THREE.Vector3();
-    const seat = this.bike ? findNode(this.bike, "Seat") : undefined;
-    if (!seat || !this.player) return pos.copy(this.bike?.position ?? pos);
-    this.bike!.updateMatrixWorld(true);
+    const pos = this.scratch;
+    const seat = this.bikeSeatNode;
+    if (!seat || !this.player || !this.bike) return pos.copy(this.bike?.position ?? pos.set(0, 0, 0));
+    this.bike.updateMatrixWorld(true);
     seat.getWorldPosition(pos);
     // The rider's hips sit on the saddle.
     pos.y -= this.player.height * 0.36;
@@ -559,8 +617,9 @@ class Game {
 
   private followCompanions(dt: number) {
     const r = this.runner!;
+    const target = this.scratch;
     const follow = (p: Person, back: number, side: number) => {
-      const target = new THREE.Vector3(r.x - back, 0, THREE.MathUtils.clamp(r.z + side, -2.4, 2.4));
+      target.set(r.x - back, 0, THREE.MathUtils.clamp(r.z + side, -2.4, 2.4));
       p.root.position.lerp(target, 1 - Math.exp(-dt * 5));
       p.speed = r.speed;
       if (this.mode === "run") {
@@ -590,7 +649,7 @@ class Game {
       if (enc) void this.stageNpcs(enc, mark.x);
     }
     const next = this.course!.encounters.find((m) => !life.resolved.includes(m.id) && active.some((e) => e.id === m.id));
-    if (next && r.x > next.x - 44 && r.stopAt === null && r.cruise > 0 && !this.pendingEncounter) {
+    if (next && r.x > next.x - APPROACH && r.stopAt === null && r.cruise > 0 && !this.pendingEncounter) {
       r.autopilotLane = 1;
       r.stopAt = next.x - 2.6;
       this.pendingEncounter = active.find((e) => e.id === next.id);
@@ -630,10 +689,10 @@ class Game {
       }
       case "keepsake": {
         this.spawns?.collect(ev.spawn.id);
-        const text = collectKeepsake(life, ev.spawn.index ?? 0);
-        if (text) {
-          this.ui.toast("Keepsake found", text, "keepsake");
-          this.ui.delta("happiness", 3);
+        const got = collectKeepsake(life, ev.spawn.index ?? 0);
+        if (got) {
+          this.ui.toast("Keepsake found", got.text, "keepsake");
+          this.ui.delta(got.score, 1);
           audio.sparkle();
         }
         this.ui.setScores(life.scores, life.meters);
@@ -642,9 +701,9 @@ class Game {
       }
       case "letter": {
         this.spawns?.collect(ev.spawn.id);
-        const text = collectLetter(life);
+        const text = collectLetter(life, ev.spawn.index ?? 0);
         this.ui.toast("A letter from Juno", `“${text}”`, "letter");
-        this.ui.delta("happiness", 2);
+        this.ui.delta("happiness", 1);
         audio.chime();
         this.ui.setScores(life.scores, life.meters);
         break;
@@ -652,9 +711,9 @@ class Game {
       case "hit": {
         const hz = ev.spawn.hazard!;
         this.spawns?.hit(ev.spawn.id);
-        const delta = runnerHit(life, hz.score);
+        const delta = runnerHit(life, hz.score, hz.kind);
         this.ui.delta(hz.score, delta[hz.score]);
-        this.ui.toast("Oof", `${hz.label}: ${hz.score[0].toUpperCase() + hz.score.slice(1)} −2`, "warn");
+        this.ui.toast("Oof", `${hz.label}: ${hz.score[0].toUpperCase() + hz.score.slice(1)} −${hazardCost(hz.kind)}`, "warn");
         this.ui.setScores(life.scores, life.meters);
         if (this.player) this.player.stumble = 0.7;
         this.director.shake = 0.25;
@@ -690,17 +749,23 @@ class Game {
     }
   }
 
+  private recovering = false;
+
   private async checkRecovery() {
-    const life = this.life!;
-    const rec = recover(life);
-    if (!rec) return;
+    const life = this.life;
+    if (!life || this.recovering) return;
+    this.recovering = true;
     const wasRunning = this.mode === "run";
-    this.mode = "story";
-    audio.stinger("sad");
-    await this.ui.message(rec.title, rec.text, "Keep going");
-    this.ui.setScores(life.scores, life.meters);
-    saveLife(life);
-    if (wasRunning) {
+    // Two scores can empty at once; each gets its own rescue.
+    for (let rec = recover(life); rec; rec = recover(life)) {
+      this.mode = "story";
+      audio.stinger("sad");
+      await this.ui.message(rec.title, rec.text, "Keep going");
+      this.ui.setScores(life.scores, life.meters);
+    }
+    this.recovering = false;
+    if (this.mode === "story" && wasRunning) this.saveProgress();
+    if (wasRunning && this.mode === "story") {
       this.mode = "run";
       this.clock.getDelta();
     }
@@ -724,10 +789,15 @@ class Game {
     const speaker = resolve(enc.speaker, life);
     const cast = enc.cast ? resolve(enc.cast, life) : [];
     const people: Person[] = [];
+    const token = this.chapterToken;
     const place = async (id: PersonId, pos: THREE.Vector3, face: number) => {
       // Companions already on screen play themselves.
       if ((id === "biscuit" && this.biscuit) || (id === "sam" && this.sam)) return;
       const p = await createPerson(personSpec(id, life, index));
+      if (token !== this.chapterToken) {
+        p.dispose();
+        return;
+      }
       p.root.position.copy(pos);
       p.face(face);
       if (enc.id === "nanas-last-summer" && id === "nana") p.anim = "sit";
@@ -806,10 +876,9 @@ class Game {
       }
     }
     for (const n of this.npcs.get(enc.id) ?? []) n.anim = n.isDog ? "idle" : "wave";
-    if (has(life, "letters")) {
-      this.runner?.setOptions({ letters: true });
-      if (this.spawns) this.spawns.showLetters = true;
-    }
+    const letters = lettersActive(life);
+    this.runner?.setOptions({ letters });
+    if (this.spawns) this.spawns.showLetters = letters;
     // A choice can change where the rest of the chapter happens (staying home at the station).
     const key = JSON.stringify(resolve(this.chapter!.places, life));
     if (key !== this.placesKey && this.course) {
@@ -821,7 +890,7 @@ class Game {
       this.engine.scene.add(world.group);
       this.engine.refreshGlow();
     }
-    saveLife(life);
+    this.saveProgress();
     await this.checkRecovery();
     audio.duck(false);
     const r = this.runner!;
@@ -835,6 +904,16 @@ class Game {
       this.npcs.get(id)?.forEach((n) => n.dispose());
       this.npcs.delete(id);
     }, 15000 / (this.qa?.timeScale ?? 1));
+  }
+
+  /** Saves the life plus where the runner is and what it has taken this chapter. */
+  private saveProgress() {
+    const life = this.life;
+    if (!life) return;
+    if (this.runner && this.chapter && this.chapter.index === life.chapter) {
+      life.progress = { chapter: life.chapter, x: this.runner.x, collected: this.runner.collectedIds() };
+    }
+    saveLife(life);
   }
 
   private showDeltas(delta: Record<ScoreKey, number>) {
@@ -863,6 +942,7 @@ class Game {
     await this.ui.summary(chapter, lines, outro, keepsakes, deltas);
     life.chapter = advance(life);
     life.resolved = [];
+    life.progress = undefined;
     saveLife(life);
     this.ui.showHud(false);
     await this.ui.veil(true, 500);
@@ -874,6 +954,7 @@ class Game {
   private async playPrologue() {
     const life = this.life!;
     const r = this.runner!;
+    this.cutscene = true;
     r.autopilotLane = 1;
     r.stopAt = this.chapter!.length - 22;
     this.director.set({ kind: "wide", target: new THREE.Vector3(r.x + 6, 1.5, -2), distance: 13, height: 3.6 });
@@ -901,6 +982,7 @@ class Game {
   private async playFinale() {
     const life = this.life!;
     const r = this.runner!;
+    this.cutscene = true;
     r.autopilotLane = 1;
     r.stopAt = this.chapter!.length - 18;
     this.mode = "run";
@@ -919,7 +1001,8 @@ class Game {
     this.ui.showHud(false);
     this.mode = "finale";
     const end = finale(life);
-    const x = this.runner!.x;
+    if (!this.runner) return;
+    const x = this.runner.x;
     const people: Person[] = [];
     const slots = [
       [2.5, -1.2],
@@ -948,7 +1031,7 @@ class Game {
       if (this.player) this.player.anim = /dig|spade hits/.test(line.text) ? "dig" : "idle";
       const idx = end.company.indexOf(line.who as PersonId);
       if (idx >= 0) people[idx].anim = "talk";
-      if (line.who === "juno" && end.juno === "ferry") {
+      if (line.who === "juno" && end.juno === "ferry" && !this.walkers.length) {
         const juno = people[end.company.indexOf("juno")];
         const slot = slots[end.company.indexOf("juno") % 6];
         this.walkers.push({ person: juno, to: new THREE.Vector3(x + slot[0], 0, slot[1]), speed: 6 });

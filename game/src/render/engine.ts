@@ -26,6 +26,9 @@ export class Engine {
   mood: Mood = MOODS.noon;
   private composer?: EffectComposer;
   private bloom?: UnrealBloomPass;
+  private passes: { dispose(): void }[] = [];
+  /** Skips lightning flashes. */
+  reducedMotion = false;
   private shadowTarget = new THREE.Vector3();
   time = 0;
 
@@ -66,10 +69,13 @@ export class Engine {
 
   private setupPost() {
     this.composer = new EffectComposer(this.renderer);
-    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    const render = new RenderPass(this.scene, this.camera);
     this.bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.24, 0.45, 2.1);
+    const output = new OutputPass();
+    this.composer.addPass(render);
     this.composer.addPass(this.bloom);
-    this.composer.addPass(new OutputPass());
+    this.composer.addPass(output);
+    this.passes = [render, this.bloom, output];
   }
 
   setQuality(quality: "high" | "low") {
@@ -78,8 +84,12 @@ export class Engine {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality === "high" ? 2 : 1.25));
     if (quality === "high" && !this.composer) this.setupPost();
     if (quality === "low") {
+      // EffectComposer.dispose() frees only its own targets; the passes hold the bloom targets.
+      for (const pass of this.passes) pass.dispose();
+      this.passes = [];
       this.composer?.dispose();
       this.composer = undefined;
+      this.bloom = undefined;
     }
     this.resize();
   }
@@ -141,7 +151,7 @@ export class Engine {
   render(dt: number) {
     this.time += dt;
     // Storms flash now and then; the hemisphere light carries the flash.
-    if (this.mood.rain > 0 && dt > 0) {
+    if (this.mood.rain > 0 && dt > 0 && !this.reducedMotion) {
       this.nextBolt -= dt;
       if (this.nextBolt <= 0) {
         this.lightning = 0.35;

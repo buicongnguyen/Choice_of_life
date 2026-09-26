@@ -49,9 +49,10 @@ export function finale(s: LifeState): Finale {
   } else {
     n("The lighthouse stands dark behind a construction fence. The demolition has been postponed four times. It is still here. So are you.");
   }
-  if (has(s, "partner")) say("sam", "Go on. I'll carry the spade. I always carry the spade.");
+  if (has(s, "partner")) say("sam", tinCarried ? "Go on. I'll carry the tin. I always carry something." : "Go on. I'll carry the spade. I always carry the spade.");
   if (has(s, "kids")) n("Mika has brought Pip, who is seven and wants to know if there is treasure.");
-  if (company.includes("lina")) n("Lina is here too, grown up now, with a crooked kite under her arm.");
+  if (company.includes("lina"))
+    n(has(s, "lina_kite") ? "Lina is here too, grown up now, with a crooked kite under her arm." : "Lina is here too, grown up now. She still does the thing you taught her, without noticing.");
   if (company.includes("dex")) n("Dex has brought grilled fish, because of course he has.");
 
   if (juno === "waiting") {
@@ -60,13 +61,23 @@ export function finale(s: LifeState): Finale {
     if (has(s, "gave_key")) say("juno", "I brought the key. Fifty-seven years on a ribbon. I want that noted.");
     else say("juno", "Fifty-nine years and you're still late.");
   } else if (juno === "ferry") {
-    n("The evening ferry is just coming in. Someone is running up the cliff path far too fast for seventy.");
+    n(
+      has(s, "sent_ticket")
+        ? "The evening train is just pulling in below the cliff. Someone is running up the path far too fast for seventy."
+        : "The evening ferry is just coming in. Someone is running up the cliff path far too fast for seventy.",
+    );
     say("juno", "Don't you dare open that without me!");
     if (has(s, "gave_key")) say("juno", "I've got the key. I've got the key! Give me a minute.");
   } else {
     n("A young woman you don't know is waiting by the door, holding an envelope.");
     say("ada", "I'm Ada. Juno's granddaughter. She's not well enough to travel. She talked about you every summer.");
     say("ada", "She said you'd know what to do. And she said to tell you: “Still seventy. Promise.”");
+  }
+
+  if (juno !== "letter") {
+    if (has(s, "letter_thanks")) say("juno", "Three days for six words. I timed it.");
+    else if (has(s, "letter_remind")) say("juno", "You didn't have to write it in capitals.");
+    else if (has(s, "sent_ticket")) say("juno", "Window seat. Sea on the right. You remembered.");
   }
 
   if (tinCarried) n("You don't need to dig. The tin has been on your kitchen shelf since the storm, unopened. You carried it up the hill.");
@@ -130,7 +141,7 @@ export interface Book {
 export function lifeTitle(s: LifeState): string {
   if (has(s, "own_light")) return "Keeper of the Light";
   if (has(s, "saved_light")) return "The One Who Saved the Light";
-  if (careerMatchesDream(s) && s.scores.happiness >= 55) {
+  if (careerMatchesDream(s) && s.scores.happiness >= 60) {
     return {
       healer: "The Healer of Gull Lane",
       maker: "The Builder of Small Boats",
@@ -189,10 +200,25 @@ export function book(s: LifeState): Book {
         ? "Juno Park — the friend you drifted from and found again."
         : "Juno Park — the friend the years pulled away. She never forgot you.",
   );
-  if (has(s, "partner")) people.push(has(s, "kids") ? "Sam — your partner, and Mika's other parent. Always carried the spade." : "Sam — your partner. Two chairs on a very small balcony.");
-  else if (has(s, "met_sam")) people.push("Sam — the one under the small umbrella. You think about them sometimes.");
+  if (has(s, "partner")) {
+    people.push(
+      has(s, "kids")
+        ? "Sam — your partner, and Mika's other parent. Always carried something."
+        : has(s, "stapler_sam")
+          ? "Sam — your partner. Still has your stapler."
+          : "Sam — your partner. Two chairs on a very small balcony.",
+    );
+  } else if (has(s, "met_sam")) {
+    people.push(has(s, "jacket") ? "Sam — the one who brought your jacket back, twice. You think about them sometimes." : "Sam — the one under the small umbrella. You think about them sometimes.");
+  }
   people.push(b.family >= 8 ? "Mom and Dad — you were there when it counted." : "Mom and Dad — they were proud of you. They said so less than they meant.");
-  people.push(has(s, "nana_story") ? "Nana Pearl — you know her story. Now Lina does too." : "Nana Pearl — the keeper of the light, and of you.");
+  people.push(
+    has(s, "passed_story")
+      ? "Nana Pearl — you know her story. Now Lina does too."
+      : has(s, "nana_story")
+        ? "Nana Pearl — you know her story, and you kept it safe."
+        : "Nana Pearl — the keeper of the light, and of you.",
+  );
   if (has(s, "biscuit")) people.push("Biscuit — one ear up, one ear down. The best dog in Marigold Bay.");
   if (has(s, "forgave_dex")) people.push("Dex Moreau — it took sixty years. He got there.");
   else if (b.dex <= -2) people.push("Dex Moreau — some roads never crossed back.");

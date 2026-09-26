@@ -105,5 +105,10 @@ export interface LifeState {
   stats: RunStats;
   /** Pickups collected toward the next point, per score. */
   meters: Record<ScoreKey, number>;
+  /** The chapter whose entry effects (drift, income) have been applied, and the scores then. */
+  started?: number;
+  chapterStart?: Scores;
+  /** Where the runner was at the last mid-chapter save, and what it had already taken. */
+  progress?: { chapter: number; x: number; collected: number[] };
   finished: boolean;
 }

@@ -47,8 +47,14 @@ export class CameraDirector {
     if (s.kind === "follow") {
       const f = FOLLOW[s.mode];
       const kick = Math.min(1, speed / 12) * 0.6;
-      wantPos.set(focus.x + f.ahead * 0.55, f.up + kick * 0.3, f.back + kick);
-      wantLook.set(focus.x + f.ahead, f.look, -1.6);
+      if (this.camera.aspect < 1) {
+        // Portrait: a side view shows almost none of the road ahead, so look diagonally down it.
+        wantPos.set(focus.x - 6.5, f.up * 1.15 + kick * 0.3, f.back * 0.9 + kick);
+        wantLook.set(focus.x + 6, f.look, -1.2);
+      } else {
+        wantPos.set(focus.x + f.ahead * 0.55, f.up + kick * 0.3, f.back + kick);
+        wantLook.set(focus.x + f.ahead, f.look, -1.6);
+      }
       // Follow lane changes a little so the near and far lanes both stay framed.
       wantPos.z += focus.z * 0.25;
     } else if (s.kind === "two-shot") {

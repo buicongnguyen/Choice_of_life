@@ -71,6 +71,7 @@ export class Runner {
   ) {
     this.cruise = options.speed;
     this.x = startX;
+    this.prevX = startX;
     while (this.next < course.spawns.length && course.spawns[this.next].x < startX - 2) this.next++;
     while (this.gustIndex < course.gusts.length && course.gusts[this.gustIndex] < startX) this.gustIndex++;
   }
@@ -92,8 +93,25 @@ export class Runner {
     return this.collected.has(id);
   }
 
+  /** State before the last step, for render interpolation. */
+  prevX = 0;
+  prevY = 0;
+  prevZ: number = LANE_Z[1];
+
+  collectedIds(): number[] {
+    return [...this.collected];
+  }
+
+  /** Marks spawns already taken before a reload so they can't be collected twice. */
+  preCollect(ids: readonly number[]) {
+    for (const id of ids) this.collected.add(id);
+  }
+
   step(input: RunnerInput, dt = STEP): RunnerEvent[] {
     const events: RunnerEvent[] = [];
+    this.prevX = this.x;
+    this.prevY = this.y;
+    this.prevZ = this.z;
     this.time += dt;
     this.invulnerable = Math.max(0, this.invulnerable - dt);
     this.shieldCooldown = Math.max(0, this.shieldCooldown - dt);

@@ -109,10 +109,23 @@ export class Audio {
     this.setAmbience(this.track.ambience);
   }
 
+  /** Silence everything while the tab is hidden. */
+  setHidden(hidden: boolean) {
+    if (!this.ctx) return;
+    if (hidden) void this.ctx.suspend();
+    else void this.ctx.resume();
+  }
+
   private schedule() {
     const ctx = this.ctx;
     const t = this.track;
-    if (!ctx || !t || !this.musicBus) return;
+    if (!ctx || !t || !this.musicBus || ctx.state !== "running") return;
+    // After a stall (a chapter load) don't dump the missed bars all at once.
+    if (this.nextBar < ctx.currentTime) this.nextBar = ctx.currentTime + 0.05;
+    if (!this.musicOn) {
+      this.nextBar = ctx.currentTime + 0.1;
+      return;
+    }
     while (this.nextBar < ctx.currentTime + 0.25) {
       this.playBar(t, this.bar, this.nextBar);
       this.nextBar += (60 / t.bpm) * 4;

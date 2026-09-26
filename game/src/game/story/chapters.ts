@@ -118,12 +118,9 @@ export const CHAPTERS: ChapterDef[] = [
       "Sunburn and chips on the harbour wall.",
     ],
     letters: true,
+    drift: { happiness: -3 },
     music: "coast",
-    outro: (s) => [
-      "Nana Pearl dies in September, with the window open so she can hear the sea.",
-      "A month later, the council switches the lighthouse off for good. Ships have satellites now.",
-      ...(has(s, "biscuit_nana") ? ["Biscuit comes to live with you. For a week he sleeps by the door, waiting."] : []),
-    ],
+    outro: (s) => (has(s, "biscuit_nana") ? ["Biscuit comes to live with you. For a week he sleeps by the door, waiting."] : []),
   },
   {
     index: 4,
@@ -131,7 +128,7 @@ export const CHAPTERS: ChapterDef[] = [
     number: "Chapter Four",
     title: "Leaving Harbour",
     ages: [18, 24],
-    subtitle: (s) => (s.path === "shop" ? "Age 18 to 24 · Gull Lane, and the 7:14" : "Age 18 to 24 · Brightwater"),
+    subtitle: "Age 18 to 24 · The 7:14 to Brightwater",
     intro:
       "The train to Brightwater leaves at 7:14 every morning. For eighteen years you have heard it, and never once been on it.",
     length: 1150,
@@ -149,11 +146,12 @@ export const CHAPTERS: ChapterDef[] = [
     ],
     density: 4.8,
     keepsakes: [
-      "The 7:14 at dawn, with the sea on the left.",
+      "The first morning you woke up grown, and nobody told you what to do.",
       "Your first pay packet, spent entirely on a good coat.",
-      "A rooftop at midnight over a city that never goes dark.",
+      "Midnight chips with friends you'd only just met.",
     ],
     letters: true,
+    drift: { happiness: -2 },
     music: "city",
     outro: (s) =>
       has(s, "biscuit")
@@ -186,7 +184,7 @@ export const CHAPTERS: ChapterDef[] = [
       "Laughing so hard in a meeting you had to leave the room.",
       "A Sunday so empty and perfect you did nothing at all.",
     ],
-    drift: { health: -2 },
+    drift: { health: -2, happiness: -4 },
     music: "climb",
   },
   {
@@ -220,7 +218,7 @@ export const CHAPTERS: ChapterDef[] = [
       "A hospital hot chocolate that tasted like hope.",
     ],
     wind: true,
-    drift: { health: -4 },
+    drift: { health: -4, happiness: -5 },
     music: "storm",
     outro: (s) =>
       has(s, "juno_saved_light")
@@ -238,7 +236,7 @@ export const CHAPTERS: ChapterDef[] = [
     ages: [55, 69],
     subtitle: "Age 55 to 69 · The lantern festival",
     intro:
-      "Every summer Marigold Bay hangs a thousand lanterns along the harbour. This year, for the first time, you have time to see every one of them.",
+      "Every summer Marigold Bay hangs a thousand lanterns along the harbour. This year you promise yourself you'll see every one of them.",
     length: 900,
     speed: 6,
     places: [{ from: 0, place: "festival" }],

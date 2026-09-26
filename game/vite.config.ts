@@ -19,7 +19,8 @@ function modelsPlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use("/models", (req, res, next) => {
         const file = path.join(models, decodeURIComponent((req.url ?? "").split("?")[0]));
-        if (!file.startsWith(models) || !existsSync(file) || !statSync(file).isFile()) return next();
+        const relative = path.relative(models, file);
+        if (relative.startsWith("..") || path.isAbsolute(relative) || !existsSync(file) || !statSync(file).isFile()) return next();
         res.setHeader("Content-Type", file.endsWith(".json") ? "application/json" : "model/gltf-binary");
         createReadStream(file).pipe(res);
       });

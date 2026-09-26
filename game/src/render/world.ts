@@ -165,6 +165,8 @@ const PLACES: Record<PlaceId, PlaceStyle> = {
     ],
     planes: [{ colour: "#8d8a8c", z: [-140, 6], y: -0.03 }],
     shore: 6,
+    // Storm swells are taller; keep their crests below the street.
+    seaY: -1.0,
     quay: "#7d7894",
   },
   coast: {
@@ -468,6 +470,8 @@ export class World {
   private live = new Map<number, THREE.Object3D>();
   private floaters: { obj: THREE.Object3D; phase: number; baseY: number }[] = [];
   private base = new THREE.Group();
+  /** Geometry and materials generated here (not shared with model templates) are freed on dispose. */
+  private owned: { dispose(): void }[] = [];
 
   constructor(
     readonly placements: Placement[],
@@ -607,5 +611,14 @@ export class World {
   dispose() {
     this.group.removeFromParent();
     this.live.clear();
+    this.base.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      this.owned.push(mesh.geometry);
+      const m = mesh.material;
+      for (const mat of Array.isArray(m) ? m : [m]) this.owned.push(mat);
+    });
+    for (const item of new Set(this.owned)) item.dispose();
+    this.owned = [];
   }
 }

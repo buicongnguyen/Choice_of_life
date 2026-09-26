@@ -27,6 +27,9 @@ body.large-text { --scale: 1.18; }
 #ui { position: fixed; inset: 0; pointer-events: none; font-size: calc(16px * var(--scale)); }
 #ui > * { pointer-events: auto; }
 #ui > .hud, #ui > .veil, #ui > .loading { pointer-events: none; }
+/* During story scenes the scene title replaces the HUD's chapter label and companion chips. */
+#ui.story-on .hud-chapter, #ui.story-on .companions, #ui.story-on .touch-pad { display: none; }
+.touch-pad button { touch-action: manipulation; }
 button { font-family: var(--display); cursor: pointer; }
 button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 4px solid var(--marigold); outline-offset: 3px; }
 
@@ -138,7 +141,7 @@ body.touch .touch-pad { display: flex; }
 .choices { position: relative; z-index: 1; width: min(980px, 100%); }
 .choices .prompt { text-align: center; color: #fff; font-family: var(--display); font-weight: 700; font-size: 1.5em; margin-bottom: 14px; text-shadow: 0 3px 10px rgba(0, 0, 0, 0.6); }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
-.card { position: relative; text-align: left; border: none; background: var(--paper); border-radius: 20px; padding: 16px 16px 14px; box-shadow: 0 6px 0 rgba(42, 31, 61, 0.2), 0 14px 30px rgba(42, 31, 61, 0.25); color: var(--ink); font-family: var(--body); animation: rise 0.35s ease both; transition: transform 0.14s ease, box-shadow 0.14s; }
+.card { position: relative; text-align: left; border: none; font-size: 1em; background: var(--paper); border-radius: 20px; padding: 16px 16px 14px; box-shadow: 0 6px 0 rgba(42, 31, 61, 0.2), 0 14px 30px rgba(42, 31, 61, 0.25); color: var(--ink); font-family: var(--body); animation: rise 0.35s ease both; transition: transform 0.14s ease, box-shadow 0.14s; }
 .card:hover:not(:disabled), .card:focus-visible { transform: translateY(-5px) rotate(-0.4deg); box-shadow: 0 10px 0 rgba(42, 31, 61, 0.2), 0 20px 40px rgba(42, 31, 61, 0.3); }
 .card:disabled { opacity: 0.62; cursor: not-allowed; }
 .card .key { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; border-radius: 50%; background: #f1e6d2; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 0.85em; color: var(--ink-soft); }
@@ -216,6 +219,7 @@ body.touch .touch-pad { display: flex; }
   .score .icon { width: 28px; height: 28px; }
   .score .meter { display: none; }
   .hud-chapter { top: calc(max(14px, env(safe-area-inset-top)) + 50px); }
+  .companions { top: calc(max(14px, env(safe-area-inset-top)) + 96px); }
   .line { font-size: 1.05em; padding: 20px 18px 16px; }
   .cards { grid-template-columns: 1fr; gap: 10px; }
   .card { padding: 12px 14px; }

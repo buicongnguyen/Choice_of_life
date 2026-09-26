@@ -129,22 +129,26 @@ keepsakes found (3 hidden per chapter).
   left third of the screen; time flows right to left, as in the original concept.
 - **Lanes:** three depth lanes (near, middle, far). Up/Down or W/S or swipe to
   change lane; Space, tap or swipe up to jump (hop on the bike).
-- **Pickups:** heart (Health), star (Happiness), green coin (Money), each +1
-  or +2. **Keepsakes** (3 per chapter) sit on risky lines. **Letters** appear if
-  you promised to write.
+- **Pickups:** heart (Health), star (Happiness), green coin (Money); every ten of
+  a kind make a point, and every 20 in a row lift your lowest score. **Keepsakes**
+  (3 per chapter) float over low hazards (jump for them) and lift your lowest
+  score. **Letters** appear if you promised to write, until Juno moves in.
 - **Hazards:** themed per chapter and tagged with the score they cost (puddles
   and colds → Health, bills and broken things → Money, rain clouds and
-  deadlines → Happiness). Low hazards can be jumped; tall ones must be dodged.
-  Every generated row leaves at least one safe lane.
+  deadlines → Happiness). Low hazards can be jumped (and cost 1); tall ones
+  must be dodged (and cost 2). Every generated row leaves at least one safe
+  lane, and the walk-up to every person is clear.
 - **Encounters:** the person appears ahead; the world slows, hazards clear,
   the camera dollies into a two-shot, letterbox bars slide in, and the choice
   cards show immediate effects plus a one-line hint. Time never runs out.
-- **Aging drift:** Health drifts down a little each chapter after 40.
+- **Life's weather:** Health drifts down from chapter 5 on; the teen years, the
+  climb and the storm also weigh on Happiness; work adds Money in chapters 5-7.
 - **No game over:** a score reaching 0 triggers a one-time recovery scene
-  (a named person steps in) and resets it to 25.
+  (a named person steps in) and resets it to 30.
 - **Assist:** Relaxed / Standard / Brisk pace; reduced motion; large text.
-- **Balance target:** choices drive about 70% of the final scores, running
-  about 30%.
+- **Balance** (game/src/game/balance.probe.ts, 40 lives): a skilled runner ends
+  around Health 69, Happiness 79, Money 61; a casual one (missing a fifth of the
+  hazards) around 42/57/36; nobody pins at 0 or 100.
 
 ## 5. Art direction
 

@@ -48,7 +48,7 @@ function waitForAdvance(target: HTMLElement, keys = ["Space", "Enter", "KeyE"]):
     const onKey = (e: KeyboardEvent) => {
       if (keys.includes(e.code)) {
         e.preventDefault();
-        finish();
+        if (!e.repeat) finish();
       }
     };
     const onClick = () => finish();
@@ -58,6 +58,18 @@ function waitForAdvance(target: HTMLElement, keys = ["Space", "Enter", "KeyE"]):
       target.addEventListener("click", onClick);
     }, 180);
   });
+}
+
+/** Input that arrives this soon after a decision appears was aimed at the previous screen. */
+const LOCKOUT_MS = 380;
+
+/** Disables a button briefly so a carried-over key press or double-click can't trigger it. */
+function armLater(button: HTMLButtonElement, focus = true) {
+  button.disabled = true;
+  setTimeout(() => {
+    button.disabled = false;
+    if (focus) button.focus({ preventScroll: true });
+  }, LOCKOUT_MS);
 }
 
 export class UI {
@@ -85,6 +97,7 @@ export class UI {
   private clearLayer() {
     this.layer?.remove();
     this.layer = undefined;
+    this.root.classList.remove("story-on");
   }
 
   private setLayer(el: HTMLElement) {
@@ -232,6 +245,8 @@ export class UI {
     if (!show) {
       this.hudEl?.remove();
       this.hudEl = undefined;
+      this.chapterKey = "";
+      this.companionsKey = "";
       return;
     }
     if (this.hudEl) return;
@@ -244,7 +259,7 @@ export class UI {
         { class: `score ${key}`, title: SCORE_NAME[key], "aria-label": SCORE_NAME[key] },
         icon,
         h("span", { class: "value" }, "0"),
-        h("span", { class: "meter", title: "Six small good things make a point" }, h("i", {})),
+        h("span", { class: "meter", title: "Ten small good things make a point" }, h("i", {})),
         h("span", { class: "sr-only" }, SCORE_NAME[key]),
       );
       this.scoresEl.set(key, el);
@@ -285,10 +300,14 @@ export class UI {
     setTimeout(() => d.remove(), 1400);
   }
 
+  private chapterKey = "";
+  private companionsKey = "";
+
   setChapter(title: string, age: number) {
-    if (this.chapterEl) {
-      this.chapterEl.replaceChildren(h("div", { class: "t" }, title), h("div", { class: "age" }, `Age ${age}`));
-    }
+    const key = `${title}|${age}`;
+    if (!this.chapterEl || key === this.chapterKey) return;
+    this.chapterKey = key;
+    this.chapterEl.replaceChildren(h("div", { class: "t" }, title), h("div", { class: "age" }, `Age ${age}`));
   }
 
   setTimeline(chapter: number, progress: number, marks: number[] = []) {
@@ -306,6 +325,9 @@ export class UI {
   }
 
   setCompanions(list: { name: string; ready?: boolean; text: string }[]) {
+    const key = JSON.stringify(list);
+    if (key === this.companionsKey) return;
+    this.companionsKey = key;
     this.companionsEl?.replaceChildren(...list.map((c) => h("div", { class: `companion ${c.ready ? "ready" : ""}` }, c.text)));
   }
 
@@ -325,8 +347,10 @@ export class UI {
 
   // ------------------------------------------------------------------ story
   private storyLayer(title?: string) {
-    const el = h("div", { class: "story", "data-qa": "story" }, title ? h("div", { class: "story-title" }, title) : null);
-    return this.setLayer(el);
+    const el = h("div", { class: "story", "data-qa": "story", "aria-live": "polite" }, title ? h("div", { class: "story-title" }, title) : null);
+    const layer = this.setLayer(el);
+    this.root.classList.add("story-on");
+    return layer;
   }
 
   async say(lines: Line[], title: string | undefined, nameFor: (who: Line["who"]) => string, onLine?: (line: Line) => void) {
@@ -352,7 +376,12 @@ export class UI {
     layer.querySelectorAll(".line, .choices").forEach((n) => n.remove());
     return new Promise((resolve) => {
       const available = options.filter((o) => !o.locked);
+      const shownAt = performance.now();
+      const ready = () => performance.now() - shownAt >= LOCKOUT_MS;
+      let chosen = false;
       const pick = (id: string) => {
+        if (chosen || !ready()) return;
+        chosen = true;
         window.removeEventListener("keydown", onKey);
         this.onTap?.();
         resolve(id);
@@ -375,12 +404,14 @@ export class UI {
         return card;
       });
       const onKey = (e: KeyboardEvent) => {
+        if (e.repeat) return;
         const n = Number(e.key);
         if (n >= 1 && n <= options.length && !options[n - 1].locked) pick(options[n - 1].id);
       };
       window.addEventListener("keydown", onKey);
       layer.append(h("div", { class: "choices" }, h("div", { class: "prompt" }, prompt), h("div", { class: "cards" }, ...cards)));
-      (cards.find((c) => !c.hasAttribute("disabled")) as HTMLElement | undefined)?.focus({ preventScroll: true });
+      // Focus the first card only once the lockout has passed, so a held Space/Enter can't choose.
+      setTimeout(() => (cards.find((c) => !c.hasAttribute("disabled")) as HTMLElement | undefined)?.focus({ preventScroll: true }), LOCKOUT_MS);
       if (this.autoAdvance && available.length === 0) resolve(options[0].id);
     });
   }
@@ -411,29 +442,29 @@ export class UI {
       ),
     );
     const button = el.querySelector("button") as HTMLButtonElement;
-    setTimeout(() => button.focus({ preventScroll: true }), 50);
+    armLater(button);
     return new Promise((resolve) => {
       button.addEventListener("click", () => {
         this.onTap?.();
         this.clearLayer();
         resolve();
       });
-      if (this.autoAdvance) setTimeout(() => button.click(), 30);
+      if (this.autoAdvance) setTimeout(() => button.click(), LOCKOUT_MS + 60);
     });
   }
 
   message(title: string, text: string, button = "Continue"): Promise<void> {
     const el = this.setLayer(
-      h("div", { class: "modal fade-in", "data-qa": "message" }, h("div", { class: "panel pop-in" }, h("h2", {}, title), h("p", {}, text), h("div", { class: "stack" }, h("button", { class: "btn", type: "button" }, button)))),
+      h("div", { class: "modal fade-in", "data-qa": "message" }, h("div", { class: "panel pop-in", role: "alertdialog", "aria-modal": "true", "aria-label": title }, h("h2", {}, title), h("p", {}, text), h("div", { class: "stack" }, h("button", { class: "btn", type: "button" }, button)))),
     );
     const b = el.querySelector("button") as HTMLButtonElement;
-    setTimeout(() => b.focus({ preventScroll: true }), 50);
+    armLater(b);
     return new Promise((resolve) => {
       b.addEventListener("click", () => {
         this.clearLayer();
         resolve();
       });
-      if (this.autoAdvance) setTimeout(() => b.click(), 30);
+      if (this.autoAdvance) setTimeout(() => b.click(), LOCKOUT_MS + 60);
     });
   }
 
@@ -474,7 +505,7 @@ export class UI {
         { class: "modal pause-modal fade-in" },
         h(
           "div",
-          { class: "panel pop-in" },
+          { class: "panel pop-in", role: "dialog", "aria-modal": "true", "aria-label": canQuit ? "Paused" : "Settings" },
           h("h2", {}, canQuit ? "Paused" : "Settings"),
           h("div", { class: "setting" }, "Volume", volume),
           toggle("Music", "music"),
@@ -490,6 +521,7 @@ export class UI {
         ),
       );
       this.root.append(el);
+      setTimeout(() => (el.querySelector(".stack button") as HTMLButtonElement | null)?.focus({ preventScroll: true }), 30);
     });
   }
 
@@ -500,17 +532,19 @@ export class UI {
       h(
         "div",
         { class: "letter-wrap fade-in", "data-qa": "letter" },
-        h("div", { class: "letter" }, ...body.map((l) => h("p", {}, l)), h("p", { class: "sign" }, `— ${sign}`)),
+        h("div", { class: "letter", role: "document", tabindex: "0", "aria-label": "Nana's letter" }, ...body.map((l) => h("p", {}, l)), h("p", { class: "sign" }, `— ${sign}`)),
         h("div", { class: "actions" }, h("button", { class: "btn", type: "button" }, "Fold the letter")),
       ),
     );
     const b = el.querySelector(".actions button") as HTMLButtonElement;
+    armLater(b, false);
+    setTimeout(() => (el.querySelector(".letter") as HTMLElement).focus({ preventScroll: true }), 40);
     return new Promise((resolve) => {
       b.addEventListener("click", () => {
         this.clearLayer();
         resolve();
       });
-      if (this.autoAdvance) setTimeout(() => b.click(), 30);
+      if (this.autoAdvance) setTimeout(() => b.click(), LOCKOUT_MS + 60);
     });
   }
 
@@ -550,6 +584,7 @@ export class UI {
       ),
     );
     const b = el.querySelector("[data-qa=again]") as HTMLButtonElement;
+    armLater(b, false);
     return new Promise((resolve) => {
       b.addEventListener("click", () => {
         this.clearLayer();

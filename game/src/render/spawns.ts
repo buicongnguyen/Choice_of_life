@@ -45,6 +45,11 @@ export class SpawnView {
     return new SpawnView(course, particles);
   }
 
+  /** Spawns taken before a reload stay taken. */
+  markDone(ids: readonly number[]) {
+    for (const id of ids) this.done.add(id);
+  }
+
   private centre(name: string): number {
     return Number(modelExtras(name).center ?? 0.3);
   }

@@ -66,6 +66,7 @@ export class Particles {
         void main() {
           vec4 t = texture2D(map, gl_PointCoord);
           gl_FragColor = vec4(vColour * t.rgb, t.a);
+          #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }`,
     });
@@ -92,7 +93,9 @@ export class Particles {
     }
   }
 
-  update(dt: number) {
+  /** `viewportHeight` in device pixels keeps particle size consistent across screens. */
+  update(dt: number, viewportHeight = 720) {
+    (this.points.material as THREE.ShaderMaterial).uniforms.scale.value = viewportHeight * 0.83;
     for (let i = 0; i < this.capacity; i++) {
       const p = this.particles[i];
       if (p.alive) {
@@ -138,9 +141,10 @@ export class Rain {
   }
 
   private reset(i: number, anywhere = false) {
-    const x = (Math.random() - 0.5) * 60;
-    const y = anywhere ? Math.random() * 18 : 18;
-    const z = (Math.random() - 0.3) * 30;
+    // Centred on the action and biased away from the camera (+z), so the drops are in view.
+    const x = (Math.random() - 0.35) * 46;
+    const y = anywhere ? Math.random() * 16 : 16;
+    const z = -16 + Math.random() * 22;
     this.drops.set([x, y, z, x - 0.12, y - 0.7, z], i * 6);
   }
 

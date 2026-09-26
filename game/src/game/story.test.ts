@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { generateCourse, unsafeRows, type Course } from "./course";
+import { APPROACH, generateCourse, unsafeRows, type Course } from "./course";
 import { createLife, has } from "./life";
 import { Runner, STEP } from "./runner";
 import { deserialise, serialise } from "./save";
@@ -190,7 +190,8 @@ describe("courses", () => {
     for (const index of PLAYABLE) {
       const course = chapterCourse(index, 5);
       for (const mark of course.encounters) {
-        const near = course.spawns.filter((s) => s.kind === "hazard" && s.x > mark.x - 40 && s.x < mark.x + 15);
+        // Everything from where the story takes the wheel (APPROACH) to the person must be clear.
+        const near = course.spawns.filter((s) => (s.kind === "hazard" || s.kind === "keepsake" || s.kind === "letter") && s.x > mark.x - APPROACH - 1 && s.x < mark.x + 15);
         expect(near, `ch${index} ${mark.id}`).toEqual([]);
       }
     }
