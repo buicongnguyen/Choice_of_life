@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { APPROACH, generateCourse, unsafeRows, type Course } from "./course";
+import { APPROACH, generateCourse, unsafeRows, ZONE_AFTER, ZONE_BEFORE, type Course } from "./course";
 import { createLife, has } from "./life";
 import { Runner, STEP } from "./runner";
 import { deserialise, serialise } from "./save";
 import { CHAPTERS, FINALE, PLAYABLE } from "./story/chapters";
 import { activeEncounters, ENCOUNTERS } from "./story/encounters";
 import { book, finale, lifeTitle } from "./story/ending";
-import { advance, choose, closeChapter, nextEncounter, optionViews, recover, startChapter } from "./story/flow";
+import { advance, choose, closeChapter, nextEncounter, optionViews, peopleSoFar, recover, startChapter, statusLines } from "./story/flow";
 import { resolve } from "./story/model";
 import type { LifeState } from "./types";
 
@@ -60,7 +60,7 @@ describe("story content", () => {
     for (const c of CHAPTERS) {
       const s = newLife();
       const ats = [...new Set(activeEncounters(s, c.index).map((e) => e.at))].sort();
-      for (let i = 1; i < ats.length; i++) expect((ats[i] - ats[i - 1]) * c.length).toBeGreaterThan(80);
+      for (let i = 1; i < ats.length; i++) expect((ats[i] - ats[i - 1]) * c.length, `${c.id} ${ats[i]}`).toBeGreaterThan(ZONE_BEFORE + ZONE_AFTER + 20);
     }
   });
 
@@ -168,6 +168,58 @@ describe("whole lives", () => {
   });
 });
 
+describe("2.1 story and logic", () => {
+  it("every scene leaves at least one open choice, even when you're broke and exhausted", () => {
+    for (const e of ENCOUNTERS) {
+      for (const value of [0, 100]) {
+        const s = newLife();
+        s.chapter = e.chapter;
+        s.scores = { health: value, happiness: value, money: value };
+        const open = optionViews(e, s).filter((o) => !o.locked);
+        expect(open.length, `${e.id} at ${value}`).toBeGreaterThan(0);
+        for (const o of optionViews(e, s).filter((v) => v.locked)) expect(o.locked).toMatch(/Needs/);
+      }
+    }
+  });
+
+  it("Mika's crossroads mirrors the road you took, and only if you had children", () => {
+    const enc = ENCOUNTERS.find((e) => e.id === "mikas-crossroads")!;
+    const s = newLife();
+    s.chapter = 6;
+    expect(activeEncounters(s, 6).some((e) => e.id === enc.id)).toBe(false);
+    s.flags = ["kids"];
+    s.path = "shop";
+    expect(activeEncounters(s, 6).some((e) => e.id === enc.id)).toBe(true);
+    expect(resolve(enc.lines, s).map((l) => l.text).join(" ")).toContain("7:14");
+    s.path = "uni";
+    expect(resolve(enc.lines, s).map((l) => l.text).join(" ")).toContain("fix boats");
+  });
+
+  it("someone notices only when the chapter starts with you struggling", () => {
+    const s = newLife();
+    startChapter(s, 5);
+    expect(activeEncounters(s, 5).some((e) => e.id === "someone-notices-5")).toBe(false);
+    s.scores.happiness = 30;
+    startChapter(s, 5);
+    const enc = activeEncounters(s, 5).find((e) => e.id === "someone-notices-5");
+    expect(enc).toBeTruthy();
+    // The check is fixed at the start: cheering up mid-chapter doesn't pull it from the course.
+    s.scores.happiness = 90;
+    expect(activeEncounters(s, 5).some((e) => e.id === "someone-notices-5")).toBe(true);
+    s.flags = ["partner"];
+    expect(resolve(enc!.speaker, s)).toBe("sam");
+  });
+
+  it("summaries and the journal describe the life honestly", () => {
+    const s = playStory(warm);
+    expect(peopleSoFar(s).map((p) => p.name)).toEqual(expect.arrayContaining(["Mom and Dad", "Juno", "Sam"]));
+    s.scores = { health: 10, happiness: 90, money: 10 };
+    const lines = statusLines(s);
+    expect(lines.join(" ")).toMatch(/keeping score/);
+    expect(lines.join(" ")).toMatch(/Money is tight/);
+  });
+});
+
 describe("courses", () => {
   const chapterCourse = (index: number, seed: number, assist: LifeState["assist"] = "standard"): Course => {
     const s = newLife(seed);
@@ -191,7 +243,7 @@ describe("courses", () => {
       const course = chapterCourse(index, 5);
       for (const mark of course.encounters) {
         // Everything from where the story takes the wheel (APPROACH) to the person must be clear.
-        const near = course.spawns.filter((s) => (s.kind === "hazard" || s.kind === "keepsake" || s.kind === "letter") && s.x > mark.x - APPROACH - 1 && s.x < mark.x + 15);
+        const near = course.spawns.filter((s) => (s.kind === "hazard" || s.kind === "keepsake" || s.kind === "letter") && s.x > mark.x - APPROACH - 1 && s.x < mark.x + ZONE_AFTER - 1);
         expect(near, `ch${index} ${mark.id}`).toEqual([]);
       }
     }
@@ -237,6 +289,7 @@ describe("runner", () => {
       const s = newLife(11);
       const course = generateCourse(CHAPTERS[index], [], s);
       const { hits, runner } = drive(course, CHAPTERS[index].speed * 1.15);
+      // (runs at the brisk pace; relaxed and standard are slower and easier)
       expect(runner.x, `ch${index} finished`).toBeGreaterThan(course.length - 6);
       expect(hits, `ch${index} hits`).toBe(0);
     }

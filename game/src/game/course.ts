@@ -37,13 +37,13 @@ export interface Course {
 }
 
 export const HAZARD_HALF_LENGTH = 0.55;
-export const START_CLEAR = 26;
-export const END_CLEAR = 22;
+export const START_CLEAR = 18;
+export const END_CLEAR = 16;
 /** Encounters clear the lane this far before and after the person. */
-export const ZONE_BEFORE = 48;
+export const ZONE_BEFORE = 26;
 /** The story takes the wheel this far before the person (always inside the cleared zone). */
-export const APPROACH = 44;
-export const ZONE_AFTER = 16;
+export const APPROACH = 20;
+export const ZONE_AFTER = 12;
 
 const ASSIST_DENSITY: Record<Assist, number> = { relaxed: 0.6, standard: 1, brisk: 1.3 };
 

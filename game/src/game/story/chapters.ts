@@ -32,8 +32,8 @@ export const CHAPTERS: ChapterDef[] = [
     subtitle: "Age 0 to 5 · The cottage on Gull Lane",
     intro:
       "You arrive three weeks early, in the middle of a thunderstorm. Nana Pearl says you have lighthouse lungs. You have not stopped exploring since.",
-    length: 640,
-    speed: 5.4,
+    length: 370,
+    speed: 2.7,
     places: [
       { from: 0, place: "home" },
       { from: 0.64, place: "garden" },
@@ -66,8 +66,8 @@ export const CHAPTERS: ChapterDef[] = [
     subtitle: "Age 6 to 11 · Marigold Bay",
     intro:
       "Marigold Bay has one school, two bakeries and a lighthouse that has not been switched off in ninety years. It is the whole world, and you intend to run all of it.",
-    length: 920,
-    speed: 7,
+    length: 530,
+    speed: 3.5,
     places: [
       { from: 0, place: "harbour" },
       { from: 0.86, place: "cliff" },
@@ -96,8 +96,8 @@ export const CHAPTERS: ChapterDef[] = [
     subtitle: "Age 12 to 17 · The coast road",
     intro:
       "You get a bicycle for your twelfth birthday and immediately understand that the coast road was built for you personally.",
-    length: 1250,
-    speed: 9.6,
+    length: 720,
+    speed: 4.8,
     places: [
       { from: 0, place: "coast" },
       { from: 0.62, place: "cliff" },
@@ -131,8 +131,8 @@ export const CHAPTERS: ChapterDef[] = [
     subtitle: "Age 18 to 24 · The 7:14 to Brightwater",
     intro:
       "The train to Brightwater leaves at 7:14 every morning. For eighteen years you have heard it, and never once been on it.",
-    length: 1150,
-    speed: 8,
+    length: 670,
+    speed: 4.0,
     places: (s) => [
       { from: 0, place: "station" },
       { from: 0.16, place: cityOrHome(s) },
@@ -167,8 +167,8 @@ export const CHAPTERS: ChapterDef[] = [
     subtitle: (s) => (s.path === "shop" ? "Age 25 to 39 · The busy years in the bay" : "Age 25 to 39 · Brightwater downtown"),
     intro:
       "Your thirties arrive like a train that doesn't stop at your station. There is always another meeting, another bill, another thing that matters.",
-    length: 1300,
-    speed: 9,
+    length: 750,
+    speed: 4.5,
     places: (s) => [{ from: 0, place: cityOrHome(s) }],
     sky: "city_noon",
     stages: [{ from: 0, age: "adult", mode: "run" }],
@@ -195,8 +195,8 @@ export const CHAPTERS: ChapterDef[] = [
     ages: [40, 54],
     subtitle: "Age 40 to 54 · Weather",
     intro: "Some years are just weather. You get through them the way you get through rain: head down, with someone, if you're lucky.",
-    length: 1200,
-    speed: 8,
+    length: 700,
+    speed: 4.0,
     places: (s) =>
       s.path === "shop"
         ? [{ from: 0, place: "storm_harbour" }]
@@ -237,8 +237,8 @@ export const CHAPTERS: ChapterDef[] = [
     subtitle: "Age 55 to 69 · The lantern festival",
     intro:
       "Every summer Marigold Bay hangs a thousand lanterns along the harbour. This year you promise yourself you'll see every one of them.",
-    length: 900,
-    speed: 6,
+    length: 520,
+    speed: 3.0,
     places: [{ from: 0, place: "festival" }],
     sky: "sunset",
     stages: [
@@ -258,8 +258,11 @@ export const CHAPTERS: ChapterDef[] = [
     ],
     drift: { health: -5 },
     music: "golden",
-    outro: () => [
+    outro: (s) => [
       "Mom and Dad go in the same year, eight months apart. Dad said he'd keep her waiting. He didn't.",
+      has(s, "moved_home") || has(s, "parents_with_us") || s.path === "shop"
+        ? "You were there for both. It's the thing you're proudest of, and the thing you talk about least."
+        : "Both times you got the call on the 7:14, and both times you made it in time to say the important thing.",
     ],
   },
   {

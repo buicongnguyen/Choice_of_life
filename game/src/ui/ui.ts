@@ -27,6 +27,11 @@ export const ICONS: Record<ScoreKey, string> = {
 const SCORE_NAME: Record<ScoreKey, string> = { health: "Health", happiness: "Happiness", money: "Money" };
 const BOND_NAME: Record<BondKey, string> = { juno: "Juno", family: "Family", sam: "Sam", dex: "Dex", okafor: "Ms Okafor" };
 
+export interface JournalData {
+  people: { name: string; hearts: number; note: string }[];
+  memories: string[];
+}
+
 export interface CreateResult {
   name: string;
   pronoun: Pronoun;
@@ -259,7 +264,7 @@ export class UI {
         { class: `score ${key}`, title: SCORE_NAME[key], "aria-label": SCORE_NAME[key] },
         icon,
         h("span", { class: "value" }, "0"),
-        h("span", { class: "meter", title: "Ten small good things make a point" }, h("i", {})),
+        h("span", { class: "meter", title: "Seven small good things make a point" }, h("i", {})),
         h("span", { class: "sr-only" }, SCORE_NAME[key]),
       );
       this.scoresEl.set(key, el);
@@ -337,6 +342,15 @@ export class UI {
     this.toastsEl.append(t);
     while (this.toastsEl.children.length > 2) this.toastsEl.firstElementChild?.remove();
     setTimeout(() => t.remove(), 3500);
+  }
+
+  /** A friendly first-time tip, bigger and longer than a toast. */
+  hint(text: string) {
+    if (!this.hudEl) return;
+    this.hudEl.querySelector(".hint")?.remove();
+    const el = h("div", { class: "hint", role: "status" }, h("span", { class: "kind" }, "Tip"), text);
+    this.hudEl.append(el);
+    setTimeout(() => el.remove(), 5200);
   }
 
   gust(dir: -1 | 1) {
@@ -421,7 +435,7 @@ export class UI {
   }
 
   // ------------------------------------------------------------------ summaries & modals
-  summary(chapter: ChapterDef, lines: string[], outro: string[], keepsakes: number, deltas: Scores): Promise<void> {
+  summary(chapter: ChapterDef, lines: string[], outro: string[], keepsakes: number, deltas: Scores, status: string[] = []): Promise<void> {
     const chips = (["health", "happiness", "money"] as ScoreKey[]).map((k) =>
       h("span", { class: `fx-chip ${k} ${deltas[k] < 0 ? "down" : ""}` }, `${SCORE_NAME[k]} ${deltas[k] >= 0 ? "+" : ""}${deltas[k]}`),
     );
@@ -437,6 +451,7 @@ export class UI {
           h("div", { class: "row" }, ...chips, h("span", { class: "fx-chip bond" }, `Keepsakes ${keepsakes}/3`)),
           lines.length > 0 && h("ul", {}, ...lines.map((l) => h("li", {}, l))),
           outro.length > 0 && h("div", { class: "outro" }, ...outro.map((o) => h("p", {}, o))),
+          status.length > 0 && h("div", { class: "status" }, h("div", { class: "kicker" }, "How you're doing"), ...status.map((o) => h("p", {}, o))),
           h("div", { class: "actions" }, h("button", { class: "btn", type: "button", "data-qa": "continue-chapter" }, "Continue")),
         ),
       ),
@@ -468,7 +483,7 @@ export class UI {
     });
   }
 
-  pauseMenu(prefs: Prefs, onPrefs: (p: Prefs) => void, canQuit: boolean): Promise<"resume" | "quit"> {
+  pauseMenu(prefs: Prefs, onPrefs: (p: Prefs) => void, canQuit: boolean, journal?: () => JournalData): Promise<"resume" | "quit"> {
     return new Promise((resolve) => {
       const p = { ...prefs };
       const toggle = (label: string, key: "music" | "reducedMotion" | "largeText") => {
@@ -516,6 +531,7 @@ export class UI {
             "div",
             { class: "stack" },
             h("button", { class: "btn teal", type: "button", onclick: () => close("resume") }, canQuit ? "Resume" : "Done"),
+            journal && h("button", { class: "btn ghost", type: "button", "data-qa": "journal", onclick: () => this.journal(journal()) }, "Your life so far"),
             canQuit && h("button", { class: "btn ghost", type: "button", onclick: () => close("quit") }, "Save and return to title"),
           ),
         ),
@@ -523,6 +539,39 @@ export class UI {
       this.root.append(el);
       setTimeout(() => (el.querySelector(".stack button") as HTMLButtonElement | null)?.focus({ preventScroll: true }), 30);
     });
+  }
+
+  /** The people who matter and what this life remembers, from the pause menu. */
+  journal(data: JournalData) {
+    this.root.querySelector(".journal-modal")?.remove();
+    const heart = (n: number) => (n <= 0 ? "·" : "♥".repeat(n));
+    const close = () => {
+      window.removeEventListener("keydown", onKey);
+      el.remove();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "Escape") {
+        e.stopImmediatePropagation();
+        close();
+      }
+    };
+    const el = h(
+      "div",
+      { class: "modal journal-modal fade-in" },
+      h(
+        "div",
+        { class: "panel pop-in journal", role: "dialog", "aria-modal": "true", "aria-label": "Your life so far" },
+        h("h2", {}, "Your life so far"),
+        h("div", { class: "kicker" }, "The people"),
+        h("ul", { class: "people" }, ...data.people.map((p) => h("li", {}, h("b", {}, p.name), h("span", { class: "hearts", "aria-label": `${p.hearts} of 4` }, heart(p.hearts)), h("span", { class: "note" }, p.note)))),
+        h("div", { class: "kicker" }, "What you remember"),
+        h("ul", { class: "memories" }, ...(data.memories.length ? data.memories : ["Nothing yet. It's early."]).map((m) => h("li", {}, m))),
+        h("div", { class: "stack" }, h("button", { class: "btn teal", type: "button", onclick: close }, "Back")),
+      ),
+    );
+    window.addEventListener("keydown", onKey, true);
+    this.root.append(el);
+    setTimeout(() => (el.querySelector(".stack button") as HTMLButtonElement).focus({ preventScroll: true }), 30);
   }
 
   letter(lines: string[]): Promise<void> {

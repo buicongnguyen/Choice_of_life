@@ -2855,7 +2855,7 @@
   "triangles": 4574
  },
  "road_tile": {
-  "bytes": 23136,
+  "bytes": 21608,
   "extras": {
    "height": 0.413,
    "surface": 0,
@@ -2865,7 +2865,6 @@
   "materials": [
    "Asphalt",
    "Asphalt2",
-   "BikeLine",
    "Grass",
    "Kerb",
    "Paint",
@@ -2875,7 +2874,7 @@
   "nodes": [
    "road_tile"
   ],
-  "triangles": 2412
+  "triangles": 2384
  },
  "rock_low": {
   "bytes": 8312,

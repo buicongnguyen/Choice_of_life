@@ -22,16 +22,20 @@ import {
   runnerHit,
   runnerPickup,
   runnerStreak,
+  peopleSoFar,
   startChapter,
+  statusLines,
 } from "./game/story/flow";
 import { resolve, type AgeKey, type ChapterDef, type EncounterDef, type Line, type PersonId } from "./game/story/model";
 import type { LifeState, ScoreKey, Scores } from "./game/types";
 import { findNode, instance, loadManifest, readyAll } from "./render/assets";
 import { CameraDirector } from "./render/camera";
-import { FAVOURITE_COLOURS, HAIR_COLOURS, personSpec, playerSpec, SKIN_TONES, type CharacterSpec } from "./render/cast";
+import { DISPLAY_NAME, FAVOURITE_COLOURS, HAIR_COLOURS, personSpec, playerSpec, SKIN_TONES, type CharacterSpec } from "./render/cast";
 import { Engine } from "./render/engine";
 import { MOODS } from "./render/sky";
 import { Particles, Rain } from "./render/fx";
+import { disposeSprite, nameBubble } from "./render/label";
+import { LaneGlow } from "./render/lane";
 import { createPerson, preloadSpecs, type Person } from "./render/people";
 import { SpawnView } from "./render/spawns";
 import { World } from "./render/world";
@@ -72,6 +76,8 @@ class Game {
   private ui!: UI;
   private particles = new Particles();
   private rain = new Rain();
+  private laneGlow = new LaneGlow();
+  private glowZ = 0;
   private prefs: Prefs = loadPrefs();
   private life: LifeState | null = null;
   private mode: Mode = "title";
@@ -111,6 +117,9 @@ class Game {
   private bikeSeatNode?: THREE.Object3D;
   private titleWorld?: World;
   private alpha = 0;
+  /** "! Name" bubbles over people waiting ahead, by encounter id. */
+  private bubbles = new Map<string, THREE.Sprite>();
+  private hintsSeen = new Set<string>(readHints());
   private scratch = new THREE.Vector3();
 
   constructor(private params: URLSearchParams) {}
@@ -132,7 +141,7 @@ class Game {
     };
     this.ui.onPause = () => void this.pause();
     this.ui.touchHandlers = { up: () => this.lane(-1), down: () => this.lane(1), jump: () => this.jump() };
-    this.engine.scene.add(this.particles.points, this.rain.lines);
+    this.engine.scene.add(this.particles.points, this.rain.lines, this.laneGlow.mesh);
     this.engine.onLightning = () => audio.thunder();
     this.applyPrefs(this.prefs);
     this.bindInput(canvas);
@@ -148,6 +157,8 @@ class Game {
       this.life.dream = "maker";
       this.life.spark = "maker";
       this.life.path = (this.params.get("path") as LifeState["path"]) ?? "uni";
+      const mood = this.params.get("happiness");
+      if (mood !== null) this.life.scores.happiness = Number(mood);
       this.ui.loading(null);
       this.qa.ready = true;
       await this.playFrom(Number(start), false);
@@ -190,6 +201,18 @@ class Game {
     });
   }
 
+  /** A first-time tip, shown once per browser. */
+  private hintOnce(id: string, text: string) {
+    if (this.hintsSeen.has(id) || this.qa?.autopilot) return;
+    this.hintsSeen.add(id);
+    writeHints(this.hintsSeen);
+    this.ui.hint(text);
+  }
+
+  private get touch() {
+    return document.body.classList.contains("touch");
+  }
+
   private lane(step: -1 | 1) {
     audio.unlock();
     this.input.laneStep = step;
@@ -215,7 +238,10 @@ class Game {
   private async pause() {
     if (this.mode !== "run" || this.paused || this.cutscene) return;
     this.paused = true;
-    const choice = await this.ui.pauseMenu(this.prefs, (p) => this.applyPrefs(p), true);
+    const choice = await this.ui.pauseMenu(this.prefs, (p) => this.applyPrefs(p), true, () => ({
+      people: peopleSoFar(this.life!),
+      memories: this.life!.memories.filter((m) => m.kind !== "recovery").slice(-8).map((m) => m.text),
+    }));
     this.paused = false;
     this.input = {};
     this.clock.getDelta();
@@ -280,6 +306,8 @@ class Game {
         p.root.rotation.y = THREE.MathUtils.lerp(p.root.rotation.y, target, 0.25);
       }
       this.focus.set(rx, 0, rz);
+      this.glowZ += (LANE_Z[r.lane] - this.glowZ) * Math.min(1, dt * 14);
+      this.laneGlow.update(rx, this.glowZ, 0.06, this.mode === "run" && !this.cutscene, 0.34, this.world?.laneGlowAt(rx));
       this.followCompanions(dt);
       if (this.world) {
         this.world.update(this.engine.camera.position.x, t);
@@ -471,6 +499,7 @@ class Game {
     }
     this.mode = "run";
     this.clock.getDelta();
+    if (index === 1) this.hintOnce("lanes", this.touch ? "Swipe up or down to change lane. There are three." : "Press ↑ or ↓ (or W and S) to change lane. There are three.");
     // Entry drift can itself empty a score.
     void this.checkRecovery();
     await this.waitForChapterEnd();
@@ -540,6 +569,9 @@ class Game {
 
   private teardownChapter() {
     this.chapterToken++;
+    for (const b of this.bubbles.values()) disposeSprite(b);
+    this.bubbles.clear();
+    this.laneGlow.mesh.visible = false;
     this.walkers = [];
     this.cutscene = false;
     this.bikeParts = [];
@@ -641,6 +673,7 @@ class Game {
     if (stage.age !== this.playerAge && this.mode === "run" && !this.swapping) {
       void this.setPlayerStage(stage.age, true).then(() => this.ui.toast("Growing up", `Age ${ageAt(chapter, progress)}`, "keepsake"));
     }
+    if (this.mode === "run") this.proximityHints(r);
     const active = activeEncounters(life, chapter.index);
     for (const mark of this.course!.encounters) {
       if (this.staged.has(mark.id) || r.x < mark.x - 75) continue;
@@ -662,6 +695,17 @@ class Game {
     this.ui.setCompanions(companions);
   }
 
+  private proximityHints(r: Runner) {
+    const ahead = (kind: string, within: number) => this.course!.spawns.find((sp) => sp.kind === kind && sp.x > r.x && sp.x < r.x + within && !r.isCollected(sp.id));
+    if (!this.hintsSeen.has("hazard") && ahead("hazard", 14)) {
+      this.hintOnce("hazard", this.touch ? "A red patch means trouble. Swipe to another lane, or tap to jump over low things." : "A red patch means trouble. Change lane, or press Space to jump over low things.");
+    } else if (!this.hintsSeen.has("person") && this.course!.encounters.some((m) => m.x > r.x && m.x < r.x + 17 && this.bubbles.has(m.id))) {
+      this.hintOnce("person", "Someone's waiting ahead. You'll stop to talk, and there's no timer when you choose.");
+    } else if (!this.hintsSeen.has("keepsake") && ahead("keepsake", 18)) {
+      this.hintOnce("keepsake", "A glowing keepsake! Get in its lane and jump to reach it.");
+    }
+  }
+
   private onRunnerEvent(ev: RunnerEvent) {
     const life = this.life!;
     const r = this.runner!;
@@ -677,6 +721,7 @@ class Game {
         }
         this.ui.setScores(life.scores, life.meters);
         this.qa?.events.push(`pickup:${score}`);
+        this.hintOnce("pickup", "Hearts are Health, stars are Happiness, coins are Money. Seven of a kind make a point.");
         break;
       }
       case "streak": {
@@ -738,6 +783,7 @@ class Game {
         break;
       case "gust-warning":
         this.ui.gust(ev.dir);
+        this.hintOnce("wind", "The wind will shove you into the next lane. Steer back!");
         audio.whoosh();
         break;
       case "gust":
@@ -804,7 +850,16 @@ class Game {
       this.engine.scene.add(p.root);
       people.push(p);
     };
-    if (speaker) await place(speaker, new THREE.Vector3(x, 0, 0), -Math.PI / 2 + 0.55);
+    if (speaker) {
+      await place(speaker, new THREE.Vector3(x, 0, 0), -Math.PI / 2 + 0.55);
+      const who = people[0];
+      if (who && token === this.chapterToken && !life.resolved.includes(enc.id)) {
+        const bubble = nameBubble(speaker === "you" ? life.name : DISPLAY_NAME[speaker]);
+        bubble.position.set(x, who.height * (who.spec.scale ?? 1) + 0.85, 0);
+        this.engine.scene.add(bubble);
+        this.bubbles.set(enc.id, bubble);
+      }
+    }
     for (let i = 0; i < cast.length; i++) await place(cast[i], new THREE.Vector3(x + 1.3 + i * 0.5, 0, i % 2 === 0 ? -1.5 : 1.5), -Math.PI / 2 + 0.4);
     this.npcs.set(enc.id, people);
   }
@@ -823,6 +878,9 @@ class Game {
     const life = this.life!;
     this.mode = "story";
     this.pendingEncounter = undefined;
+    const bubble = this.bubbles.get(enc.id);
+    if (bubble) disposeSprite(bubble);
+    this.bubbles.delete(enc.id);
     audio.duck(true);
     const speakerId = resolve(enc.speaker, life);
     const speakerPerson = speakerId ? this.personFor(enc, speakerId) : undefined;
@@ -939,7 +997,7 @@ class Game {
       money: life.scores.money - this.chapterStartScores.money,
     };
     audio.stinger("end");
-    await this.ui.summary(chapter, lines, outro, keepsakes, deltas);
+    await this.ui.summary(chapter, lines, outro, keepsakes, deltas, statusLines(life));
     life.chapter = advance(life);
     life.resolved = [];
     life.progress = undefined;
@@ -1112,5 +1170,23 @@ class Game {
     const free = ([0, 1, 2] as Lane[]).filter((l) => !any.has(l)).sort((a, b) => Math.abs(a - r.lane) - Math.abs(b - r.lane));
     if (free.length) return { laneStep: free[0] < r.lane ? -1 : 1 };
     return lowHere && !r.airborne ? { jump: true } : {};
+  }
+}
+
+const HINTS_KEY = "choice-of-life-2:hints";
+
+function readHints(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(HINTS_KEY) ?? "[]") as string[];
+  } catch {
+    return [];
+  }
+}
+
+function writeHints(seen: Set<string>) {
+  try {
+    localStorage.setItem(HINTS_KEY, JSON.stringify([...seen]));
+  } catch {
+    /* storage unavailable */
   }
 }

@@ -1,0 +1,20 @@
+// Captures the 2.1 UI: a first-time hint, a name bubble ahead, the journal, and a chapter summary.
+import { chromium } from "playwright";
+const out = process.argv[2];
+const base = process.env.GAME_URL ?? "http://localhost:4412/";
+const browser = await chromium.launch({ args: ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=d3d11"] });
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+page.on("pageerror", (e) => console.log("pageerror", e.message));
+await page.goto(`${base}?qa=1&start=2&speed=1`);
+await page.evaluate(() => localStorage.removeItem("choice-of-life-2:hints"));
+await page.waitForSelector("[data-qa=chapter-card]", { timeout: 60000 });
+await page.click("[data-qa=chapter-card] button");
+await page.waitForFunction(() => window.__COL__.x() > 58, null, { timeout: 90000 });
+await page.waitForTimeout(300);
+await page.screenshot({ path: `${out}/u1-hint-bubble.png` });
+await page.keyboard.press("Escape");
+await page.waitForSelector("[data-qa=journal]");
+await page.click("[data-qa=journal]");
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${out}/u2-journal.png` });
+await browser.close();

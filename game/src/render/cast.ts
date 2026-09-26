@@ -115,6 +115,7 @@ export function personSpec(id: PersonId, s: LifeState, chapter: number): Charact
       if (chapter >= 8) return { body: "body_teen_hoodie", hair: "pigtails", colours: { Skin: "#8a522c", Hair: "#2b1a14", Top: "#5cc639", Bottom: "#23407a", Accent: "#ffd84a", Shoes: "#fffaf0" } };
       return { body: "body_child_tee", hair: "pigtails", colours: { Skin: "#8a522c", Hair: "#2b1a14", Top: "#5cc639", Bottom: "#23407a", Accent: "#ffd84a", Shoes: "#ff6b4a" } };
     case "mika":
+      if (chapter === 6) return { body: "body_teen_hoodie", hair: s.look.hairStyle, colours: { Skin: relative(skin, 1), Hair: hair, Top: "#ff8a1f", Bottom: "#23407a", Accent: "#ffd84a", Shoes: "#fffaf0" } };
       if (chapter >= 7) return { body: "body_adult_jacket", hair: s.look.hairStyle, colours: { Skin: relative(skin, 1), Hair: hair, Top: "#fffaf0", Accent: "#ff8a1f", Bottom: "#23407a", Shoes: "#fffaf0" } };
       return { body: "body_child_tee", hair: s.look.hairStyle, colours: { Skin: relative(skin, 1), Hair: hair, Top: "#ff8a1f", Bottom: "#23407a", Shoes: "#fffaf0" } };
     case "pip":

@@ -275,6 +275,29 @@ const UNDER: Record<PlaceId, string> = {
   storm_city: "#8a8699",
 };
 
+/** Lane guide paint per place (surface height y; the coast road has its own markings). */
+interface LaneLook {
+  colour: string;
+  opacity: number;
+  y: number;
+  /** Colour of the "you are here" strip down your lane. */
+  glow: string;
+}
+
+const LANE_GUIDES: Partial<Record<PlaceId, LaneLook>> = {
+  home: { colour: "#fffaf0", opacity: 0.9, y: 0.035, glow: "#ff8a4c" },
+  garden: { colour: "#ffffff", opacity: 0.85, y: 0.05, glow: "#fff1a8" },
+  harbour: { colour: "#ffffff", opacity: 0.9, y: 0.05, glow: "#ff8a4c" },
+  festival: { colour: "#fff3c4", opacity: 0.9, y: 0.05, glow: "#ff8a4c" },
+  storm_harbour: { colour: "#eef6ff", opacity: 0.8, y: 0.05, glow: "#ffe8a8" },
+  cliff: { colour: "#fff3d6", opacity: 0.85, y: 0.05, glow: "#fff1a8" },
+  dusk_cliff: { colour: "#fff3d6", opacity: 0.75, y: 0.05, glow: "#ffe8a8" },
+  station: { colour: "#ffffff", opacity: 0.9, y: 0.035, glow: "#ff8a4c" },
+  city: { colour: "#ffffff", opacity: 0.9, y: 0.035, glow: "#ff6b4a" },
+  storm_city: { colour: "#eef6ff", opacity: 0.8, y: 0.035, glow: "#ffe8a8" },
+};
+const ROAD_GLOW = "#ffe8a8";
+
 export function placeStyle(place: PlaceId): PlaceStyle {
   return PLACES[place];
 }
@@ -509,6 +532,7 @@ export class World {
         mesh.receiveShadow = true;
         this.base.add(mesh);
       }
+      this.buildLaneGuides(seg.place, x0, x1);
       if (seg.place === "home") {
         // A warm backdrop above the cutaway wall, like the back of a dolls' house stage.
         const g = new THREE.PlaneGeometry(x1 - x0, 18, 1, 8);
@@ -558,6 +582,83 @@ export class World {
         }
       }
     });
+  }
+
+  /**
+   * Three clear lanes on every ground: dashed dividers between the lanes and faint edge lines,
+   * tinted to suit the surface. The coast road paints its own (it is a real road).
+   */
+  private buildLaneGuides(place: PlaceId, x0: number, x1: number) {
+    const look = LANE_GUIDES[place];
+    if (!look) return;
+    const material = new THREE.MeshBasicMaterial({
+      color: look.colour,
+      transparent: true,
+      opacity: look.opacity,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    });
+    // A soft dark underline beneath each dash keeps it readable on pale floors and pavements.
+    const shadowMaterial = new THREE.MeshBasicMaterial({
+      color: "#2a1f3d",
+      transparent: true,
+      opacity: 0.2,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
+    });
+    const shape = new THREE.Shape();
+    const w = 1.3;
+    const h = 0.14;
+    shape.moveTo(-w / 2 + h / 2, -h / 2);
+    shape.lineTo(w / 2 - h / 2, -h / 2);
+    shape.absarc(w / 2 - h / 2, 0, h / 2, -Math.PI / 2, Math.PI / 2, false);
+    shape.lineTo(-w / 2 + h / 2, h / 2);
+    shape.absarc(-w / 2 + h / 2, 0, h / 2, Math.PI / 2, (3 * Math.PI) / 2, false);
+    const dash = new THREE.ShapeGeometry(shape, 4);
+    dash.rotateX(-Math.PI / 2);
+    const step = 2.4;
+    const count = Math.ceil((x1 - x0) / step) * 2;
+    const dashes = new THREE.InstancedMesh(dash, material, count);
+    const m = new THREE.Matrix4();
+    let i = 0;
+    for (let x = x0 + step / 2; x < x1 && i < count; x += step) {
+      for (const z of [-0.95, 0.95]) dashes.setMatrixAt(i++, m.makeTranslation(x, look.y, z));
+    }
+    dashes.count = i;
+    dashes.frustumCulled = false;
+    dashes.renderOrder = 1;
+    const shadows = new THREE.InstancedMesh(dash, shadowMaterial, count);
+    const grow = new THREE.Matrix4();
+    for (let k = 0; k < i; k++) {
+      dashes.getMatrixAt(k, m);
+      shadows.setMatrixAt(k, grow.makeScale(1.12, 1, 1.9).premultiply(m));
+    }
+    shadows.count = i;
+    shadows.frustumCulled = false;
+    shadows.renderOrder = 0;
+    this.base.add(shadows, dashes);
+    const edge = new THREE.PlaneGeometry(x1 - x0, 0.07);
+    edge.rotateX(-Math.PI / 2);
+    const edgeMaterial = material.clone();
+    edgeMaterial.opacity = look.opacity * 0.6;
+    for (const z of [-2.85, 2.85]) {
+      const line = new THREE.Mesh(edge, edgeMaterial);
+      line.position.set((x0 + x1) / 2, look.y, z);
+      line.renderOrder = 1;
+      this.base.add(line);
+    }
+  }
+
+  /** The lane-highlight colour for the place at x. */
+  laneGlowAt(x: number): string {
+    const segments = resolve(this.chapter.places, this.life);
+    let place = segments[0].place;
+    for (const seg of segments) if (x >= seg.from * this.chapter.length) place = seg.place;
+    return LANE_GUIDES[place]?.glow ?? ROAD_GLOW;
   }
 
   /** Where the sea should sit for the place at x (for the Engine's sea). */

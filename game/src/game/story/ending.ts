@@ -50,7 +50,11 @@ export function finale(s: LifeState): Finale {
     n("The lighthouse stands dark behind a construction fence. The demolition has been postponed four times. It is still here. So are you.");
   }
   if (has(s, "partner")) say("sam", tinCarried ? "Go on. I'll carry the tin. I always carry something." : "Go on. I'll carry the spade. I always carry the spade.");
-  if (has(s, "kids")) n("Mika has brought Pip, who is seven and wants to know if there is treasure.");
+  if (has(s, "kids")) {
+    n("Mika has brought Pip, who is seven and wants to know if there is treasure.");
+    if (has(s, "mika_supported")) say("mika", s.path === "shop" ? "You told me to go. So I went. And I came back." : "Still fixing boats. Grandad would have been unbearable about it.");
+    else if (has(s, "mika_pushed")) say("mika", "I nearly didn't come. Then I remembered you always come.");
+  }
   if (company.includes("lina"))
     n(has(s, "lina_kite") ? "Lina is here too, grown up now, with a crooked kite under her arm." : "Lina is here too, grown up now. She still does the thing you taught her, without noticing.");
   if (company.includes("dex")) n("Dex has brought grilled fish, because of course he has.");

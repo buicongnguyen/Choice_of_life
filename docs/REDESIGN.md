@@ -129,7 +129,7 @@ keepsakes found (3 hidden per chapter).
   left third of the screen; time flows right to left, as in the original concept.
 - **Lanes:** three depth lanes (near, middle, far). Up/Down or W/S or swipe to
   change lane; Space, tap or swipe up to jump (hop on the bike).
-- **Pickups:** heart (Health), star (Happiness), green coin (Money); every ten of
+- **Pickups:** heart (Health), star (Happiness), green coin (Money); every seven of
   a kind make a point, and every 20 in a row lift your lowest score. **Keepsakes**
   (3 per chapter) float over low hazards (jump for them) and lift your lowest
   score. **Letters** appear if you promised to write, until Juno moves in.
@@ -189,3 +189,24 @@ keepsakes found (3 hidden per chapter).
   script plays the whole life on several routes and captures each chapter.
 - **Deploy:** push to `main` runs typecheck, tests and build, then publishes
   to GitHub Pages.
+
+## 7. Version 2.1 — evaluation and changes (2026-09-26)
+
+Requested by the owner: a slower, easier run; three lanes that read clearly;
+positive items that are unmistakable.
+
+| Area | Finding | Change |
+|---|---|---|
+| Pace | Runs were 5.4–9.6 m/s; lanes came at the player too fast to read. | All chapter speeds halved (2.7–4.8 m/s). Chapters shortened by about 40% so each still lasts about 2.5 minutes, and the cleared walk-up to each person shortened to match. |
+| Lanes | Only the coast road showed lanes, and its paint didn't match them (one yellow bike line, dashes on one side). Elsewhere lanes were invisible. | Every ground has two dashed dividers and edge lines at the true lane borders. The coast road is repainted as three equal lanes. A soft strip in a colour suited to each place shows the lane you're in. Wide hazards are scaled to fit inside one lane. |
+| Good vs bad | Pickups were small and plain against busy floors. | Pickups are 30% larger, glow in their score's colour, sit on a matching coloured ring on the ground, and pulse. Hazards sit on a faint red patch. |
+| Onboarding | Nothing told a new player what anything meant. | One-time tips: lanes, the first hazard, pickups, someone waiting, keepsakes, wind. People waiting ahead carry a "! Name" bubble. |
+| Scores | Scores changed the ending but almost never the choices. | Seven options now need a score (e.g. the campaign needs Health 25; flying to Juno's wedding needs Money 12). Every scene always keeps at least one open option (tested at 0 and 100). |
+| Low points | A player who was struggling saw nothing different. | "Someone Notices" (chapters 4 and 5): if a chapter starts with Happiness under 42, the person closest to you (Sam, Juno, Mom or Dad) asks how you really are. |
+| Family | Choosing a family (Mika) had no scene of its own. | "Mika's Crossroads" (chapter 6): Mika wants the road you didn't take; what you say comes back at the lighthouse. |
+| Grief | Mom and Dad's deaths ignored whether you'd been there. | The chapter 7 outro now reflects whether you moved home or lived nearby. |
+| Feedback | Summaries showed numbers only. | Chapter summaries add "How you're doing" lines for very low or high scores. The pause menu has "Your life so far": the people (with hearts) and recent memories. |
+
+Balance at the new pace (balance.probe.ts, 40 lives each, seven pickups per
+point): skilled runner Health 63, Happiness 76, Money 54; casual 47/62/36;
+idle 25/37/30. Nobody pins at 0 or 100, and eleven different life titles appear.

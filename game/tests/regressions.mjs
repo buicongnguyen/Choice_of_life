@@ -29,7 +29,7 @@ const check = (ok, message) => {
   await page.keyboard.press("Escape");
   await page.waitForSelector(".pause-modal");
   const before = await page.evaluate(() => ({ ...window.__COL__.life().stats, x: window.__COL__.x(), scores: { ...window.__COL__.life().scores } }));
-  await page.click(".pause-modal .btn.ghost");
+  await page.click(".pause-modal button:has-text(\"Save and return to title\")");
   await page.waitForSelector("[data-qa=continue]", { timeout: 60000 });
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("choice-of-life-2:life")));
   check(saved.progress?.chapter === 2 && Math.abs(saved.progress.x - before.x) < 1, `save records the runner position (${saved.progress?.x?.toFixed(1)} vs ${before.x.toFixed(1)})`);

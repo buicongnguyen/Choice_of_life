@@ -68,6 +68,37 @@ export function choose(s: LifeState, encounter: EncounterDef, optionId: string):
   return { delta, lines, star: view.star };
 }
 
+/** One honest line per score that's very low or very high, for the chapter summary. */
+export function statusLines(s: LifeState): string[] {
+  const lines: string[] = [];
+  const { health, happiness, money } = s.scores;
+  if (health < 30) lines.push("Your body is keeping score. Look after it next chapter.");
+  else if (health > 78) lines.push("You feel strong. Stairs are nothing.");
+  if (happiness < 30) lines.push("The days have been grey. Someone will notice, if you let them.");
+  else if (happiness > 80) lines.push("You catch yourself humming.");
+  if (money < 20) lines.push("Money is tight. Some choices will cost more than you can pay.");
+  else if (money > 80) lines.push("For once, the bills aren't the worry.");
+  return lines;
+}
+
+/** How things stand with the people who matter, for the journal. */
+export function peopleSoFar(s: LifeState): { name: string; hearts: number; note: string }[] {
+  const hearts = (b: number) => (b <= 0 ? 0 : b <= 3 ? 1 : b <= 7 ? 2 : b <= 11 ? 3 : 4);
+  const out: { name: string; hearts: number; note: string }[] = [];
+  out.push({ name: "Mom and Dad", hearts: Math.max(1, hearts(s.bonds.family)), note: s.chapter >= 8 ? "Gone, and not gone." : has(s, "moved_home") ? "You came home for them." : "Always at the end of the phone." });
+  if (s.chapter >= 2) out.push({ name: "Nana Pearl", hearts: 3, note: has(s, "nana_gone") ? "Her light went out. Her letter is in the tin." : "Keeper of the light." });
+  if (s.chapter >= 2 && s.resolved.concat(s.choices.map((c) => c.encounter)).includes("new-kid")) {
+    out.push({ name: "Juno", hearts: hearts(s.bonds.juno), note: s.bonds.juno >= 9 ? "Your oldest friend. The promise holds." : s.bonds.juno >= 5 ? "Further away than you'd like." : "You've drifted. It isn't too late." });
+  }
+  if (has(s, "biscuit")) out.push({ name: "Biscuit", hearts: 3, note: s.chapter >= 5 ? "One ear up, one ear down. Always." : "Fetches everything." });
+  if (s.chapter >= 3 && s.choices.some((c) => c.encounter === "the-answers")) {
+    out.push({ name: "Dex", hearts: hearts(s.bonds.dex), note: has(s, "forgave_dex") ? "Forgiven." : s.bonds.dex < 0 ? "Some roads don't cross back." : "Still selling something." });
+  }
+  if (has(s, "mentor")) out.push({ name: "Ms Okafor", hearts: Math.max(1, hearts(s.bonds.okafor)), note: "Saw you bend the straight lines." });
+  if (s.chapter >= 4 && has(s, "met_sam")) out.push({ name: "Sam", hearts: has(s, "sam_left") ? 0 : Math.max(1, hearts(s.bonds.sam)), note: has(s, "partner") ? (has(s, "kids") ? "Your partner, and Mika's other parent." : "Your partner.") : "The one under the small umbrella." });
+  return out;
+}
+
 export function nextEncounter(s: LifeState): EncounterDef | undefined {
   return activeEncounters(s).find((e) => !s.resolved.includes(e.id));
 }
@@ -203,8 +234,8 @@ export function lettersActive(s: LifeState): boolean {
   return has(s, "letters") && !has(s, "juno_sofa");
 }
 
-/** Small good things add up: every tenth pickup of a kind is worth one point. */
-export const PICKUPS_PER_POINT = 10;
+/** Small good things add up: every seventh pickup of a kind is worth one point. */
+export const PICKUPS_PER_POINT = 7;
 export const HAZARD_COST = 2;
 
 export function runnerPickup(s: LifeState, score: ScoreKey): { delta: Record<ScoreKey, number>; meter: number } {

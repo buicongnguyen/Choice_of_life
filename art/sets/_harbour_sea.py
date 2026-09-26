@@ -16,11 +16,10 @@ from _harbour_lib import FRONT, GLOSS, MATTE, SATIN, box, cyl, ball, rod
 
 # ============================================================================ coast tiles
 def road_tile(k):
-    """Coast road: violet asphalt, marigold bike-lane stripe, white dashes, back kerb, sandy verge."""
+    """Coast road: violet asphalt marked as three equal lanes, back kerb, sandy verge."""
     asphalt = k.mat('Asphalt', '#4a4466', MATTE)
     patch = k.mat('Asphalt2', '#57507a', MATTE)
     paint = k.mat('Paint', 'white', SATIN)
-    stripe = k.mat('BikeLine', 'marigold', SATIN)
     kerb = k.mat('Kerb', '#fff4e2', SATIN)
     sand = k.mat('Sand', 'sand', MATTE)
     grass = k.mat('Grass', 'grass', SATIN)
@@ -30,20 +29,15 @@ def road_tile(k):
     for x, y, w, d in ((-2.2, 1.6, 1.6, .9), (2.4, -.4, 1.1, .7), (.6, 2.3, .9, .5)):
         parts.append(k.prism('Patch', L.rounded([(-w / 2, -d / 2), (w / 2, -d / 2), (w / 2, d / 2), (-w / 2, d / 2)], .2, 2),
                              .01, patch, loc=(x, y, .002), axis='Y', bevel=0, rot=(math.pi / 2, 0, 0)))
-    parts.append(box(k, 'EdgeLine', (0, -2.78, .005), (8, .14, .012), paint, 0))
-    parts.append(box(k, 'BikeLine', (0, -.95, .005), (8, .16, .012), stripe, 0))
-    for x in (-2, 2):
-        parts.append(box(k, 'Dash', (x, .95, .005), (2.0, .13, .012), paint, 0))
-    for x in (-3, -1, 1, 3):
-        parts.append(box(k, 'Stud', (x, -.95, .02), (.12, .08, .04), paint, .015, 1))
-    # Bike pictogram painted in the front lane.
-    bx, by = -1.2, -1.9
-    for s in (-1, 1):
-        parts.append(k.torus('PictoWheel', (bx + s * .38, by, .008), .24, .035, paint, major_seg=14, minor_seg=3))
-        parts[-1].scale = (1, 1, .25)
-    for a, b in (((-.38, 0), (-.05, .02)), ((-.05, .02), (.2, .22)), ((-.2, .25), (.25, .25)), ((.2, .22), (.38, 0)),
-                 ((-.05, .02), (-.16, .24))):
-        parts.append(rod(k, 'PictoBar', (bx + a[0], by + a[1] * .9, .01), (bx + b[0], by + b[1] * .9, .01), .03, paint, 4))
+    # Three equal game lanes (centres at Y = -1.9, 0, +1.9): white edge lines at +-2.78 and
+    # matching dashed dividers with road studs at +-0.95.
+    for y in (-2.78, 2.78):
+        parts.append(box(k, 'EdgeLine', (0, y, .005), (8, .14, .012), paint, 0))
+    for y in (-.95, .95):
+        for x in (-2, 2):
+            parts.append(box(k, 'Dash', (x, y, .005), (2.0, .13, .012), paint, 0))
+        for x in (-3, -1, 1, 3):
+            parts.append(box(k, 'Stud', (x, y, .02), (.12, .08, .04), paint, .015, 1))
     # Back kerb and grass verge (the guardrail stands here).
     for i in range(8):
         parts.append(box(k, 'Kerb', (-3.5 + i, 3.08, .05), (.985, .3, .3), kerb, .05, 2))

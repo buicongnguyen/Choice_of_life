@@ -540,6 +540,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "both",
         label: "Both: work at her bedside",
         detail: "Sleep is for later.",
+        lock: (s) => (s.scores.health >= 35 ? null : "Needs Health 35. You're too run-down to do both."),
         effects: { health: -4, money: 4, happiness: 1, flags: ["finals_bedside"], memory: "You finished your finals project at Nana's bedside." },
         result: [
           nar("You finish your project at the foot of her bed. She reads over your shoulder and fixes one thing."),
@@ -619,6 +620,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "travel",
         label: "A year on the road",
         detail: "One backpack. No plan.",
+        lock: (s) => (s.scores.money >= 10 ? null : "Needs Money 10 for the first ticket."),
         star: ["explorer", "storyteller"],
         effects: { happiness: 4, money: -6, health: 2, path: "travel", flags: ["traveled"], memory: "A year on the road with one backpack." },
         result: [
@@ -862,6 +864,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "invest",
         label: "Invest your savings",
         detail: "He's very convincing.",
+        lock: (s) => (s.scores.money >= 15 ? null : "Needs Money 15. There are no savings to invest."),
         hint: "Nothing grows without risk. Some things don't grow at all.",
         because: (s) => (has(s, "shortcut") ? "You looked at his answers once" : ""),
         effects: { money: -10, bonds: { dex: 2 }, flags: ["dex_invest"], memory: "You invested your savings in LifeHack." },
@@ -972,6 +975,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "toast",
         label: "Fly out and give the toast",
         detail: "You'll write it on the plane.",
+        lock: (s) => (has(s, "juno_plan") || s.scores.money >= 12 ? null : "Needs Money 12 for the flight."),
         because: (s) => (has(s, "juno_plan") ? "Juno's company is flying everyone out" : ""),
         effects: (s) => ({
           happiness: 2,
@@ -1105,6 +1109,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "carer",
         label: "Hire a carer and visit every weekend",
         detail: "It costs what it costs.",
+        lock: (s) => (s.scores.money >= 15 ? null : "Needs Money 15. Carers cost what they cost."),
         effects: { money: -10, health: -2, bonds: { family: 1 }, memory: "Bea, the carer Mom loved more than you." },
         result: [nar("Her name is Bea, and Mom loves her more than you. Which is fine. Mostly.")],
       },
@@ -1227,6 +1232,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "campaign",
         label: "Lead the campaign to save it",
         detail: "Petitions, bake sales, one very loud meeting.",
+        lock: (s) => (s.scores.health >= 25 ? null : "Needs Health 25. You haven't the strength for a campaign."),
         effects: { happiness: 4, money: -6, health: -3, flags: ["saved_light"], memory: "You led the campaign that saved the lighthouse." },
         result: [nar("Four hundred people turn up to the council meeting. Mr Ferris's daughter brings a jar of his famous pickled onions. The vote is overturned.")],
       },
@@ -1336,6 +1342,7 @@ export const ENCOUNTERS: EncounterDef[] = [
       {
         id: "travel",
         label: "Retire, and finally travel",
+        lock: (s) => (s.scores.health >= 30 && s.scores.money >= 12 ? null : "Needs Health 30 and Money 12."),
         detail: (s) => (s.dream === "explorer" ? "The red X on the map." : "All the places you said “one day” about."),
         star: ["explorer"],
         effects: { happiness: 4, money: -6, health: 1, flags: ["retired_travel"], memory: "You finally went to the places on the map." },
@@ -1493,7 +1500,111 @@ export const ENCOUNTERS: EncounterDef[] = [
       },
     ],
   },
+  // ======================================================================= check-ins and Mika
+  ...[4, 5].map(
+    (chapter): EncounterDef => ({
+      id: `someone-notices-${chapter}`,
+      chapter,
+      at: chapter === 4 ? 0.42 : 0.47,
+      kind: "choice",
+      title: "Someone Notices",
+      // Decided when the chapter begins, so the course stays the same all chapter.
+      when: (s) => (s.chapterStart?.happiness ?? s.scores.happiness) < 42,
+      speaker: (s) => noticer(s, chapter),
+      lines: (s) => {
+        const who = noticer(s, chapter);
+        return [
+          nar("You've been fine. You tell everyone you've been fine."),
+          who === "juno"
+            ? say("juno", "You haven't laughed properly in months. I've been counting.")
+            : who === "sam"
+              ? say("sam", "You've gone quiet. Not peaceful quiet. The other kind.")
+              : who === "mom"
+                ? say("mom", "You sound tired on the phone. Not sleepy-tired. The other kind.")
+                : say("dad", "Come fishing. You don't have to talk. The fish won't either."),
+        ];
+      },
+      prompt: "What do you say?",
+      options: [
+        {
+          id: "truth",
+          label: "Tell them the truth",
+          detail: "All of it. Even the stupid parts.",
+          effects: (s) => ({ happiness: 6, bonds: bondFor(noticer(s, chapter), 1), flags: ["told_truth"], memory: "The day you stopped saying you were fine." }),
+          result: [nar("It comes out in a rush. They don't fix anything. They listen, which turns out to be better.")],
+        },
+        {
+          id: "out",
+          label: "Let them take you out",
+          detail: "Chips on the harbour wall.",
+          effects: { happiness: 4, health: 1, money: -2 },
+          result: [nar("Terrible jokes, cold chips, the sea doing its thing. You laugh properly for the first time in months.")],
+        },
+        {
+          id: "fine",
+          label: "“I'm fine, honestly.”",
+          detail: "You nearly believe it.",
+          effects: { health: -1 },
+          result: [nar("They let it go. They don't believe you. They'll ask again.")],
+        },
+      ],
+    }),
+  ),
+  {
+    id: "mikas-crossroads",
+    chapter: 6,
+    at: 0.77,
+    kind: "choice",
+    title: "Mika's Crossroads",
+    speaker: "mika",
+    when: (s) => has(s, "kids"),
+    lines: (s) => [
+      nar("Mika is seventeen, and has the look you had on platform one."),
+      mikaLeaves(s)
+        ? say("mika", "I got a place in Brightwater. I'd be on the 7:14. I know it's far.")
+        : say("mika", "I don't want to go away. I want to stay and fix boats with Grandad. Is that stupid?"),
+    ],
+    prompt: "What do you tell Mika?",
+    options: [
+      {
+        id: "support",
+        label: (s) => (mikaLeaves(s) ? "“Go. Home will still be here.”" : "“It's not stupid. It's where you come from.”"),
+        detail: "What someone once told you.",
+        effects: { happiness: 3, bonds: { family: 2 }, flags: ["mika_supported"], memory: "You told Mika to follow their own road." },
+        result: [nar("Mika hugs you, fast and hard, the way you hugged your mom on the platform.")],
+      },
+      {
+        id: "wait",
+        label: "“Wait a year. Be sure.”",
+        detail: "Careful is a kind of love too.",
+        effects: { health: 1, flags: ["mika_waited"], memory: "You asked Mika to wait a year." },
+        result: [nar("Mika waits a year, then goes their own way anyway. You're glad you asked. You're glad they didn't listen.")],
+      },
+      {
+        id: "push",
+        label: (s) => (mikaLeaves(s) ? "“I need you here.”" : "“You could do so much more.”"),
+        detail: "You mean it kindly.",
+        effects: { happiness: -2, bonds: { family: -2 }, flags: ["mika_pushed"], memory: "You told Mika what to do with their life." },
+        result: [nar("Mika does what you asked. It takes them ten years to forgive you, and they do, on a Tuesday, over the phone.")],
+      },
+    ],
+  },
 ];
+
+/** Who notices when you're struggling: whoever is closest at the time. */
+function noticer(s: LifeState, chapter: number): PersonId {
+  if (chapter >= 5 && has(s, "partner")) return "sam";
+  if (bond(s, "juno") >= (chapter === 4 ? 4 : 5)) return "juno";
+  return chapter === 4 ? "mom" : "dad";
+}
+
+function bondFor(who: PersonId, amount: number) {
+  return who === "juno" ? { juno: amount } : who === "sam" ? { sam: amount } : { family: amount };
+}
+
+/** Mika wants the road you didn't take. */
+const mikaLeaves = (s: LifeState) => s.path === "shop";
+
 
 export function encountersFor(chapter: number): EncounterDef[] {
   return ENCOUNTERS.filter((e) => e.chapter === chapter).sort((a, b) => a.at - b.at);

@@ -173,6 +173,18 @@ body.touch .touch-pad { display: flex; }
 .summary .outro { font-style: italic; font-weight: 700; color: var(--ink-soft); line-height: 1.55; border-left: 4px solid var(--marigold); padding-left: 12px; }
 .summary .row { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
 .summary .actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+.summary .status { margin-top: 12px; background: #fff3dd; border-radius: 14px; padding: 10px 14px; }
+.summary .status p { margin: 4px 0 0; font-weight: 800; }
+.hint { position: absolute; left: 50%; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 34px); translate: -50% 0; width: min(520px, calc(100% - 32px)); background: #2a1f3d; color: #fff; border-radius: 18px; padding: 12px 18px; font-weight: 800; font-size: 1.05em; text-align: center; box-shadow: var(--shadow); animation: toast 5.2s ease forwards; pointer-events: none; }
+.hint .kind { display: block; font-family: var(--display); font-size: 0.8em; letter-spacing: 0.14em; text-transform: uppercase; color: #ffd84a; }
+.journal { width: min(560px, 100%) !important; }
+.journal .kicker { font-family: var(--display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--teal-deep); font-weight: 600; font-size: 0.85em; margin-top: 12px; }
+.journal ul { list-style: none; padding: 0; margin: 6px 0 0; }
+.journal .people li { display: grid; grid-template-columns: auto auto 1fr; gap: 4px 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px dashed #ecdcbf; font-weight: 700; }
+.journal .hearts { color: var(--berry); letter-spacing: 0.1em; }
+.journal .note { color: var(--ink-soft); font-size: 0.92em; grid-column: 1 / -1; }
+.journal .memories li { padding: 4px 0 4px 16px; position: relative; font-weight: 700; }
+.journal .memories li::before { content: "✦"; position: absolute; left: 0; color: var(--marigold); }
 
 /* ------------------------------------------------------------------ pause & modal */
 .modal { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(18, 12, 34, 0.55); padding: 16px; }
