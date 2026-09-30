@@ -3,11 +3,37 @@ import { HAZARD_HALF_LENGTH, LANE_Z, type Course, type Lane, type Spawn } from "
 /** Fixed simulation step. Rendering interpolates; collisions only ever use this state. */
 export const STEP = 1 / 120;
 
-export const JUMP_SPEED = 7.2;
-export const GRAVITY = 22;
 export const LANE_SPEED = 11;
+/** Clearance for a low hazard without a recorded height. */
 const LOW_CLEARANCE = 0.42;
 const PLAYER_HALF_LENGTH = 0.3;
+/**
+ * Jumps are shaped by the running speed: at any pace a jump keeps you above the tallest low
+ * hazard (JUMP_CLEAR_HEIGHT) for long enough to pass its whole footprint, plus JUMP_SLACK
+ * seconds of timing forgiveness either side. Slow chapters get a floatier hop.
+ */
+export const JUMP_APEX = 1.05;
+export const JUMP_CLEAR_HEIGHT = 0.46;
+export const JUMP_SLACK = 0.13;
+const JUMP_CLEAR_TIME = [0.45, 1.35] as const;
+
+export interface JumpShape {
+  /** Take-off speed (m/s up) and gravity (m/s²) for this jump. */
+  vy: number;
+  gravity: number;
+  /** Seconds from take-off to the top of the arc. */
+  apexTime: number;
+}
+
+export function jumpShape(runSpeed: number): JumpShape {
+  const v = Math.max(0.5, runSpeed);
+  const footprint = 2 * (HAZARD_HALF_LENGTH + PLAYER_HALF_LENGTH);
+  const clearTime = Math.min(JUMP_CLEAR_TIME[1], Math.max(JUMP_CLEAR_TIME[0], footprint / v + 2 * JUMP_SLACK));
+  // Above height h for time t around the apex H: t = 2 * sqrt(2 (H - h) / g).
+  const gravity = (8 * (JUMP_APEX - JUMP_CLEAR_HEIGHT)) / (clearTime * clearTime);
+  const vy = Math.sqrt(2 * gravity * JUMP_APEX);
+  return { vy, gravity, apexTime: vy / gravity };
+}
 const HIT_DEPTH = 0.95;
 const INVULNERABLE = 1.2;
 const SHIELD_COOLDOWN = 20;
@@ -63,6 +89,7 @@ export class Runner {
   private gustIndex = 0;
   private pendingGust: { at: number; dir: -1 | 1 } | null = null;
   private wasAirborne = false;
+  private gravity = jumpShape(0).gravity;
 
   constructor(
     readonly course: Course,
@@ -79,6 +106,11 @@ export class Runner {
   setOptions(options: Partial<RunnerOptions>) {
     this.options = { ...this.options, ...options };
     if (options.speed) this.cruise = options.speed;
+  }
+
+  /** How far before a low hazard to take off so the top of the jump is right over it. */
+  jumpLead(): number {
+    return this.speed * jumpShape(this.speed).apexTime;
   }
 
   get airborne() {
@@ -123,7 +155,9 @@ export class Runner {
       this.lane = Math.max(0, Math.min(2, this.lane + input.laneStep)) as Lane;
     }
     if (input.jump && !this.airborne && this.stopAt === null) {
-      this.vy = JUMP_SPEED;
+      const shape = jumpShape(this.speed);
+      this.vy = shape.vy;
+      this.gravity = shape.gravity;
       events.push({ type: "jump" });
     }
     const targetZ = LANE_Z[this.lane];
@@ -132,7 +166,7 @@ export class Runner {
 
     // ------------------------------------------------------------ vertical
     if (this.airborne || this.vy > 0) {
-      this.vy -= GRAVITY * dt;
+      this.vy -= this.gravity * dt;
       this.y = Math.max(0, this.y + this.vy * dt);
       if (this.y === 0) this.vy = 0;
     }
@@ -188,7 +222,7 @@ export class Runner {
       const sz = LANE_Z[s.lane];
       if (s.kind === "hazard") {
         if (dx > HAZARD_HALF_LENGTH + PLAYER_HALF_LENGTH || Math.abs(sz - this.z) > HIT_DEPTH) continue;
-        if (s.hazard?.kind === "low" && this.y > LOW_CLEARANCE) continue;
+        if (s.hazard?.kind === "low" && this.y > (s.hazard.height ?? LOW_CLEARANCE)) continue;
         if (this.invulnerable > 0) continue;
         this.collected.add(s.id);
         if (this.shieldReady) {

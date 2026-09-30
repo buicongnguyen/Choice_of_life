@@ -276,11 +276,12 @@ export class Sky {
 
   update(cameraX: number, time: number) {
     this.dome.position.x = cameraX;
-    // Clouds drift and wrap around the camera.
+    // Clouds are fixed in the world (only a light wind moves them), so they slide past with true
+    // parallax like everything else; they wrap around the camera to stay endless.
     this.clouds.children.forEach((c, i) => {
       const span = 640;
       const x = this.cloudOffsets[i] + time * 1.2;
-      c.position.x = cameraX + ((((x - cameraX * 0.6) % span) + span) % span) - span / 2;
+      c.position.x = cameraX + ((((x - cameraX) % span) + span) % span) - span / 2;
     });
   }
 }

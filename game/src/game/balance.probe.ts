@@ -4,7 +4,7 @@ import { APPROACH, END_CLEAR, generateCourse, type Lane } from "./course";
 import { createLife } from "./life";
 import { rng } from "./rng";
 import { Runner, STEP } from "./runner";
-import { CHAPTERS, FINALE } from "./story/chapters";
+import { CHAPTERS, FINALE, stageAt, stageSpeed } from "./story/chapters";
 import { activeEncounters } from "./story/encounters";
 import { lifeTitle } from "./story/ending";
 import {
@@ -42,7 +42,8 @@ function play(seed: number, style: RunStyle, choiceSeed: number): LifeState {
     const chapter = CHAPTERS[index];
     const encounters = activeEncounters(s, index);
     const course = generateCourse(chapter, encounters, s);
-    const runner = new Runner(course, { speed: chapter.speed, magnet: false, shield: false, letters: lettersActive(s) }, 0);
+    const pace = (x: number) => stageSpeed(chapter, stageAt(chapter, x / chapter.length), s.assist);
+    const runner = new Runner(course, { speed: pace(0), magnet: false, shield: false, letters: lettersActive(s) }, 0);
     let pending: string | null = null;
     if (style === "casual") for (const sp of course.spawns) if (sp.kind === "hazard" && steer.next() < 0.2) unnoticed.add(sp.id);
     for (let t = 0; t < 3000 && runner.x < chapter.length - END_CLEAR * 0.5; t += STEP) {
@@ -52,6 +53,7 @@ function play(seed: number, style: RunStyle, choiceSeed: number): LifeState {
         runner.stopAt = next.x - 2.6;
         pending = next.id;
       }
+      if (runner.cruise > 0 && runner.stopAt === null && Math.abs(runner.cruise - pace(runner.x)) > 0.01) runner.setOptions({ speed: pace(runner.x) });
       let input: { laneStep?: -1 | 1; jump?: boolean } = {};
       if (runner.autopilotLane === null && style !== "idle") {
         const attentive = true;
@@ -63,7 +65,7 @@ function play(seed: number, style: RunStyle, choiceSeed: number): LifeState {
         } else if (style === "skilled") {
           const k = course.spawns.find((sp) => sp.kind === "keepsake" && !runner.isCollected(sp.id) && sp.x > runner.x && sp.x < runner.x + 12);
           if (k && k.lane !== runner.lane && !blocked.has(k.lane)) input = { laneStep: k.lane < runner.lane ? -1 : 1 };
-          const low = ahead.find((sp) => sp.lane === runner.lane && sp.hazard?.kind === "low" && sp.x - runner.x < runner.speed * 0.28 + 0.9);
+          const low = ahead.find((sp) => sp.lane === runner.lane && sp.hazard?.kind === "low" && sp.x - runner.x <= runner.jumpLead() + 0.05);
           if (k && k.lane === runner.lane && low && !runner.airborne) input = { jump: true };
         }
       }
@@ -81,7 +83,7 @@ function play(seed: number, style: RunStyle, choiceSeed: number): LifeState {
           choose(s, enc, enc.kind === "event" ? "continue" : open[Math.floor(pickRng.next() * open.length)].id);
           runner.setOptions({ letters: lettersActive(s) });
           runner.autopilotLane = null;
-          runner.setOptions({ speed: chapter.speed });
+          runner.setOptions({ speed: pace(runner.x) });
           pending = null;
         }
         while (recover(s));

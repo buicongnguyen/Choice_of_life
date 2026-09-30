@@ -5,7 +5,7 @@ import { APPROACH, END_CLEAR, generateCourse, LANE_Z, type Course, type Lane } f
 import { createLife, has } from "./game/life";
 import { Runner, STEP, type RunnerEvent } from "./game/runner";
 import { clearLife, loadLife, loadPrefs, saveLife, savePrefs, type Prefs } from "./game/save";
-import { ageAt, CHAPTERS, FINALE, stageAt } from "./game/story/chapters";
+import { ageAt, CHAPTERS, FINALE, stageAt, stageSpeed } from "./game/story/chapters";
 import { activeEncounters } from "./game/story/encounters";
 import { book, finale } from "./game/story/ending";
 import {
@@ -35,6 +35,7 @@ import { Engine } from "./render/engine";
 import { MOODS } from "./render/sky";
 import { Particles, Rain } from "./render/fx";
 import { disposeSprite, nameBubble } from "./render/label";
+import { CRANK_RATIO } from "./render/gait";
 import { LaneGlow } from "./render/lane";
 import { createPerson, preloadSpecs, type Person } from "./render/people";
 import { SpawnView } from "./render/spawns";
@@ -53,6 +54,8 @@ interface Qa {
   policy: string;
   timeScale: number;
   events: string[];
+  /** World position of the player's left foot and Biscuit's front paw (gait verification). */
+  feet: () => { player?: { x: number; y: number }; dog?: { x: number; y: number }; speed: number } | null;
 }
 
 const DEFAULT_LOOK: CreateResult = {
@@ -298,6 +301,8 @@ class Game {
         this.bike.rotation.z = THREE.MathUtils.lerp(this.bike.rotation.z, (LANE_Z[r.lane] - r.z) * 0.12, 0.2);
         const spin = (r.speed * dt) / 0.33;
         for (const part of this.bikeParts) part.node.rotation.x += spin * part.ratio;
+        const crank = this.bikeParts.find((part) => part.ratio !== 1);
+        if (crank) p.pedal = crank.node.rotation.x;
         p.root.position.copy(this.bikeSeat());
       }
       p.speed = r.speed;
@@ -350,18 +355,18 @@ class Game {
     this.rain.update(dt, this.focus);
   }
 
-  private dustClock = 0;
+  private lastFootfalls = 0;
   private moteClock = 0;
   /** Footstep dust, and air that fits the hour: warm motes at dusk, leaves in the storm. */
   private ambient(dt: number) {
     const r = this.runner;
-    if (r && this.mode === "run" && !r.airborne && r.speed > 2 && !this.bike) {
-      this.dustClock += dt * r.speed;
-      if (this.dustClock > 1.3) {
-        this.dustClock = 0;
-        this.particles.emit(new THREE.Vector3(r.x - 0.2, 0.06, r.z), { count: 2, colour: "#fff6e6", speed: 0.8, up: 0.3, life: 0.5, size: 0.28, gravity: -0.4, spread: 0.2 });
-      }
+    // A puff of dust on each real footfall, left on the ground where the foot came down.
+    const feet = this.player?.footfalls ?? 0;
+    if (r && this.mode === "run" && !r.airborne && r.speed > 1.5 && !this.bike && feet !== this.lastFootfalls) {
+      const at = this.player?.lastFootfall() ?? new THREE.Vector3(r.x, 0, r.z);
+      this.particles.emit(new THREE.Vector3(at.x, 0.06, at.z), { count: 2, colour: "#fff6e6", speed: 0.5, up: 0.3, life: 0.5, size: 0.26, gravity: -0.4, spread: 0.2 });
     }
+    this.lastFootfalls = feet;
     if (this.prefs.reducedMotion) return;
     const mood = this.engine.mood;
     const warm = mood === MOODS.sunset || mood === MOODS.dusk;
@@ -572,7 +577,7 @@ class Game {
     this.rain.intensity = this.engine.mood.rain;
     // Sam's shield covers chapters 5-7; in the finale Sam is part of the gathering instead.
     const shield = has(life, "partner") && chapter.index >= 5 && chapter.index < FINALE;
-    this.runner = new Runner(this.course, { speed: this.speedFor(chapter), magnet: this.hasBiscuit(chapter.index), shield, letters: lettersActive(life) }, startX);
+    this.runner = new Runner(this.course, { speed: this.speedFor(chapter, startX), magnet: this.hasBiscuit(chapter.index), shield, letters: lettersActive(life) }, startX);
     this.runner.preCollect(collected);
     spawns.markDone(collected);
     spawns.showLetters = lettersActive(life);
@@ -585,9 +590,11 @@ class Game {
     this.updateScene(0);
   }
 
-  private speedFor(chapter: ChapterDef) {
-    return chapter.speed * { relaxed: 0.85, standard: 1, brisk: 1.15 }[this.life!.assist];
+  /** The cruise speed for wherever the runner is: each stage (crawl, toddle, run...) has its own pace. */
+  private speedFor(chapter: ChapterDef, x: number) {
+    return stageSpeed(chapter, stageAt(chapter, x / chapter.length), this.life!.assist);
   }
+
 
   private hasBiscuit(chapter: number) {
     return has(this.life!, "biscuit") && chapter >= 2 && chapter <= 4;
@@ -643,7 +650,7 @@ class Game {
       this.bike.rotation.y = Math.PI / 2;
       this.engine.scene.add(this.bike);
       this.bikeParts = (["WheelF", "WheelB", "Crank"] as const)
-        .map((name) => ({ node: findNode(this.bike!, name)!, ratio: name === "Crank" ? 0.45 : 1 }))
+        .map((name) => ({ node: findNode(this.bike!, name)!, ratio: name === "Crank" ? CRANK_RATIO : 1 }))
         .filter((p) => p.node);
       this.bikeSeatNode = findNode(this.bike, "Seat");
     }
@@ -677,11 +684,15 @@ class Game {
     const r = this.runner!;
     const target = this.scratch;
     const follow = (p: Person, back: number, side: number) => {
-      target.set(r.x - back, 0, THREE.MathUtils.clamp(r.z + side, -2.4, 2.4));
+      // Follow the smoothly rendered position, not the fixed simulation steps (which would jerk).
+      target.set(this.focus.x - back, 0, THREE.MathUtils.clamp(this.focus.z + side, -2.4, 2.4));
+      const fromX = p.root.position.x;
       p.root.position.lerp(target, 1 - Math.exp(-dt * 5));
-      p.speed = r.speed;
+      // Their strides match how fast they actually move along the path (they ease in and out
+      // behind you); crossing between lanes is a side-step, not a longer stride.
+      if (dt > 0) p.speed = THREE.MathUtils.lerp(p.speed, Math.abs(p.root.position.x - fromX) / dt, 1 - Math.exp(-dt * 12));
       if (this.mode === "run") {
-        p.anim = r.speed < 0.3 ? "idle" : p.isDog ? "run" : this.chapter?.stages[0].mode === "walk" ? "walk" : "run";
+        p.anim = p.speed < 0.3 ? "idle" : p.isDog ? "run" : this.chapter?.stages[0].mode === "walk" ? "walk" : "run";
         p.face(Math.PI / 2);
       }
     };
@@ -700,6 +711,11 @@ class Game {
       void this.setPlayerStage(stage.age, true).then(() => this.ui.toast("Growing up", `Age ${ageAt(chapter, progress)}`, "keepsake"));
     }
     if (this.mode === "run") this.proximityHints(r);
+    // Growing from crawling to toddling (and so on) changes the pace; legs follow automatically.
+    if (r.cruise > 0 && r.stopAt === null) {
+      const pace = this.speedFor(chapter, r.x);
+      if (Math.abs(r.cruise - pace) > 0.01) r.setOptions({ speed: pace });
+    }
     const active = activeEncounters(life, chapter.index);
     for (const mark of this.course!.encounters) {
       if (this.staged.has(mark.id) || r.x < mark.x - 75) continue;
@@ -997,7 +1013,7 @@ class Game {
     audio.duck(false);
     const r = this.runner!;
     r.autopilotLane = null;
-    r.setOptions({ speed: this.speedFor(this.chapter!) });
+    r.setOptions({ speed: this.speedFor(this.chapter!, r.x) });
     this.director.set({ kind: "follow", mode: stageAt(this.chapter!, r.x / this.chapter!.length).mode });
     this.mode = "run";
     this.clock.getDelta();
@@ -1177,6 +1193,15 @@ class Game {
       policy: this.params.get("policy") ?? "mixed",
       timeScale: Number(this.params.get("speed") ?? 1),
       events: [],
+      feet: () => {
+        if (!this.runner) return null;
+        // Where the left leg (a crawling baby's knee) and Biscuit's front paw meet the floor.
+        const foot = (p: Person | undefined, leg: "LegL" | "LegFL") => {
+          const at = p?.contactPoint(leg);
+          return at && { x: at.x, y: at.y };
+        };
+        return { player: foot(this.player, "LegL"), dog: foot(this.biscuit, "LegFL"), speed: this.runner.speed };
+      },
     };
     if (this.qa.autopilot) this.ui.autoAdvance = true;
     (window as unknown as { __COL__: Qa }).__COL__ = this.qa;
@@ -1204,7 +1229,7 @@ class Game {
     const ahead = this.course!.spawns.filter((s) => s.kind === "hazard" && s.x > r.x - 0.8 && s.x < r.x + horizon && !r.isCollected(s.id));
     const tall = new Set(ahead.filter((s) => s.hazard?.kind === "tall").map((s) => s.lane));
     const any = new Set(ahead.map((s) => s.lane));
-    const lowHere = ahead.find((s) => s.lane === r.lane && s.hazard?.kind === "low" && s.x - r.x < r.speed * 0.28 + 0.9);
+    const lowHere = ahead.find((s) => s.lane === r.lane && s.hazard?.kind === "low" && s.x - r.x <= r.jumpLead() + 0.05);
     const keepsake = this.course!.spawns.find((s) => s.kind === "keepsake" && !r.isCollected(s.id) && s.x > r.x && s.x < r.x + 16);
     if (keepsake) {
       if (keepsake.lane === r.lane && !tall.has(r.lane)) return lowHere && !r.airborne ? { jump: true } : {};

@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { APPROACH, generateCourse, RESERVED_GAP, unsafeRows, ZONE_AFTER, ZONE_BEFORE, type Course } from "./course";
 import { createLife, has } from "./life";
-import { Runner, STEP } from "./runner";
+import { JUMP_APEX, jumpShape, Runner, STEP } from "./runner";
 import { deserialise, serialise } from "./save";
-import { CHAPTERS, FINALE, PLAYABLE } from "./story/chapters";
+import { CHAPTERS, FINALE, PLAYABLE, stageSpeed } from "./story/chapters";
 import { activeEncounters, ENCOUNTERS } from "./story/encounters";
 import { book, finale, lifeTitle } from "./story/ending";
 import { advance, choose, closeChapter, nextEncounter, optionViews, peopleSoFar, recover, startChapter, statusLines } from "./story/flow";
@@ -361,8 +361,8 @@ describe("runner", () => {
   });
 
   it("jumping clears low hazards but not tall ones", () => {
-    const low = { model: "x", kind: "low" as const, score: "health" as const, label: "x" };
-    const tall = { ...low, kind: "tall" as const };
+    const low = { model: "x", kind: "low" as const, score: "health" as const, label: "x", height: 0.44 };
+    const tall = { ...low, kind: "tall" as const, height: 1.1 };
     const course: Course = {
       chapter: 1,
       length: 60,
@@ -383,8 +383,43 @@ describe("runner", () => {
     expect(events.filter((e) => e === "hit")).toHaveLength(1);
   });
 
+  it("a well-timed jump clears every low obstacle at every stage's speed, with room to spare", () => {
+    for (const chapter of CHAPTERS) {
+      for (const stage of chapter.stages) {
+        for (const assist of ["relaxed", "standard", "brisk"] as const) {
+          const v = stageSpeed(chapter, stage, assist);
+          for (const def of chapter.hazards.filter((h) => h.kind === "low")) {
+            // Human timing error is in seconds: on time, and a tenth of a second early or late.
+            const cleared = [-0.1, 0, 0.1].map((early) => {
+              const course: Course = { chapter: chapter.index, length: 80, encounters: [], gusts: [], spawns: [{ id: 0, kind: "hazard", x: 30, lane: 1, y: 0, hazard: def }] };
+              const r = new Runner(course, { speed: v, magnet: false, shield: false });
+              r.speed = v;
+              let jumped = false;
+              let hit = false;
+              for (let t = 0; t < 30 && r.x < 40; t += STEP) {
+                const jump: boolean = !jumped && r.x >= 30 - r.jumpLead() - early * v;
+                jumped ||= jump;
+                hit ||= r.step({ jump }).some((e) => e.type === "hit");
+              }
+              return !hit;
+            });
+            expect(cleared, `${chapter.id} ${stage.mode} ${assist} ${def.model} at ${v.toFixed(2)} m/s`).toEqual([true, true, true]);
+          }
+        }
+      }
+    }
+  });
+
+  it("jumps stay a friendly shape: never higher than ~1 m or longer than 1.8 s", () => {
+    for (const v of [1.7, 2.3, 3, 4, 5.5]) {
+      const shape = jumpShape(v);
+      expect((shape.vy * shape.vy) / (2 * shape.gravity)).toBeCloseTo(JUMP_APEX, 5);
+      expect(2 * shape.apexTime).toBeLessThanOrEqual(1.8);
+    }
+  });
+
   it("the shield absorbs a hit and then needs to recharge", () => {
-    const low = { model: "x", kind: "tall" as const, score: "health" as const, label: "x" };
+    const low = { model: "x", kind: "tall" as const, score: "health" as const, label: "x", height: 1.1 };
     const course: Course = {
       chapter: 5,
       length: 60,

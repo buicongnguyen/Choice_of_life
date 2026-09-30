@@ -126,6 +126,8 @@ export class Rain {
   readonly lines: THREE.LineSegments;
   private drops: Float32Array;
   private count = 1400;
+  /** Drops live in world space around this point, so the world runs past them at its own speed. */
+  private centre = new THREE.Vector3();
   intensity = 0;
 
   constructor() {
@@ -140,11 +142,13 @@ export class Rain {
     this.lines.frustumCulled = false;
   }
 
+  private static readonly SPAN = 46;
+
   private reset(i: number, anywhere = false) {
-    // Centred on the action and biased away from the camera (+z), so the drops are in view.
-    const x = (Math.random() - 0.35) * 46;
+    // Around the action and biased away from the camera (+z), so the drops are in view.
+    const x = this.centre.x + (Math.random() - 0.35) * Rain.SPAN;
     const y = anywhere ? Math.random() * 16 : 16;
-    const z = -16 + Math.random() * 22;
+    const z = this.centre.z - 16 + Math.random() * 22;
     this.drops.set([x, y, z, x - 0.12, y - 0.7, z], i * 6);
   }
 
@@ -152,7 +156,9 @@ export class Rain {
     this.lines.visible = this.intensity > 0.01;
     if (!this.lines.visible) return;
     (this.lines.material as THREE.LineBasicMaterial).opacity = 0.45 * this.intensity;
-    this.lines.position.set(centre.x, 0, centre.z);
+    this.centre.copy(centre);
+    const lo = centre.x - Rain.SPAN * 0.35;
+    const hi = lo + Rain.SPAN;
     for (let i = 0; i < this.count; i++) {
       const o = i * 6;
       const fall = 22 * dt;
@@ -161,6 +167,12 @@ export class Rain {
       this.drops[o] -= fall * 0.17;
       this.drops[o + 3] -= fall * 0.17;
       if (this.drops[o + 4] < 0) this.reset(i);
+      else if (this.drops[o] < lo || this.drops[o] > hi) {
+        // Wrap drops the runner has passed round to the front, keeping their height.
+        const shift = -Math.floor((this.drops[o] - lo) / Rain.SPAN) * Rain.SPAN;
+        this.drops[o] += shift;
+        this.drops[o + 3] += shift;
+      }
     }
     this.lines.geometry.attributes.position.needsUpdate = true;
   }

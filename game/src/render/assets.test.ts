@@ -69,6 +69,12 @@ describe("asset contract", () => {
     expect(manifest.bicycle.nodes).toEqual(expect.arrayContaining(["Frame", "WheelF", "WheelB", "Crank", "Seat"]));
   });
 
+  it("each obstacle's jump clearance is its real model height", () => {
+    for (const c of CHAPTERS) {
+      for (const h of c.hazards) expect(h.height, h.model).toBeCloseTo(Number(manifest[h.model]?.extras.height), 1);
+    }
+  });
+
   it("low hazards can be jumped and tall ones cannot", () => {
     for (const c of CHAPTERS) {
       for (const h of c.hazards) {

@@ -255,3 +255,28 @@ off-screen or overflowing elements and touch targets under 40 px.
   - Closing a dialog returns focus to the control that opened it.
   - Message dialogs stay inside the safe area.
   - Low-quality mode drops the live background blur.
+
+## 9. Version 2.3 — movement that matches the ground (2026-10-01)
+
+Reported by the owner: the steps did not match the speed of the floor and the background. A review of
+everything tied to running speed found these problems.
+
+| Area | Finding | Change |
+|---|---|---|
+| Feet | Legs swung as sine pendulums at a rate loosely tied to speed, so the foot on the floor slid along it. By calculation it slid at 10–77% of ground speed depending on stage; measured in the game, the toddler's planted foot moved at 48% of ground speed. | New stride model (`game/src/render/gait.ts`). Each contact (feet, the crawling baby's knees and hands, Biscuit's paws) is planted for part of the cycle and slides back under the body at exactly the running speed. It then swings forward on a curve whose end speeds match, so it is still in the world when it lands and when it lifts off. The body rides as high as the contacts allow, and limbs shorten slightly where a knee would bend. Step rate follows speed; slow paces take shorter steps. |
+| Hips | The hips rolled from side to side, which lifted one planted foot off the floor and pushed the other into it. | The torso sways instead, so the hips stay level while a foot is down. |
+| Sky | Clouds moved with the camera at 40% of the runner's speed, so the sky crept forward. | Clouds are fixed in the world (with a slow 1.2 m/s wind) and wrap around the camera. Distant hills and skylines were already real geometry at depth. |
+| Rain | Rain was attached to the runner, so the drops travelled forward with you. | Rain falls in world space around the camera. |
+| Pace | A crawling baby covered ground as fast as a running child. | Each way of moving has its own pace: crawl 0.75, toddle 0.9 and walk 0.85 of the chapter speed (`stageSpeed`). Pace updates as the stage changes. Chapters 1 and 7 are shorter (370→300 m and 520→440 m), so they last about as long as before. |
+| Jumps | One fixed jump arc was tuned for the old speeds. At 3 m/s or slower, no take-off point (0 of 201) cleared a low obstacle. | The jump is shaped by the running speed: it stays above the obstacle for the whole footprint plus 0.13 s of timing slack either side. Low obstacles use their real model height (a puddle is 0.06 m, a barrel 0.43 m) instead of one 0.42 m value. |
+| Bike | The teen's legs pedalled at their own rhythm. | Legs follow the crank angle; the crank turns 0.45 times per wheel turn. |
+| Companions | Biscuit's legs swung by different amounts. Companions animated at the runner's speed even while easing in behind, and followed the fixed simulation steps, which jerk between frames. | Biscuit trots with four planted paws. Companions stride at their own forward speed (a lane change is a side-step) and follow the smoothly rendered position. |
+| Dust | Footstep dust puffed on a distance timer. | A puff appears on each real footfall, under the foot that landed. |
+
+**How this is checked.**
+- `gait.test.ts` walks every stage at every assist level. A planted contact must not move (under 1% of ground speed) or leave the floor. The body must not pop, and it bobs less than 22% of leg length. Feet must be still at touchdown and lift-off.
+- `story.test.ts` jumps over every low obstacle at every stage speed, with take-offs up to 0.1 s early or late.
+- `game/tests/gait-probe.mjs` measures foot contacts in the running game (dev server on 4412). Result: median planted slip 0% for the baby, toddler, child, adult and elder, with the 90th percentile at 0–1%. Biscuit's median is 1%.
+
+Balance at the new paces (balance.probe.ts, 40 lives each): skilled Health 62, Happiness 76, Money 54;
+casual 45/65/42; idle 24/40/31. "Someone Notices" fired for 6, 25 and 78 of 80 chances.

@@ -1,6 +1,6 @@
 import { has } from "../life";
-import type { LifeState } from "../types";
-import type { ChapterDef, PlaceId } from "./model";
+import type { Assist, LifeState } from "../types";
+import type { ChapterDef, MoveMode, PlaceId, StageDef } from "./model";
 
 const cityOrHome = (s: LifeState): PlaceId => (s.path === "shop" ? "harbour" : "city");
 
@@ -32,7 +32,7 @@ export const CHAPTERS: ChapterDef[] = [
     subtitle: "Age 0 to 5 · The cottage on Gull Lane",
     intro:
       "You arrive three weeks early, in the middle of a thunderstorm. Nana Pearl says you have lighthouse lungs. You have not stopped exploring since.",
-    length: 370,
+    length: 300,
     speed: 2.7,
     places: [
       { from: 0, place: "home" },
@@ -44,10 +44,10 @@ export const CHAPTERS: ChapterDef[] = [
       { from: 0.38, age: "toddler", mode: "toddle" },
     ],
     hazards: [
-      { model: "hz_milk_puddle", kind: "low", score: "health", label: "Spilled milk" },
-      { model: "hz_cat", kind: "low", score: "happiness", label: "Sleeping cat" },
-      { model: "hz_blocks", kind: "tall", score: "happiness", label: "Block tower" },
-      { model: "hz_laundry", kind: "tall", score: "health", label: "Laundry pile" },
+      { model: "hz_milk_puddle", kind: "low", score: "health", label: "Spilled milk", height: 0.22 },
+      { model: "hz_cat", kind: "low", score: "happiness", label: "Sleeping cat", height: 0.43 },
+      { model: "hz_blocks", kind: "tall", score: "happiness", label: "Block tower", height: 1.2 },
+      { model: "hz_laundry", kind: "tall", score: "health", label: "Laundry pile", height: 0.92 },
     ],
     density: 4.2,
     keepsakes: [
@@ -75,9 +75,9 @@ export const CHAPTERS: ChapterDef[] = [
     sky: "noon",
     stages: [{ from: 0, age: "child", mode: "run" }],
     hazards: [
-      { model: "hz_puddle", kind: "low", score: "health", label: "Puddle" },
-      { model: "hz_barrel", kind: "low", score: "money", label: "Rolling barrel" },
-      { model: "hz_crates", kind: "tall", score: "money", label: "Fish crates" },
+      { model: "hz_puddle", kind: "low", score: "health", label: "Puddle", height: 0.06 },
+      { model: "hz_barrel", kind: "low", score: "money", label: "Rolling barrel", height: 0.43 },
+      { model: "hz_crates", kind: "tall", score: "money", label: "Fish crates", height: 1.16 },
     ],
     density: 4.6,
     keepsakes: [
@@ -106,10 +106,10 @@ export const CHAPTERS: ChapterDef[] = [
     sky: "golden",
     stages: [{ from: 0, age: "teen", mode: "bike" }],
     hazards: [
-      { model: "hz_cone", kind: "low", score: "health", label: "Traffic cone" },
-      { model: "hz_sandcastle", kind: "low", score: "happiness", label: "Sandcastle" },
-      { model: "hz_bin", kind: "tall", score: "happiness", label: "Wheelie bin" },
-      { model: "hz_puddle", kind: "low", score: "health", label: "Puddle" },
+      { model: "hz_cone", kind: "low", score: "health", label: "Traffic cone", height: 0.45 },
+      { model: "hz_sandcastle", kind: "low", score: "happiness", label: "Sandcastle", height: 0.44 },
+      { model: "hz_bin", kind: "tall", score: "happiness", label: "Wheelie bin", height: 1.03 },
+      { model: "hz_puddle", kind: "low", score: "health", label: "Puddle", height: 0.06 },
     ],
     density: 4.4,
     keepsakes: [
@@ -140,9 +140,9 @@ export const CHAPTERS: ChapterDef[] = [
     sky: "city_morning",
     stages: [{ from: 0, age: "adult", mode: "run" }],
     hazards: [
-      { model: "hz_suitcase", kind: "low", score: "money", label: "Suitcase" },
-      { model: "hz_coffee_spill", kind: "low", score: "happiness", label: "Coffee spill" },
-      { model: "hz_wet_sign", kind: "tall", score: "health", label: "Wet floor" },
+      { model: "hz_suitcase", kind: "low", score: "money", label: "Suitcase", height: 0.33 },
+      { model: "hz_coffee_spill", kind: "low", score: "happiness", label: "Coffee spill", height: 0.42 },
+      { model: "hz_wet_sign", kind: "tall", score: "health", label: "Wet floor", height: 1.06 },
     ],
     density: 4.8,
     keepsakes: [
@@ -173,10 +173,10 @@ export const CHAPTERS: ChapterDef[] = [
     sky: "city_noon",
     stages: [{ from: 0, age: "adult", mode: "run" }],
     hazards: [
-      { model: "hz_paper_stack", kind: "tall", score: "happiness", label: "Deadline pile" },
-      { model: "hz_coffee_spill", kind: "low", score: "health", label: "Coffee spill" },
-      { model: "hz_scooter", kind: "tall", score: "money", label: "Parked scooter" },
-      { model: "hz_suitcase", kind: "low", score: "money", label: "Suitcase" },
+      { model: "hz_paper_stack", kind: "tall", score: "happiness", label: "Deadline pile", height: 1.05 },
+      { model: "hz_coffee_spill", kind: "low", score: "health", label: "Coffee spill", height: 0.42 },
+      { model: "hz_scooter", kind: "tall", score: "money", label: "Parked scooter", height: 1.1 },
+      { model: "hz_suitcase", kind: "low", score: "money", label: "Suitcase", height: 0.33 },
     ],
     density: 5.2,
     keepsakes: [
@@ -207,9 +207,9 @@ export const CHAPTERS: ChapterDef[] = [
     sky: "storm",
     stages: [{ from: 0, age: "adult", mode: "run" }],
     hazards: [
-      { model: "hz_branch", kind: "low", score: "health", label: "Fallen branch" },
-      { model: "hz_storm_puddle", kind: "low", score: "happiness", label: "Flood puddle" },
-      { model: "hz_bin_tipped", kind: "tall", score: "money", label: "Tipped bin" },
+      { model: "hz_branch", kind: "low", score: "health", label: "Fallen branch", height: 0.44 },
+      { model: "hz_storm_puddle", kind: "low", score: "happiness", label: "Flood puddle", height: 0.12 },
+      { model: "hz_bin_tipped", kind: "tall", score: "money", label: "Tipped bin", height: 0.84 },
     ],
     density: 4.6,
     keepsakes: [
@@ -237,7 +237,7 @@ export const CHAPTERS: ChapterDef[] = [
     subtitle: "Age 55 to 69 · The lantern festival",
     intro:
       "Every summer Marigold Bay hangs a thousand lanterns along the harbour. This year you promise yourself you'll see every one of them.",
-    length: 520,
+    length: 440,
     speed: 3.0,
     places: [{ from: 0, place: "festival" }],
     sky: "sunset",
@@ -246,9 +246,9 @@ export const CHAPTERS: ChapterDef[] = [
       { from: 0.5, age: "elder", mode: "walk" },
     ],
     hazards: [
-      { model: "hz_picnic", kind: "low", score: "health", label: "Picnic basket" },
-      { model: "hz_sandcastle", kind: "low", score: "happiness", label: "Sandcastle" },
-      { model: "hz_deckchair", kind: "tall", score: "health", label: "Deckchair" },
+      { model: "hz_picnic", kind: "low", score: "health", label: "Picnic basket", height: 0.43 },
+      { model: "hz_sandcastle", kind: "low", score: "happiness", label: "Sandcastle", height: 0.44 },
+      { model: "hz_deckchair", kind: "tall", score: "health", label: "Deckchair", height: 0.97 },
     ],
     density: 3.2,
     keepsakes: [
@@ -287,6 +287,18 @@ export const CHAPTERS: ChapterDef[] = [
 
 export const FINALE = CHAPTERS.length - 1;
 export const PLAYABLE = CHAPTERS.filter((c) => c.hazards.length > 0).map((c) => c.index);
+
+/**
+ * Each way of moving has its own natural pace relative to the chapter's running speed: a
+ * crawling baby shouldn't cover ground like a sprinting child. Legs, jumps and the course all
+ * derive from this speed, so they always agree.
+ */
+export const MODE_PACE: Record<MoveMode, number> = { crawl: 0.75, toddle: 0.9, walk: 0.85, run: 1, bike: 1 };
+export const ASSIST_PACE: Record<Assist, number> = { relaxed: 0.85, standard: 1, brisk: 1.15 };
+
+export function stageSpeed(chapter: ChapterDef, stage: StageDef, assist: Assist): number {
+  return chapter.speed * MODE_PACE[stage.mode] * ASSIST_PACE[assist];
+}
 
 /** Age shown on the HUD at a given course progress. */
 export function ageAt(chapter: ChapterDef, progress: number): number {

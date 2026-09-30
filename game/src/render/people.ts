@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 import { findNode, instance, readyAll, recolour } from "./assets";
 import { HEAD_ACCESSORIES, SOCKETS, type CharacterSpec } from "./cast";
+import { CRANK_RATIO, gaitParams, scaleGait, solveGait, type Gait, type Limb } from "./gait";
 
 export type Anim = "idle" | "run" | "walk" | "toddle" | "crawl" | "bike" | "talk" | "wave" | "cheer" | "sit" | "dig";
 
@@ -9,6 +10,10 @@ const UMBRELLA_ARM = -2.5;
 const JOINTS = ["Hips", "Torso", "Head", "ArmL", "ArmR", "LegL", "LegR"] as const;
 const DOG_JOINTS = ["Body", "Head", "EarL", "EarR", "Tail", "LegFL", "LegFR", "LegBL", "LegBR"] as const;
 type Joint = (typeof JOINTS)[number] | (typeof DOG_JOINTS)[number];
+/** A limb that walks: its rest floor contact (model units) and where that sits on the limb. */
+type RigLimb = Limb & { name: Joint; node: THREE.Object3D; contact: THREE.Vector3; restScale: THREE.Vector3 };
+/** The crawling baby's knee touches the floor this far ahead of its hip (art/characters.py build_baby). */
+const BABY_KNEE_AHEAD = 0.07;
 
 export function specModels(spec: CharacterSpec): string[] {
   const names = [spec.body];
@@ -38,11 +43,26 @@ export class Person {
   private joints = new Map<Joint, THREE.Object3D>();
   private rest = new Map<THREE.Object3D, THREE.Euler>();
   private phase = Math.random() * 10;
+  /** Position in the stride cycle (0..1 per stride; see gait.ts). */
+  private cycle = Math.random();
   private t = Math.random() * 10;
   readonly headRadius: number;
   readonly height: number;
   private hipsRestY = 0;
+  /** The top joint of the body (Hips, the baby's Torso, the dog's Body): it carries the bob. */
+  private bodyNode?: THREE.Object3D;
+  /** World metres per model unit. */
+  private unit: number;
+  private legRig: RigLimb[] = [];
+  /** A crawl plants the hands as well as the knees. */
+  private crawlRig: RigLimb[] = [];
   private ownMaterials: THREE.Material[] = [];
+  /** Hip pivot height above the ground (m). */
+  readonly legLength: number;
+  /** Counts steps (one per half stride) so footfall effects land on real steps. */
+  footfalls = 0;
+  /** On the bicycle the legs follow the crank angle instead of their own rhythm. */
+  pedal?: number;
 
   constructor(readonly spec: CharacterSpec) {
     this.model = instance(spec.body);
@@ -56,7 +76,10 @@ export class Person {
       }
     }
     const hips = this.joints.get(this.isDog ? "Body" : "Hips");
-    this.hipsRestY = hips?.position.y ?? 0;
+    const torso = this.joints.get("Torso");
+    // The baby's rig hangs the hips from the torso; everyone else hangs the torso from the hips.
+    this.bodyNode = hips && torso && hips.parent === torso ? torso : hips;
+    this.hipsRestY = this.bodyNode?.position.y ?? 0;
     const headCentre = findNode(this.model, "HeadCenter");
     this.headRadius = (headCentre?.userData.radius as number) ?? 0.28;
     const rootNode = findNode(this.model, "Root");
@@ -92,6 +115,68 @@ export class Person {
     }
     if (spec.scale) this.model.scale.setScalar(spec.scale);
     this.root.add(this.model);
+    // Measure where each walking limb meets the floor so steps match the ground exactly.
+    this.unit = spec.scale ?? 1;
+    this.model.updateMatrixWorld(true);
+    const inModel = (node: THREE.Object3D) => this.model.worldToLocal(node.getWorldPosition(new THREE.Vector3()));
+    const limb = (name: Joint, phase: number, forward = 0, contactNode?: string): RigLimb | undefined => {
+      const node = this.joints.get(name);
+      if (!node) return undefined;
+      const pivot = inModel(node);
+      const at = contactNode ? findNode(this.model, contactNode) : undefined;
+      if (at) forward = inModel(at).z - pivot.z;
+      const floor = this.model.localToWorld(new THREE.Vector3(pivot.x, 0, pivot.z + forward));
+      return { name, node, phase, forward, down: pivot.y, contact: node.worldToLocal(floor), restScale: node.scale.clone() };
+    };
+    const rig = (...limbs: (RigLimb | undefined)[]) => limbs.filter((l): l is RigLimb => l !== undefined);
+    if (this.isDog) {
+      // A trot: diagonal pairs of paws step together.
+      this.legRig = rig(limb("LegFL", 0), limb("LegFR", 0.5), limb("LegBL", 0.5), limb("LegBR", 0));
+    } else if (spec.body === "baby") {
+      this.legRig = rig(limb("LegL", 0, BABY_KNEE_AHEAD), limb("LegR", 0.5, BABY_KNEE_AHEAD));
+      this.crawlRig = [...this.legRig, ...rig(limb("ArmL", 0.5, 0, "HandL"), limb("ArmR", 0, 0, "HandR"))];
+    } else {
+      this.legRig = rig(limb("LegL", 0), limb("LegR", 0.5));
+    }
+    this.legLength = Math.max(0.1, (this.legRig[0]?.down ?? 0.3) * this.unit);
+  }
+
+  /**
+   * Advances the stride at the current speed and plants the rig's limbs (see gait.ts). Returns
+   * each limb's swing, the body's height change (model units) and a side-to-side rhythm.
+   */
+  private stride(gait: Gait, rig: RigLimb[], dt: number) {
+    const reach = rig.length ? Math.hypot(rig[0].forward, rig[0].down) * this.unit : this.legLength;
+    const g = gaitParams(gait, this.speed, reach);
+    const before = Math.floor(this.cycle * 2);
+    this.cycle += dt * g.freq;
+    if (Math.floor(this.cycle * 2) !== before) this.footfalls++;
+    const pose = solveGait(this.cycle, scaleGait(g, 1 / this.unit), rig);
+    const swing = new Map<Joint, number>();
+    rig.forEach((l, i) => {
+      swing.set(l.name, pose.limbs[i].angle);
+      this.stretch(l, pose.limbs[i].stretch);
+    });
+    return { swing: (name: Joint) => swing.get(name) ?? 0, body: pose.body, s: Math.sin(2 * Math.PI * this.cycle) };
+  }
+
+  /** Shortens a limb along the line from its pivot to its floor contact. */
+  private stretch(l: RigLimb, k: number) {
+    const r = l.restScale;
+    // A straight leg shortens along its length; a bent one (the baby's) scales towards the knee.
+    l.node.scale.set(r.x, r.y * k, l.forward !== 0 ? r.z * k : r.z);
+  }
+
+  /** World position of a limb's floor contact as currently posed (for QA probes). */
+  contactPoint(name: Joint): THREE.Vector3 | undefined {
+    const l = [...this.legRig, ...this.crawlRig].find((r) => r.name === name);
+    return l && l.node.localToWorld(l.contact.clone());
+  }
+
+  /** Where the foot that came down most recently stands (world); the legs land half a stride apart. */
+  lastFootfall(): THREE.Vector3 | undefined {
+    const leg = this.legRig[Math.floor(this.cycle * 2) % 2];
+    return leg && this.contactPoint(leg.name);
   }
 
   /** Face a world direction on the ground plane (radians, 0 = toward the camera). */
@@ -111,8 +196,9 @@ export class Person {
     this.stumble = Math.max(0, this.stumble - dt);
     if (this.isDog) return this.updateDog(dt);
     const t = this.t;
-    const hips = this.joints.get("Hips");
     let bob = 0;
+    /** A foot is planted this frame: sway the torso, not the hips, so the feet stay on the floor. */
+    let grounded = false;
     let lean = 0;
     let legL = 0,
       legR = 0,
@@ -123,47 +209,57 @@ export class Person {
       headTurn = 0,
       roll = 0;
 
-    const stride = (freq: number, amp: number) => {
-      this.phase += dt * freq;
-      const s = Math.sin(this.phase);
-      legL = s * amp;
-      legR = -s * amp;
-      armL = -s * amp * 0.85;
-      armR = s * amp * 0.85;
-      return s;
+    // Limbs are full length unless a gait below plants them.
+    for (const l of this.crawlRig.length ? this.crawlRig : this.legRig) this.stretch(l, 1);
+    const walk = (gait: Gait, armSwing = 0.85) => {
+      const step = this.stride(gait, this.legRig, dt);
+      legL = step.swing("LegL");
+      legR = step.swing("LegR");
+      // Each arm swings against the leg on its own side.
+      armL = -legL * armSwing;
+      armR = -legR * armSwing;
+      bob = step.body;
+      grounded = true;
+      return step.s;
     };
 
     switch (this.anim) {
       case "run": {
-        const s = stride(4 + this.speed * 1.05, 0.95);
-        bob = Math.abs(Math.cos(this.phase)) * 0.07;
-        lean = 0.16;
+        const s = walk("run");
+        lean = 0.16 * Math.min(1, this.speed / 3);
         roll = s * 0.04;
         break;
       }
       case "walk": {
-        const s = stride(2.6 + this.speed * 0.9, 0.5);
-        bob = Math.abs(Math.cos(this.phase)) * 0.03;
+        const s = walk("walk");
         lean = 0.05;
         roll = s * 0.03;
         break;
       }
       case "toddle": {
-        const s = stride(8 + this.speed * 0.9, 0.55);
-        bob = Math.abs(Math.cos(this.phase)) * 0.05;
-        roll = s * 0.12;
+        const s = walk("toddle");
+        roll = s * 0.07;
         armSpread = 0.55;
         armL = armR = -0.35;
         break;
       }
       case "crawl": {
-        const s = stride(6 + this.speed, 0.45);
-        bob = Math.abs(s) * 0.025;
-        roll = s * 0.06;
+        // Knees and hands are all planted, diagonally paired.
+        const step = this.stride("crawl", this.crawlRig.length ? this.crawlRig : this.legRig, dt);
+        legL = step.swing("LegL");
+        legR = step.swing("LegR");
+        armL = step.swing("ArmL");
+        armR = step.swing("ArmR");
+        bob = step.body;
+        // The baby's torso carries everything, so it doesn't sway: a little nod instead.
+        grounded = true;
+        headNod = step.s * 0.05;
         break;
       }
       case "bike": {
-        this.phase += dt * (2 + this.speed * 0.9);
+        // Legs follow the crank so the pedals and feet turn together with the wheels.
+        if (this.pedal !== undefined) this.phase = this.pedal;
+        else this.phase += (dt * this.speed * CRANK_RATIO) / 0.33;
         const s = Math.sin(this.phase);
         legL = -1.05 + s * 0.55;
         legR = -1.05 - s * 0.55;
@@ -215,6 +311,9 @@ export class Person {
 
     if (this.lift > 0.02) {
       // Airborne: tuck the legs and throw the arms up.
+      for (const l of this.crawlRig.length ? this.crawlRig : this.legRig) this.stretch(l, 1);
+      bob = 0;
+      grounded = false;
       legL = -0.9;
       legR = -0.5;
       armL = armR = -2.2;
@@ -230,9 +329,9 @@ export class Person {
       armR = UMBRELLA_ARM;
     }
 
-    if (hips) hips.position.y = this.hipsRestY + bob;
-    this.pose("Hips", 0, 0, roll);
-    this.pose("Torso", lean, 0, -roll * 0.5);
+    if (this.bodyNode) this.bodyNode.position.y = this.hipsRestY + bob;
+    this.pose("Hips", 0, 0, grounded ? 0 : roll);
+    this.pose("Torso", lean, 0, grounded ? roll : -roll * 0.5);
     this.pose("Head", headNod - lean * 0.6, headTurn, 0);
     this.pose("LegL", legL);
     this.pose("LegR", legR);
@@ -241,21 +340,16 @@ export class Person {
   }
 
   private updateDog(dt: number) {
-    const moving = this.speed > 0.2;
-    this.phase += dt * (moving ? 5 + this.speed * 1.3 : 0);
-    const s = Math.sin(this.phase);
-    const body = this.joints.get("Body");
-    if (body) body.position.y = this.hipsRestY + (moving ? Math.abs(Math.cos(this.phase)) * 0.05 : Math.sin(this.t * 3) * 0.004) + this.lift;
-    const amp = moving ? 0.8 : 0;
-    this.pose("LegFL", s * amp);
-    this.pose("LegFR", s * amp * 0.8);
-    this.pose("LegBL", -s * amp);
-    this.pose("LegBR", -s * amp * 0.8);
-    this.pose("Body", moving ? Math.cos(this.phase) * 0.06 : 0);
+    const moving = this.speed > 0.2 && this.lift <= 0.02;
+    const step = moving ? this.stride("dog", this.legRig, dt) : undefined;
+    if (!step) for (const l of this.legRig) this.stretch(l, 1);
+    const s = step?.s ?? 0;
+    if (this.bodyNode) this.bodyNode.position.y = this.hipsRestY + (step ? step.body : Math.sin(this.t * 3) * 0.004) + this.lift;
+    for (const leg of ["LegFL", "LegFR", "LegBL", "LegBR"] as const) this.pose(leg, step?.swing(leg) ?? 0);
     this.pose("Tail", 0, Math.sin(this.t * (moving ? 14 : 9)) * 0.6, 0);
-    this.pose("Head", moving ? -Math.cos(this.phase) * 0.08 : Math.sin(this.t * 0.8) * 0.1, Math.sin(this.t * 0.5) * 0.25);
-    this.pose("EarL", 0, 0, (moving ? s * 0.35 : 0) + 0.1);
-    this.pose("EarR", 0, 0, (moving ? -s * 0.35 : 0) - 0.1);
+    this.pose("Head", moving ? -Math.cos(4 * Math.PI * this.cycle) * 0.06 : Math.sin(this.t * 0.8) * 0.1, Math.sin(this.t * 0.5) * 0.25);
+    this.pose("EarL", 0, 0, s * 0.35 + 0.1);
+    this.pose("EarR", 0, 0, -s * 0.35 - 0.1);
   }
 
   dispose() {

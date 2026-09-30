@@ -88,6 +88,8 @@ export interface HazardDef {
   kind: "low" | "tall";
   score: ScoreKey;
   label: string;
+  /** Height of the model in metres: a jump has to clear this (checked against the manifest). */
+  height: number;
 }
 
 export interface StageDef {
