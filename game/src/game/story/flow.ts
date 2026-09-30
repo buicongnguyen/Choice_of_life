@@ -72,11 +72,14 @@ export function choose(s: LifeState, encounter: EncounterDef, optionId: string):
 export function statusLines(s: LifeState): string[] {
   const lines: string[] = [];
   const { health, happiness, money } = s.scores;
-  if (health < 30) lines.push("Your body is keeping score. Look after it next chapter.");
+  // Only promise what the next chapter can deliver: the last one before the lighthouse has no choices ahead.
+  const more = s.chapter < 7;
+  const noticed = s.chapter === 3 || s.chapter === 4;
+  if (health < 30) lines.push(more ? "Your body is keeping score. Look after it next chapter." : "Your body is tired. It has carried you a long way.");
   else if (health > 78) lines.push("You feel strong. Stairs are nothing.");
-  if (happiness < 30) lines.push("The days have been grey. Someone will notice, if you let them.");
+  if (happiness < 30) lines.push(noticed ? "The days have been grey. Someone will notice, if you let them." : "The days have been grey. Be gentle with yourself.");
   else if (happiness > 80) lines.push("You catch yourself humming.");
-  if (money < 20) lines.push("Money is tight. Some choices will cost more than you can pay.");
+  if (money < 20) lines.push(more ? "Money is tight. Some choices will cost more than you can pay." : "Money was tight. It mattered less than you feared.");
   else if (money > 80) lines.push("For once, the bills aren't the worry.");
   return lines;
 }
@@ -85,12 +88,13 @@ export function statusLines(s: LifeState): string[] {
 export function peopleSoFar(s: LifeState): { name: string; hearts: number; note: string }[] {
   const hearts = (b: number) => (b <= 0 ? 0 : b <= 3 ? 1 : b <= 7 ? 2 : b <= 11 ? 3 : 4);
   const out: { name: string; hearts: number; note: string }[] = [];
-  out.push({ name: "Mom and Dad", hearts: Math.max(1, hearts(s.bonds.family)), note: s.chapter >= 8 ? "Gone, and not gone." : has(s, "moved_home") ? "You came home for them." : "Always at the end of the phone." });
-  if (s.chapter >= 2) out.push({ name: "Nana Pearl", hearts: 3, note: has(s, "nana_gone") ? "Her light went out. Her letter is in the tin." : "Keeper of the light." });
+  const nearby = has(s, "parents_with_us") ? "Living with you, and the football arguments." : s.path === "shop" && s.chapter >= 4 ? "Just down the lane." : "Always at the end of the phone.";
+  out.push({ name: "Mom and Dad", hearts: Math.max(1, hearts(s.bonds.family)), note: s.chapter >= 8 ? "Gone, and not gone." : has(s, "moved_home") ? "You came home for them." : s.chapter <= 3 ? "Home." : nearby });
+  if (s.chapter >= 2) out.push({ name: "Nana Pearl", hearts: 3, note: has(s, "nana_gone") ? "Her light went out. You still hear her stories." : "Keeper of the light." });
   if (s.chapter >= 2 && s.resolved.concat(s.choices.map((c) => c.encounter)).includes("new-kid")) {
     out.push({ name: "Juno", hearts: hearts(s.bonds.juno), note: s.bonds.juno >= 9 ? "Your oldest friend. The promise holds." : s.bonds.juno >= 5 ? "Further away than you'd like." : "You've drifted. It isn't too late." });
   }
-  if (has(s, "biscuit")) out.push({ name: "Biscuit", hearts: 3, note: s.chapter >= 5 ? "One ear up, one ear down. Always." : "Fetches everything." });
+  if (has(s, "biscuit")) out.push({ name: "Biscuit", hearts: 3, note: s.chapter >= 5 ? "Gone. You still look for him at the door." : "One ear up, one ear down. Fetches everything." });
   if (s.chapter >= 3 && s.choices.some((c) => c.encounter === "the-answers")) {
     out.push({ name: "Dex", hearts: hearts(s.bonds.dex), note: has(s, "forgave_dex") ? "Forgiven." : s.bonds.dex < 0 ? "Some roads don't cross back." : "Still selling something." });
   }
@@ -119,6 +123,7 @@ export function startChapter(s: LifeState, index: number): Record<ScoreKey, numb
   const drift = CHAPTERS[index].drift ?? {};
   const delta = applyEffects(s, { ...drift, money: (drift.money ?? 0) + incomeFor(s, index) }, "event");
   s.started = index;
+  if (s.chapterStart) s.previousStart = { ...s.chapterStart };
   s.chapterStart = { ...s.scores };
   return delta;
 }

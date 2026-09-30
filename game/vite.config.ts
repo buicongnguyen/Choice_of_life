@@ -6,30 +6,53 @@ import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
-const models = fileURLToPath(new URL("../public/models", import.meta.url));
+const publicRoot = fileURLToPath(new URL("../public", import.meta.url));
 const outDir = fileURLToPath(new URL("./dist", import.meta.url));
+/** Generated art served from the repository's public/ folder (the legacy 1.x files there must not ship). */
+const ASSET_DIRS: Record<string, { ext: string[]; type: Record<string, string> }> = {
+  models: { ext: [".glb", ".json"], type: { ".glb": "model/gltf-binary", ".json": "application/json" } },
+  ui: { ext: [".webp"], type: { ".webp": "image/webp" } },
+};
 
 /**
- * The generated models live in the repository's public/models folder (next to the legacy
- * 1.x files, which must not ship). Serve them in dev and copy only them into the build.
+ * The generated models (Blender, art/build.py) and UI art (art/ui/build_ui.py) live in
+ * public/models and public/ui. Serve them in dev and copy only them into the build.
  */
-function modelsPlugin(): Plugin {
+function assetsPlugin(): Plugin {
   return {
-    name: "choice-of-life-models",
+    name: "choice-of-life-assets",
     configureServer(server) {
-      server.middlewares.use("/models", (req, res, next) => {
-        const file = path.join(models, decodeURIComponent((req.url ?? "").split("?")[0]));
-        const relative = path.relative(models, file);
-        if (relative.startsWith("..") || path.isAbsolute(relative) || !existsSync(file) || !statSync(file).isFile()) return next();
-        res.setHeader("Content-Type", file.endsWith(".json") ? "application/json" : "model/gltf-binary");
-        createReadStream(file).pipe(res);
-      });
+      for (const [dir, info] of Object.entries(ASSET_DIRS)) {
+        const base = path.join(publicRoot, dir);
+        server.middlewares.use(`/${dir}`, (req, res) => {
+          const notFound = () => {
+            // A missing asset is a real 404, not Vite's index.html fallback, so broken art shows up in dev.
+            res.statusCode = 404;
+            res.end("Not found");
+          };
+          let file: string;
+          try {
+            file = path.join(base, decodeURIComponent((req.url ?? "").split("?")[0]));
+          } catch {
+            return notFound();
+          }
+          const relative = path.relative(base, file);
+          const ext = path.extname(file);
+          if (relative.startsWith("..") || path.isAbsolute(relative) || !info.ext.includes(ext) || !existsSync(file) || !statSync(file).isFile()) return notFound();
+          res.setHeader("Content-Type", info.type[ext]);
+          createReadStream(file).pipe(res);
+        });
+      }
     },
     closeBundle() {
-      const target = path.join(outDir, "models");
-      mkdirSync(target, { recursive: true });
-      for (const f of readdirSync(models)) if (f.endsWith(".glb") || f === "manifest.json") copyFileSync(path.join(models, f), path.join(target, f));
-      copyFileSync(fileURLToPath(new URL("../public/404.html", import.meta.url)), path.join(outDir, "404.html"));
+      for (const [dir, info] of Object.entries(ASSET_DIRS)) {
+        const target = path.join(outDir, dir);
+        mkdirSync(target, { recursive: true });
+        for (const f of readdirSync(path.join(publicRoot, dir))) {
+          if (info.ext.includes(path.extname(f))) copyFileSync(path.join(publicRoot, dir, f), path.join(target, f));
+        }
+      }
+      copyFileSync(path.join(publicRoot, "404.html"), path.join(outDir, "404.html"));
     },
   };
 }
@@ -38,7 +61,7 @@ export default defineConfig({
   root,
   publicDir: fileURLToPath(new URL("./static", import.meta.url)),
   base: "./",
-  plugins: [modelsPlugin()],
+  plugins: [assetsPlugin()],
   build: {
     outDir,
     emptyOutDir: true,

@@ -540,7 +540,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "both",
         label: "Both: work at her bedside",
         detail: "Sleep is for later.",
-        lock: (s) => (s.scores.health >= 35 ? null : "Needs Health 35. You're too run-down to do both."),
+        lock: (s) => (s.scores.health >= 58 ? null : "Needs Health 58. You're too run-down to do both."),
         effects: { health: -4, money: 4, happiness: 1, flags: ["finals_bedside"], memory: "You finished your finals project at Nana's bedside." },
         result: [
           nar("You finish your project at the foot of her bed. She reads over your shoulder and fixes one thing."),
@@ -620,7 +620,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "travel",
         label: "A year on the road",
         detail: "One backpack. No plan.",
-        lock: (s) => (s.scores.money >= 10 ? null : "Needs Money 10 for the first ticket."),
+        lock: (s) => (s.scores.money >= 38 ? null : "Needs Money 38. A year on the road needs savings."),
         star: ["explorer", "storyteller"],
         effects: { happiness: 4, money: -6, health: 2, path: "travel", flags: ["traveled"], memory: "A year on the road with one backpack." },
         result: [
@@ -864,7 +864,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "invest",
         label: "Invest your savings",
         detail: "He's very convincing.",
-        lock: (s) => (s.scores.money >= 15 ? null : "Needs Money 15. There are no savings to invest."),
+        lock: (s) => (s.scores.money >= 45 ? null : "Needs Money 45. There aren't savings enough to invest."),
         hint: "Nothing grows without risk. Some things don't grow at all.",
         because: (s) => (has(s, "shortcut") ? "You looked at his answers once" : ""),
         effects: { money: -10, bonds: { dex: 2 }, flags: ["dex_invest"], memory: "You invested your savings in LifeHack." },
@@ -975,7 +975,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "toast",
         label: "Fly out and give the toast",
         detail: "You'll write it on the plane.",
-        lock: (s) => (has(s, "juno_plan") || s.scores.money >= 12 ? null : "Needs Money 12 for the flight."),
+        lock: (s) => (has(s, "juno_plan") || s.scores.money >= 35 ? null : "Needs Money 35 for the flight."),
         because: (s) => (has(s, "juno_plan") ? "Juno's company is flying everyone out" : ""),
         effects: (s) => ({
           happiness: 2,
@@ -1109,7 +1109,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "carer",
         label: "Hire a carer and visit every weekend",
         detail: "It costs what it costs.",
-        lock: (s) => (s.scores.money >= 15 ? null : "Needs Money 15. Carers cost what they cost."),
+        lock: (s) => (s.scores.money >= 30 ? null : "Needs Money 30. Carers cost what they cost."),
         effects: { money: -10, health: -2, bonds: { family: 1 }, memory: "Bea, the carer Mom loved more than you." },
         result: [nar("Her name is Bea, and Mom loves her more than you. Which is fine. Mostly.")],
       },
@@ -1232,7 +1232,7 @@ export const ENCOUNTERS: EncounterDef[] = [
         id: "campaign",
         label: "Lead the campaign to save it",
         detail: "Petitions, bake sales, one very loud meeting.",
-        lock: (s) => (s.scores.health >= 25 ? null : "Needs Health 25. You haven't the strength for a campaign."),
+        lock: (s) => (s.scores.health >= 35 ? null : "Needs Health 35. You haven't the strength for a campaign."),
         effects: { happiness: 4, money: -6, health: -3, flags: ["saved_light"], memory: "You led the campaign that saved the lighthouse." },
         result: [nar("Four hundred people turn up to the council meeting. Mr Ferris's daughter brings a jar of his famous pickled onions. The vote is overturned.")],
       },
@@ -1342,7 +1342,7 @@ export const ENCOUNTERS: EncounterDef[] = [
       {
         id: "travel",
         label: "Retire, and finally travel",
-        lock: (s) => (s.scores.health >= 30 && s.scores.money >= 12 ? null : "Needs Health 30 and Money 12."),
+        lock: (s) => (s.scores.health >= 40 && s.scores.money >= 25 ? null : "Needs Health 40 and Money 25."),
         detail: (s) => (s.dream === "explorer" ? "The red X on the map." : "All the places you said “one day” about."),
         star: ["explorer"],
         effects: { happiness: 4, money: -6, health: 1, flags: ["retired_travel"], memory: "You finally went to the places on the map." },
@@ -1505,11 +1505,12 @@ export const ENCOUNTERS: EncounterDef[] = [
     (chapter): EncounterDef => ({
       id: `someone-notices-${chapter}`,
       chapter,
-      at: chapter === 4 ? 0.42 : 0.47,
+      // Chapter 5: after Sam's question, so a partner can be the one who notices.
+      at: chapter === 4 ? 0.42 : 0.68,
       kind: "choice",
       title: "Someone Notices",
       // Decided when the chapter begins, so the course stays the same all chapter.
-      when: (s) => (s.chapterStart?.happiness ?? s.scores.happiness) < 42,
+      when: (s) => struggling(s),
       speaker: (s) => noticer(s, chapter),
       lines: (s) => {
         const who = noticer(s, chapter);
@@ -1520,7 +1521,7 @@ export const ENCOUNTERS: EncounterDef[] = [
             : who === "sam"
               ? say("sam", "You've gone quiet. Not peaceful quiet. The other kind.")
               : who === "mom"
-                ? say("mom", "You sound tired on the phone. Not sleepy-tired. The other kind.")
+                ? say("mom", "You look tired, love. Not sleepy-tired. The other kind.")
                 : say("dad", "Come fishing. You don't have to talk. The fish won't either."),
         ];
       },
@@ -1562,7 +1563,7 @@ export const ENCOUNTERS: EncounterDef[] = [
       nar("Mika is seventeen, and has the look you had on platform one."),
       mikaLeaves(s)
         ? say("mika", "I got a place in Brightwater. I'd be on the 7:14. I know it's far.")
-        : say("mika", "I don't want to go away. I want to stay and fix boats with Grandad. Is that stupid?"),
+        : say("mika", "I don't want uni. I want to go to Marigold Bay and fix boats with Grandad. Is that stupid?"),
     ],
     prompt: "What do you tell Mika?",
     options: [
@@ -1590,6 +1591,18 @@ export const ENCOUNTERS: EncounterDef[] = [
     ],
   },
 ];
+
+/**
+ * A chapter that starts with Happiness low, or well down on the chapter before, means
+ * you're struggling. Decided when the chapter begins, so the course stays the same all chapter.
+ */
+export const STRUGGLING_BELOW = 55;
+export const STRUGGLING_DROP = 10;
+function struggling(s: LifeState): boolean {
+  const now = s.chapterStart?.happiness ?? s.scores.happiness;
+  const before = s.previousStart?.happiness;
+  return now < STRUGGLING_BELOW || (before !== undefined && before - now >= STRUGGLING_DROP);
+}
 
 /** Who notices when you're struggling: whoever is closest at the time. */
 function noticer(s: LifeState, chapter: number): PersonId {

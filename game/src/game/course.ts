@@ -44,6 +44,8 @@ export const ZONE_BEFORE = 26;
 /** The story takes the wheel this far before the person (always inside the cleared zone). */
 export const APPROACH = 20;
 export const ZONE_AFTER = 12;
+/** Keepsakes and letters stay at least this far apart. */
+export const RESERVED_GAP = 9;
 
 const ASSIST_DENSITY: Record<Assist, number> = { relaxed: 0.6, standard: 1, brisk: 1.3 };
 
@@ -78,11 +80,13 @@ export function generateCourse(chapter: ChapterDef, encounters: EncounterDef[], 
   let scoreTurn = r.int(0, 2);
   const nextScore = () => scoreCycle[scoreTurn++ % 3];
 
+  // A pickup never sits on a hazard in its lane (you couldn't take it without being hit).
+  const onHazard = (px: number, lane: Lane) => spawns.some((s) => s.kind === "hazard" && s.lane === lane && Math.abs(s.x - px) < HAZARD_HALF_LENGTH + 0.9);
   const trail = (x: number, lane: Lane, count: number, step = 2.2) => {
     const score = nextScore();
     for (let i = 0; i < count; i++) {
       const px = x + i * step;
-      if (!blocked(px)) add({ kind: "pickup", x: px, lane, y: 0.62, score });
+      if (!blocked(px) && !onHazard(px, lane)) add({ kind: "pickup", x: px, lane, y: 0.62, score });
     }
   };
   const arc = (x: number, lane: Lane) => {
@@ -91,19 +95,34 @@ export function generateCourse(chapter: ChapterDef, encounters: EncounterDef[], 
       add({ kind: "pickup", x: x + i * 1.1, lane, y: 0.9 + (1 - (i * i) / 4) * 0.75, score });
     }
   };
-  const hazard = (x: number, lane: Lane, def: HazardDef) => add({ kind: "hazard", x, lane, y: 0, hazard: def });
+  const hazard = (x: number, lane: Lane, def: HazardDef) => {
+    // A hazard placed later clears any ground-level pickup already sitting where it lands.
+    for (let i = spawns.length - 1; i >= 0; i--) {
+      const p = spawns[i];
+      if (p.kind === "pickup" && p.lane === lane && p.y < 0.8 && Math.abs(p.x - x) < HAZARD_HALF_LENGTH + 0.9) spawns.splice(i, 1);
+    }
+    add({ kind: "hazard", x, lane, y: 0, hazard: def });
+  };
   const otherLanes = (lane: Lane) => LANES.filter((l) => l !== lane);
 
   const density = (chapter.density * ASSIST_DENSITY[life.assist]) / 100;
   const spacing = 1 / Math.max(density, 0.001);
   // Keepsake and letter positions are chosen first so the pattern loop can leave room.
   // Collectibles also stay out of the walk-up to a person, where the lane is locked.
-  const reservedBlocked = (x: number) => blocked(x) || marks.some((m) => x > m.x - ZONE_BEFORE - 12 && x < m.x + ZONE_AFTER);
-  const keepsakeXs = [0.27, 0.56, 0.79].map((f) => freeX(f * chapter.length, reservedBlocked));
+  // Each collectible also keeps clear of the ones already placed (a keepsake pushed out of a
+  // walk-up must not land on a letter).
+  const reserved: number[] = [];
+  const reservedBlocked = (x: number) =>
+    blocked(x) || marks.some((m) => x > m.x - ZONE_BEFORE - 12 && x < m.x + ZONE_AFTER) || reserved.some((rx) => Math.abs(rx - x) < RESERVED_GAP);
+  const reserve = (f: number) => {
+    const x = freeX(f * chapter.length, reservedBlocked);
+    reserved.push(x);
+    return x;
+  };
+  const keepsakeXs = [0.27, 0.56, 0.79].map(reserve);
   // Letters are laid out whenever a chapter can have them; the runner only lets you collect
   // them once you've promised to write (which can happen earlier in the same chapter).
-  const letters = chapter.letters ? [0.24, 0.46, 0.64, 0.86].map((f) => freeX(f * chapter.length, reservedBlocked)) : [];
-  const reserved = [...keepsakeXs, ...letters];
+  const letters = chapter.letters ? [0.24, 0.46, 0.64, 0.86].map(reserve) : [];
   const nearReserved = (x: number) => reserved.some((rx) => Math.abs(rx - x) < 9);
 
   let x = START_CLEAR + 6;

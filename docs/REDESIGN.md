@@ -210,3 +210,48 @@ positive items that are unmistakable.
 Balance at the new pace (balance.probe.ts, 40 lives each, seven pickups per
 point): skilled runner Health 63, Happiness 76, Money 54; casual 47/62/36;
 idle 25/37/30. Nobody pins at 0 or 100, and eleven different life titles appear.
+
+## 8. Version 2.2 — interface redesign (2026-09-30)
+
+Requested by the owner: a well-designed interface on the title, settings and every in-game screen,
+especially on phones, using Blender for AAA-quality art. (The game has no shop; Money means financial
+security, so a shop was not invented.)
+
+**Approach.** Blender renders the art (a 3D toy logo and 22 icons on bevelled coin badges, plus renders of
+the real pickup models), while buttons, text and panels stay live HTML/CSS. Images of buttons would blur on
+high-density phones, could not reflow for Larger Text or narrow screens, and would be invisible to screen
+readers.
+
+| Screen | Problem found (phone) | Change |
+|---|---|---|
+| Title | CSS text logo; keyboard hints on touch phones; tagline hard to read over the lighthouse | Blender logo; full-width stacked buttons with icons; tagline on a frosted panel; touch-aware hint line; landscape two-column layout |
+| Create | "Begin" hidden below a long scroll; keyboard popped up on phones; 30–38 px swatches and chips | Bottom sheet with sticky Back/Begin bar; no auto-focus on touch; 44 px swatches and chips; radio semantics; camera frames the character above the sheet |
+| HUD | Chapter label and companion chip overlapped the scores; emoji and text-glyph icons | Scores, chapter pill and companion chips in one tidy column; rendered icons; 56 px pause button |
+| Touch controls | ▲▼⤒ glyphs; tips covered the buttons | Rendered 68 px lane/jump buttons; tips sit above them |
+| Conversations | Tips and "Oof" toasts showed through; scores peeked under the cinema bars; landscape prompt cut off | HUD messages cleared in story mode; scores shown small beside the title; landscape choices in a scrolling card row |
+| Settings / pause | Bottom buttons fell off a landscape phone; small toggles | Bottom sheet (portrait) or two-column sheet (landscape); whole-row switches with icons; close button |
+| Journal, summary, letter, book | Plain text chips | Icon chips, sheet layout with fixed action bar, letter bounded to the screen |
+
+Every screen is checked by `game/tests/ui-audit.mjs` at 390×844, 360×640, 844×390 and 1280×720 for
+off-screen or overflowing elements and touch targets under 40 px.
+
+**Review fixes shipped with 2.2.**
+
+- *Logic:*
+  - Chapter 4's first keepsake and first letter always landed on the same spot. Collectibles now reserve their places in turn.
+  - Obstacles no longer land on top of pickups.
+  - Saves remember which course layout their position belongs to. A save from an older layout resumes before the next unplayed scene instead of skipping it, and a chapter can't end while a scene is still pending.
+  - "Someone Notices" now fires when a chapter starts with Happiness under 55, or 10 lower than the previous chapter's start. It fired for 6 of 80 skilled, 24 of 80 casual and 75 of 80 idle chances in the probe. In chapter 5 it now comes after Sam's question, so a partner can be the one who notices.
+  - Score locks were raised to where they actually matter. For example, doing both at Nana's bedside needs Health 58, and a year on the road needs Money 38.
+  - First-time tips are no longer used up invisibly during the prologue, and the prologue and finale lights don't change scores.
+  - Summary and journal lines only say what is true for this life.
+- *UI:*
+  - The creation camera uses the same breakpoint as the layout.
+  - Portrait and landscape styles no longer overlap on 640×360 and 568×320 phones.
+  - The title fits landscape screens as short as 300 px.
+  - Toasts sit below the measured HUD.
+  - Radio groups work with the arrow keys and are a single Tab stop.
+  - Keyboard focus is visible on the selected swatch.
+  - Closing a dialog returns focus to the control that opened it.
+  - Message dialogs stay inside the safe area.
+  - Low-quality mode drops the live background blur.

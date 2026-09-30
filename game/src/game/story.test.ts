@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { APPROACH, generateCourse, unsafeRows, ZONE_AFTER, ZONE_BEFORE, type Course } from "./course";
+import { APPROACH, generateCourse, RESERVED_GAP, unsafeRows, ZONE_AFTER, ZONE_BEFORE, type Course } from "./course";
 import { createLife, has } from "./life";
 import { Runner, STEP } from "./runner";
 import { deserialise, serialise } from "./save";
@@ -199,7 +199,7 @@ describe("2.1 story and logic", () => {
     const s = newLife();
     startChapter(s, 5);
     expect(activeEncounters(s, 5).some((e) => e.id === "someone-notices-5")).toBe(false);
-    s.scores.happiness = 30;
+    s.scores.happiness = 40;
     startChapter(s, 5);
     const enc = activeEncounters(s, 5).find((e) => e.id === "someone-notices-5");
     expect(enc).toBeTruthy();
@@ -214,9 +214,37 @@ describe("2.1 story and logic", () => {
     const s = playStory(warm);
     expect(peopleSoFar(s).map((p) => p.name)).toEqual(expect.arrayContaining(["Mom and Dad", "Juno", "Sam"]));
     s.scores = { health: 10, happiness: 90, money: 10 };
+    s.chapter = 3;
     const lines = statusLines(s);
     expect(lines.join(" ")).toMatch(/keeping score/);
     expect(lines.join(" ")).toMatch(/Money is tight/);
+    // After the last chapter with choices, nothing promises a "next chapter".
+    s.chapter = 7;
+    expect(statusLines(s).join(" ")).not.toMatch(/next chapter|choices/);
+    // "Someone will notice" only where that scene exists (chapters 4 and 5 follow).
+    s.scores.happiness = 10;
+    s.chapter = 5;
+    expect(statusLines(s).join(" ")).not.toMatch(/Someone will notice/);
+    s.chapter = 4;
+    expect(statusLines(s).join(" ")).toMatch(/Someone will notice/);
+  });
+});
+
+describe("someone notices", () => {
+  it("fires after a hard drop even when happiness isn't low", () => {
+    const s = newLife();
+    s.scores.happiness = 80;
+    startChapter(s, 4);
+    expect(activeEncounters(s, 5).some((e) => e.id.startsWith("someone-notices"))).toBe(false);
+    s.scores.happiness = 66;
+    startChapter(s, 5);
+    expect(activeEncounters(s, 5).some((e) => e.id === "someone-notices-5")).toBe(true);
+  });
+
+  it("comes after Sam's question in chapter 5, so a partner can be the one who notices", () => {
+    const notice = ENCOUNTERS.find((e) => e.id === "someone-notices-5")!;
+    const question = ENCOUNTERS.find((e) => e.id === "sams-question")!;
+    expect(notice.at).toBeGreaterThan(question.at);
   });
 });
 
@@ -245,6 +273,33 @@ describe("courses", () => {
         // Everything from where the story takes the wheel (APPROACH) to the person must be clear.
         const near = course.spawns.filter((s) => (s.kind === "hazard" || s.kind === "keepsake" || s.kind === "letter") && s.x > mark.x - APPROACH - 1 && s.x < mark.x + ZONE_AFTER - 1);
         expect(near, `ch${index} ${mark.id}`).toEqual([]);
+      }
+    }
+  });
+
+  it("keeps keepsakes and letters apart and every pickup off the hazards, for struggling family lives too", () => {
+    for (const index of PLAYABLE) {
+      for (const seed of [1, 2, 3, 7, 99, 12345]) {
+        for (const assist of ["relaxed", "standard", "brisk"] as const) {
+          const s = newLife(seed);
+          s.assist = assist;
+          s.flags = ["letters", "kids", "partner", "met_sam", "biscuit"];
+          s.path = "shop";
+          s.scores.happiness = 30;
+          startChapter(s, index);
+          const course = generateCourse(CHAPTERS[index], activeEncounters(s, index), s);
+          const special = course.spawns.filter((x) => x.kind === "keepsake" || x.kind === "letter").map((x) => x.x);
+          for (let i = 0; i < special.length; i++) for (let j = i + 1; j < special.length; j++) expect(Math.abs(special[i] - special[j]), `ch${index} seed ${seed}`).toBeGreaterThanOrEqual(RESERVED_GAP);
+          const hazards = course.spawns.filter((x) => x.kind === "hazard");
+          for (const p of course.spawns.filter((x) => x.kind === "pickup" && x.y < 0.8)) {
+            expect(hazards.some((h) => h.lane === p.lane && Math.abs(h.x - p.x) < 1.2), `ch${index} seed ${seed} pickup at ${p.x}`).toBe(false);
+          }
+          expect(unsafeRows(course)).toEqual([]);
+          for (const mark of course.encounters) {
+            const near = course.spawns.filter((x) => (x.kind === "hazard" || x.kind === "keepsake" || x.kind === "letter") && x.x > mark.x - APPROACH - 1 && x.x < mark.x + ZONE_AFTER - 1);
+            expect(near, `ch${index} ${mark.id}`).toEqual([]);
+          }
+        }
       }
     }
   });

@@ -108,7 +108,9 @@ export interface LifeState {
   /** The chapter whose entry effects (drift, income) have been applied, and the scores then. */
   started?: number;
   chapterStart?: Scores;
+  /** The previous chapter's starting scores (to notice a hard stretch). */
+  previousStart?: Scores;
   /** Where the runner was at the last mid-chapter save, and what it had already taken. */
-  progress?: { chapter: number; x: number; collected: number[] };
+  progress?: { chapter: number; x: number; collected: number[]; course?: string };
   finished: boolean;
 }

@@ -120,6 +120,7 @@ class Game {
   /** "! Name" bubbles over people waiting ahead, by encounter id. */
   private bubbles = new Map<string, THREE.Sprite>();
   private hintsSeen = new Set<string>(readHints());
+  private stagedSpeaker = new Map<string, PersonId | null>();
   private scratch = new THREE.Vector3();
 
   constructor(private params: URLSearchParams) {}
@@ -203,10 +204,11 @@ class Game {
 
   /** A first-time tip, shown once per browser. */
   private hintOnce(id: string, text: string) {
-    if (this.hintsSeen.has(id) || this.qa?.autopilot) return;
+    if (this.hintsSeen.has(id) || this.qa?.autopilot || this.cutscene) return;
+    // Only count a tip as seen once it was actually on screen.
+    if (!this.ui.hint(text)) return;
     this.hintsSeen.add(id);
     writeHints(this.hintsSeen);
-    this.ui.hint(text);
   }
 
   private get touch() {
@@ -232,6 +234,7 @@ class Game {
     document.body.classList.toggle("large-text", p.largeText);
     this.director.reducedMotion = p.reducedMotion;
     this.engine.reducedMotion = p.reducedMotion;
+    document.body.classList.toggle("low-gfx", (this.params.get("q") === "low" ? "low" : p.quality) === "low");
     this.engine.setQuality(this.params.get("q") === "low" ? "low" : p.quality);
   }
 
@@ -434,9 +437,27 @@ class Game {
     this.previewPerson = undefined;
   }
 
+  /** Frames the preview character in the part of the screen the creation sheet leaves open. */
+  private createShot() {
+    // Same condition as the CSS: on portrait phones the sheet docks to the bottom 62%.
+    const docked = window.matchMedia("(max-width: 640px) and (min-height: 501px)").matches;
+    if (docked) {
+      // Look well below the character so it stands in the open top of the screen.
+      return { kind: "wide" as const, target: new THREE.Vector3(99.7, -1.3, 0.6), distance: 5.2, height: 1.3, side: 0.2 };
+    }
+    // Otherwise the sheet is on the right: look to the right of the character so it stands on the left.
+    const narrow = this.engine.camera.aspect < 1;
+    const short = window.innerHeight <= 500;
+    return { kind: "wide" as const, target: new THREE.Vector3(narrow ? 100.6 : short ? 101.3 : 100.9, 0.8, 0), distance: narrow ? 7.2 : short ? 5.4 : 5.2, height: 1.7, side: 0.6 };
+  }
+
   private async createCharacter(): Promise<CreateResult | null> {
     this.mode = "create";
-    this.director.set({ kind: "wide", target: new THREE.Vector3(100.6, 0.9, 0), distance: 5.2, height: 1.9, side: 0.9 });
+    this.director.set(this.createShot());
+    const reframe = () => {
+      if (this.mode === "create") this.director.set(this.createShot());
+    };
+    window.addEventListener("resize", reframe);
     let building = Promise.resolve();
     const result = await this.ui.create(DEFAULT_LOOK, (r) => {
       building = building.then(async () => {
@@ -449,6 +470,7 @@ class Game {
       });
     });
     await building;
+    window.removeEventListener("resize", reframe);
     if (!result) {
       this.previewPerson?.dispose();
       this.previewPerson = undefined;
@@ -519,11 +541,15 @@ class Game {
     if (resume) {
       const done = this.course.encounters.filter((m) => life.resolved.includes(m.id));
       if (done.length) startX = done[done.length - 1].x + 1;
-      // A mid-run save knows exactly where you were and what you'd already picked up.
-      if (life.progress?.chapter === chapter.index) {
+      // A mid-run save knows exactly where you were and what you'd already picked up, but only
+      // for the same course layout (an update that reshapes the chapter invalidates both).
+      if (life.progress?.chapter === chapter.index && life.progress.course === courseKey(this.course)) {
         startX = Math.max(startX, life.progress.x);
         collected = life.progress.collected;
       }
+      // Never resume past a scene that hasn't happened yet.
+      const pending = this.course.encounters.find((m) => !life.resolved.includes(m.id));
+      if (pending) startX = Math.min(startX, Math.max(0, pending.x - APPROACH - 1));
     }
     const specs: CharacterSpec[] = chapter.stages.map((stage) => playerSpec(life, stage.age, chapter.index));
     for (const e of encounters) {
@@ -690,8 +716,8 @@ class Game {
     this.ui.setChapter(chapter.title, ageAt(chapter, progress));
     this.ui.setTimeline(chapter.index, Math.min(1, progress), this.course!.encounters.map((m) => m.x / chapter.length));
     const companions = [];
-    if (this.biscuit) companions.push({ name: "biscuit", text: "🐶 Biscuit fetches nearby pickups" });
-    if (this.sam) companions.push({ name: "sam", ready: r.shieldReady, text: r.shieldReady ? "💚 Sam has your back" : "💚 Sam is catching up…" });
+    if (this.biscuit) companions.push({ name: "biscuit", icon: "dog" as const, text: "Biscuit fetches" });
+    if (this.sam) companions.push({ name: "sam", icon: "partner" as const, ready: r.shieldReady, text: r.shieldReady ? "Sam has your back" : "Sam is catching up" });
     this.ui.setCompanions(companions);
   }
 
@@ -713,6 +739,11 @@ class Game {
       case "pickup": {
         const score = ev.spawn.score ?? "happiness";
         this.spawns?.collect(ev.spawn.id);
+        // The prologue and finale walks are memories: their lights are for looking at, not scoring.
+        if (this.cutscene) {
+          audio.pickup(score, 0);
+          break;
+        }
         const { delta } = runnerPickup(life, score);
         audio.pickup(score, r.streak);
         if (delta[score]) {
@@ -725,6 +756,7 @@ class Game {
         break;
       }
       case "streak": {
+        if (this.cutscene) break;
         const delta = runnerStreak(life, ev.count);
         const key = (Object.keys(delta) as ScoreKey[]).find((k) => delta[k]);
         this.ui.toast("In the flow", `${ev.count} in a row!${key ? ` ${key[0].toUpperCase() + key.slice(1)} +1` : ""}`);
@@ -821,7 +853,8 @@ class Game {
     return new Promise((done) => {
       const check = () => {
         if (this.mode === "title" || !this.runner) return done();
-        if (this.runner.x >= this.chapter!.length - END_CLEAR * 0.5 && this.mode === "run") return done();
+        const pending = this.course?.encounters.some((m) => !this.life?.resolved.includes(m.id));
+        if (this.runner.x >= this.chapter!.length - END_CLEAR * 0.5 && this.mode === "run" && !pending) return done();
         setTimeout(check, 100);
       };
       check();
@@ -862,6 +895,7 @@ class Game {
     }
     for (let i = 0; i < cast.length; i++) await place(cast[i], new THREE.Vector3(x + 1.3 + i * 0.5, 0, i % 2 === 0 ? -1.5 : 1.5), -Math.PI / 2 + 0.4);
     this.npcs.set(enc.id, people);
+    this.stagedSpeaker.set(enc.id, speaker);
   }
 
   private personFor(enc: EncounterDef, who: PersonId): Person | undefined {
@@ -881,6 +915,16 @@ class Game {
     const bubble = this.bubbles.get(enc.id);
     if (bubble) disposeSprite(bubble);
     this.bubbles.delete(enc.id);
+    // Placed 75 m ahead, the speaker may have changed since (Sam became your partner in between).
+    const mark = this.course?.encounters.find((m) => m.id === enc.id);
+    if (mark && this.stagedSpeaker.get(enc.id) !== resolve(enc.speaker, life)) {
+      this.npcs.get(enc.id)?.forEach((n) => n.dispose());
+      this.npcs.delete(enc.id);
+      await this.stageNpcs(enc, mark.x);
+      const late = this.bubbles.get(enc.id);
+      if (late) disposeSprite(late);
+      this.bubbles.delete(enc.id);
+    }
     audio.duck(true);
     const speakerId = resolve(enc.speaker, life);
     const speakerPerson = speakerId ? this.personFor(enc, speakerId) : undefined;
@@ -969,7 +1013,7 @@ class Game {
     const life = this.life;
     if (!life) return;
     if (this.runner && this.chapter && this.chapter.index === life.chapter) {
-      life.progress = { chapter: life.chapter, x: this.runner.x, collected: this.runner.collectedIds() };
+      life.progress = { chapter: life.chapter, x: this.runner.x, collected: this.runner.collectedIds(), course: this.course ? courseKey(this.course) : undefined };
     }
     saveLife(life);
   }
@@ -1171,6 +1215,11 @@ class Game {
     if (free.length) return { laneStep: free[0] < r.lane ? -1 : 1 };
     return lowHere && !r.airborne ? { jump: true } : {};
   }
+}
+
+/** Identifies a chapter's course layout, so saved positions are only reused on the same layout. */
+function courseKey(course: Course): string {
+  return `${course.length}|${course.spawns.length}|${course.encounters.map((m) => `${m.id}@${m.x}`).join(",")}`;
 }
 
 const HINTS_KEY = "choice-of-life-2:hints";

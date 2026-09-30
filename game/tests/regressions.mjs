@@ -48,6 +48,7 @@ const check = (ok, message) => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   await page.goto(`${base}?qa=1&start=1&speed=4`);
   await page.waitForSelector("[data-qa=chapter-card]", { timeout: 60000 });
+  await page.waitForTimeout(500); // the card ignores taps for its first moments
   await page.click("[data-qa=chapter-card] button");
   await page.waitForSelector("[data-qa=line]", { timeout: 120000 });
   // Mash Space every 60 ms for 3 seconds: dialogue advances, but the cards must wait for a deliberate press.
@@ -72,11 +73,44 @@ const check = (ok, message) => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   await page.goto(`${base}?qa=1&start=0&speed=1`);
   await page.waitForSelector("[data-qa=chapter-card]", { timeout: 60000 });
+  await page.waitForTimeout(500); // the card ignores taps for its first moments
   await page.click("[data-qa=chapter-card] button");
   await page.waitForSelector("[data-qa=line]", { timeout: 60000 });
   await page.keyboard.press("Escape");
   await page.waitForTimeout(500);
   check(!(await page.$(".pause-modal")), "Esc does not open the pause menu during the prologue");
+  await page.close();
+}
+
+// ---------------------------------------------------------------- 4. a save from an older course layout
+{
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto(`${base}?qa=1`);
+  await page.waitForFunction(() => window.__COL__?.ready);
+  // A chapter 2 save whose position lies beyond the current (shorter) chapter and has no layout key.
+  await page.evaluate(() => {
+    const life = {
+      version: 2, seed: 9, name: "Kai", pronoun: "they", assist: "standard",
+      look: { skin: "#f0b48a", hair: "#4a2c1d", hairStyle: "short", colour: "#12a5b8" },
+      scores: { health: 60, happiness: 60, money: 40 }, bonds: { juno: 2, family: 3, sam: 0, dex: 0, okafor: 0 },
+      flags: ["kite_fixed"], spark: "maker", chapter: 2, resolved: ["new-kid"], choices: [], memories: [], keepsakes: [], recoveries: [],
+      stats: { pickups: 0, bumps: 0, jumps: 0, letters: 0, bestStreak: 0 }, meters: { health: 0, happiness: 0, money: 0 },
+      started: 2, chapterStart: { health: 60, happiness: 60, money: 40 }, progress: { chapter: 2, x: 600, collected: [1, 2, 3] }, finished: false,
+    };
+    localStorage.setItem("choice-of-life-2:life", JSON.stringify(life));
+  });
+  await page.reload();
+  await page.waitForFunction(() => window.__COL__?.ready);
+  await page.click("[data-qa=continue]");
+  await page.waitForSelector("[data-qa=chapter-card]", { timeout: 60000 });
+  await page.waitForTimeout(500);
+  await page.click("[data-qa=chapter-card] button");
+  await page.waitForFunction(() => window.__COL__.mode() === "run", null, { timeout: 60000 });
+  const state = await page.evaluate(() => ({ chapter: window.__COL__.chapter(), x: window.__COL__.x() }));
+  check(state.chapter === 2 && state.x < 200, `an out-of-date save resumes before the next unplayed scene (chapter ${state.chapter}, x ${state.x.toFixed(0)})`);
+  check(errors.length === 0, `no page errors (${errors.join(" | ")})`);
   await page.close();
 }
 

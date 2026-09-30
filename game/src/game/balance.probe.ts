@@ -24,6 +24,10 @@ import {
 import type { LifeState, ScoreKey } from "./types";
 
 type RunStyle = "skilled" | "casual" | "idle";
+/** Scores seen on arrival at each scene that has a score-gated option (LOCKS=1 prints them). */
+const LOCKED_SCENES = ["nanas-last-summer", "the-fork", "dex-idea", "junos-wedding", "the-call", "save-the-light", "last-shift", "someone-notices-4", "someone-notices-5"];
+const seen: Record<string, Record<RunStyle, number[][]>> = {};
+let noticeCount: Record<RunStyle, number> = { skilled: 0, casual: 0, idle: 0 };
 const look = { skin: "#f0b48a", hair: "#4a2c1d", hairStyle: "short" as const, colour: "#12a5b8" };
 
 function play(seed: number, style: RunStyle, choiceSeed: number): LifeState {
@@ -71,6 +75,8 @@ function play(seed: number, style: RunStyle, choiceSeed: number): LifeState {
         else if (ev.type === "letter") collectLetter(s, ev.spawn.index ?? 0);
         else if (ev.type === "arrived" && pending) {
           const enc = activeEncounters(s, index).find((e) => e.id === pending)!;
+          if (LOCKED_SCENES.includes(enc.id)) ((seen[enc.id] ??= { skilled: [], casual: [], idle: [] })[style]).push([s.scores.health, s.scores.happiness, s.scores.money]);
+          if (enc.id.startsWith("someone-notices")) noticeCount[style]++;
           const open = optionViews(enc, s).filter((o) => !o.locked);
           choose(s, enc, enc.kind === "event" ? "continue" : open[Math.floor(pickRng.next() * open.length)].id);
           runner.setOptions({ letters: lettersActive(s) });
@@ -105,4 +111,15 @@ for (const style of ["skilled", "casual", "idle"] as RunStyle[]) {
   }
   console.log(style.padEnd(8), "health", stats(finals.health), " happiness", stats(finals.happiness), " money", stats(finals.money));
   console.log("         titles:", [...titles.entries()].map(([t, n]) => `${t} ${n}`).join(" · "));
+}
+
+if (process.env.LOCKS) {
+  const pct = (xs: number[], p: number) => [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.floor(xs.length * p))];
+  for (const [id, byStyle] of Object.entries(seen)) {
+    const cells = (Object.entries(byStyle) as [RunStyle, number[][]][])
+      .filter(([, v]) => v.length)
+      .map(([style, v]) => `${style}: n=${v.length} H p10/50 ${pct(v.map((x) => x[0]), 0.1)}/${pct(v.map((x) => x[0]), 0.5)} M p10/50 ${pct(v.map((x) => x[2]), 0.1)}/${pct(v.map((x) => x[2]), 0.5)}`);
+    console.log(id.padEnd(20), cells.join(" | "));
+  }
+  console.log("someone-notices fired (of 80 chances per style):", JSON.stringify(noticeCount));
 }

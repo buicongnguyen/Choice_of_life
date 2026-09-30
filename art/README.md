@@ -71,3 +71,20 @@ The whole `public/models` folder should stay under 6 MB.
 `public/models/manifest.json` records every asset's group, bytes, triangles, node names, material names
 and root extras. `game/src/render/assets.test.ts` checks that the assets the game uses exist, that joints
 and sockets are present, and that budgets hold.
+
+## UI art (logo and icons)
+
+`art/ui/build_ui.py` renders the interface art with the same kit, palette and lighting as the models:
+
+```sh
+"$BLENDER" --background --factory-startup --python art/ui/build_ui.py -- [logo|health|pause|...]
+```
+
+- Output: transparent WebP files in `public/ui/` (logo 944×592, icons 192×192; about 230 KB in total).
+- Glyph icons (pause, play, close, back, up, down, jump, settings, music, volume, motion, text, quality,
+  journal, home, dog, partner) are small toy objects on a bevelled coin badge.
+- The heart, star, coin, keepsake and letter icons are renders of the real pickup models from `art/.raw`,
+  so the HUD matches the world exactly. Build the models first (`node art/run-blender.mjs pickups`).
+- The logo uses Lilita One (SIL Open Font License, `art/ui/fonts/LilitaOne-OFL.txt`).
+- Buttons, text and panels stay HTML/CSS so they reflow, scale with Larger Text and stay readable by
+  screen readers; the rendered art is decorative (`alt=""`) except the logo.

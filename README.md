@@ -26,12 +26,14 @@ npm run dev      # http://localhost:4410
 npm test         # story, course safety, runner and asset-contract tests
 npm run build    # game/dist
 npm run e2e      # plays a whole life in Chromium with the autopilot (dev server on 4412 or GAME_URL)
+node game/tests/regressions.mjs   # resume, held Space, cutscene pause, out-of-date saves
+node game/tests/ui-audit.mjs out/ # every screen at phone, landscape-phone, tablet and desktop sizes
 ```
 
 - `game/src/game` — pure logic: life state, story data, course generator (always leaves a free lane), fixed-step runner, ending. No DOM or Three.js.
 - `game/src/render` — Three.js: engine, sky moods, sea shader, world streaming, people and procedural animation, pickups, particles, camera director.
 - `game/src/ui`, `game/src/audio` — DOM overlay and procedural WebAudio score and effects.
-- `art/` — Blender 4.5 generators for every model (`node art/run-blender.mjs [group|name]` rebuilds and packs into `public/models`).
+- `art/` — Blender 4.5 generators for every model (`node art/run-blender.mjs [group|name]` rebuilds and packs into `public/models`) and the UI logo and icons (`art/ui/build_ui.py` → `public/ui`).
 
 QA: `?qa=1&auto=1&speed=8&policy=warm` plays a life by itself; `?view=cast` and `?view=models&names=a,b` are art review views.
 

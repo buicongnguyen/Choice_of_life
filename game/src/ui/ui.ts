@@ -19,11 +19,47 @@ function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string, 
   return el;
 }
 
-export const ICONS: Record<ScoreKey, string> = {
-  health: `<svg viewBox="0 0 24 24" width="26" height="26"><path fill="#ff5a6e" stroke="#c9243b" stroke-width="1.5" d="M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3.1 4.5 6.8 4.5c2.2 0 3.6 1.2 5.2 3.1 1.6-1.9 3-3.1 5.2-3.1 3.7 0 5.9 3.7 4.4 7.2C19.5 16.4 12 21 12 21z"/><ellipse cx="7.8" cy="8.6" rx="1.8" ry="1.1" fill="#fff" opacity=".8"/></svg>`,
-  happiness: `<svg viewBox="0 0 24 24" width="26" height="26"><path fill="#ffd23f" stroke="#d99a00" stroke-width="1.5" stroke-linejoin="round" d="M12 2.8l2.7 5.8 6.3.7-4.7 4.3 1.3 6.2L12 16.7l-5.6 3.1 1.3-6.2L3 9.3l6.3-.7z"/><circle cx="9.6" cy="9.5" r="1.1" fill="#fff" opacity=".85"/></svg>`,
-  money: `<svg viewBox="0 0 24 24" width="26" height="26"><circle cx="12" cy="12" r="9.4" fill="#3ddc97" stroke="#0f8a55" stroke-width="1.6"/><circle cx="12" cy="12" r="6.2" fill="none" stroke="#0f8a55" stroke-width="1.2" opacity=".6"/><path d="M12 7.5c-1.6 1.7-2.4 3.2-2.4 4.5a2.4 2.4 0 004.8 0c0-1.3-.8-2.8-2.4-4.5z" fill="#0f8a55"/></svg>`,
-};
+/** Icons rendered in Blender by art/ui/build_ui.py (public/ui/*.webp). */
+export type IconName =
+  | ScoreKey
+  | "keepsake"
+  | "letter"
+  | "pause"
+  | "play"
+  | "close"
+  | "back"
+  | "up"
+  | "down"
+  | "jump"
+  | "settings"
+  | "music"
+  | "volume"
+  | "motion"
+  | "text"
+  | "quality"
+  | "journal"
+  | "home"
+  | "dog"
+  | "partner";
+
+const UI_BASE = "./ui/";
+const ALL_ICONS: IconName[] = ["health", "happiness", "money", "keepsake", "letter", "pause", "play", "close", "back", "up", "down", "jump", "settings", "music", "volume", "motion", "text", "quality", "journal", "home", "dog", "partner"];
+
+/** Decorative icon: the button or label next to it carries the accessible name. */
+export function icon(name: IconName, cls = "ico") {
+  const img = h("img", { class: cls, src: `${UI_BASE}${name}.webp`, alt: "", draggable: "false", decoding: "async" });
+  return img;
+}
+
+/** Warms the browser cache so icons never pop in mid-game. */
+export function preloadUi() {
+  for (const n of [...ALL_ICONS, "logo"]) {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = `${UI_BASE}${n}.webp`;
+  }
+}
+
 const SCORE_NAME: Record<ScoreKey, string> = { health: "Health", happiness: "Happiness", money: "Money" };
 const BOND_NAME: Record<BondKey, string> = { juno: "Juno", family: "Family", sam: "Sam", dex: "Dex", okafor: "Ms Okafor" };
 
@@ -38,6 +74,15 @@ export interface CreateResult {
   look: Look;
   assist: Assist;
 }
+
+export interface Companion {
+  name: string;
+  icon: IconName;
+  text: string;
+  ready?: boolean;
+}
+
+const isTouch = () => document.body.classList.contains("touch");
 
 /** One key/click to advance; resolves once. Cleans up its own listeners. */
 function waitForAdvance(target: HTMLElement, keys = ["Space", "Enter", "KeyE"]): Promise<void> {
@@ -77,9 +122,32 @@ function armLater(button: HTMLButtonElement, focus = true) {
   }, LOCKOUT_MS);
 }
 
+/** A button with a rendered icon and a text label. */
+function iconButton(label: string, name: IconName | null, cls: string, attrs: Record<string, unknown> = {}) {
+  return h("button", { class: cls, type: "button", ...attrs }, name && icon(name), h("span", {}, label));
+}
+
+/** A settings switch: the whole row is the control, so the tap target is large. */
+function switchRow(label: string, name: IconName, on: boolean, change: (on: boolean) => void) {
+  const row = h(
+    "button",
+    { class: "setting switch-row", type: "button", role: "switch", "aria-checked": String(on) },
+    icon(name, "ico row-ico"),
+    h("span", { class: "setting-label" }, label),
+    h("span", { class: "toggle", "aria-hidden": "true" }),
+  );
+  row.addEventListener("click", () => {
+    const next = row.getAttribute("aria-checked") !== "true";
+    row.setAttribute("aria-checked", String(next));
+    change(next);
+  });
+  return row;
+}
+
 export class UI {
   readonly root: HTMLElement;
   private hudEl?: HTMLElement;
+  private hudObserver?: ResizeObserver;
   private scoresEl = new Map<ScoreKey, HTMLElement>();
   private toastsEl?: HTMLElement;
   private chapterEl?: HTMLElement;
@@ -97,6 +165,7 @@ export class UI {
     this.root = root;
     this.veilEl = h("div", { class: "veil" });
     root.append(this.veilEl);
+    preloadUi();
   }
 
   private clearLayer() {
@@ -119,7 +188,7 @@ export class UI {
 
   loading(text: string | null) {
     this.root.querySelector(".loading")?.remove();
-    if (text) this.root.append(h("div", { class: "loading" }, text));
+    if (text) this.root.append(h("div", { class: "loading", role: "status" }, h("span", { class: "spinner", "aria-hidden": "true" }), text));
   }
 
   // ------------------------------------------------------------------ title
@@ -129,6 +198,13 @@ export class UI {
         this.onTap?.();
         resolve(v);
       };
+      const actions = h(
+        "div",
+        { class: "title-actions" },
+        hasSave && iconButton("Continue your life", "play", "btn teal big", { onclick: pick("continue"), "data-qa": "continue" }),
+        iconButton(hasSave ? "Start a new life" : "Begin a life", hasSave ? null : "play", hasSave ? "btn ghost big" : "btn big", { onclick: pick("new"), "data-qa": "new" }),
+        iconButton("Settings", "settings", "btn ghost", { onclick: pick("settings"), "data-qa": "settings" }),
+      );
       this.setLayer(
         h(
           "div",
@@ -137,17 +213,11 @@ export class UI {
             "div",
             { class: "title-card" },
             h("div", { class: "title-kicker" }, "One life · one promise"),
-            h("h1", { class: "title-logo" }, "Choice of ", h("span", {}, "Life")),
+            h("h1", { class: "title-logo" }, h("img", { src: `${UI_BASE}logo.webp`, alt: "Choice of Life", width: "936", height: "540", decoding: "async" })),
             h("p", { class: "title-tag" }, "Two kids bury a tin under a lighthouse and promise to open it together at seventy. Run the whole life in between, and choose what it becomes."),
-            h(
-              "div",
-              { class: "title-actions" },
-              hasSave && h("button", { class: "btn teal", onclick: pick("continue"), "data-qa": "continue" }, "Continue your life"),
-              h("button", { class: "btn", onclick: pick("new"), "data-qa": "new" }, hasSave ? "Start a new life" : "Begin a life"),
-              h("button", { class: "btn ghost", onclick: pick("settings") }, "Settings"),
-            ),
+            actions,
           ),
-          h("div", { class: "title-foot" }, "Arrows or WASD to change lanes · Space to jump · Esc to pause"),
+          h("div", { class: "title-foot" }, isTouch() ? "Swipe up or down to change lanes · tap to jump" : "↑ ↓ or W S to change lanes · Space to jump · Esc to pause"),
         ),
       );
     });
@@ -158,87 +228,95 @@ export class UI {
     return new Promise((resolve) => {
       const state: CreateResult = structuredClone(initial);
       const changed = () => onChange(structuredClone(state));
-      const group = <T,>(values: T[], current: () => T, set: (v: T) => void, render: (v: T) => Child, cls: string, label: (v: T) => string) => {
-        const box = h("div", { class: cls === "swatch" ? "swatches" : "chips", role: "group" });
-        const buttons = values.map((v) => {
-          const b = h("button", { class: cls, type: "button", "aria-label": label(v), "aria-pressed": String(current() === v) }, render(v));
-          if (cls === "swatch") b.style.background = String(v);
-          b.addEventListener("click", () => {
-            set(v);
-            buttons.forEach((x, i) => x.setAttribute("aria-pressed", String(values[i] === v)));
-            this.onTap?.();
-            changed();
+      const group = <T,>(labelText: string, values: T[], current: () => T, set: (v: T) => void, render: (v: T) => Child, cls: string, label: (v: T) => string) => {
+        const box = h("div", { class: cls === "swatch" ? "swatches" : "chips", role: "radiogroup", "aria-label": labelText });
+        const select = (index: number, focus: boolean) => {
+          const v = values[index];
+          set(v);
+          // Roving tabindex: the group is one Tab stop; arrow keys move inside it.
+          buttons.forEach((x, i) => {
+            x.setAttribute("aria-checked", String(i === index));
+            x.tabIndex = i === index ? 0 : -1;
+          });
+          if (focus) buttons[index].focus();
+          this.onTap?.();
+          changed();
+        };
+        const buttons = values.map((v, i) => {
+          // Chips are named by their visible text; colour swatches need a spoken name.
+          const b = h("button", { class: cls, type: "button", role: "radio", "aria-label": cls === "swatch" ? label(v) : undefined, "aria-checked": String(current() === v), tabindex: current() === v ? "0" : "-1" }, render(v));
+          if (cls === "swatch") b.style.setProperty("--swatch", String(v));
+          b.addEventListener("click", () => select(i, false));
+          b.addEventListener("keydown", (e) => {
+            const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+            if (step) select((i + step + values.length) % values.length, true);
+            else if (e.key === "Home") select(0, true);
+            else if (e.key === "End") select(values.length - 1, true);
+            else return;
+            e.preventDefault();
           });
           return b;
         });
         box.append(...buttons);
-        return box;
+        return h("div", { class: "field" }, h("div", { class: "label", "aria-hidden": "true" }, labelText), box);
       };
-      const name = h("input", { type: "text", maxlength: "16", value: state.name, "aria-label": "Your name", autocomplete: "off" }) as HTMLInputElement;
+      const name = h("input", { type: "text", maxlength: "16", value: state.name, "aria-label": "Your name", autocomplete: "off", enterkeyhint: "done", spellcheck: "false" }) as HTMLInputElement;
       name.addEventListener("input", () => {
         state.name = name.value;
       });
+      name.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") name.blur();
+      });
+      const begin = iconButton("Begin this life", "play", "btn", {
+        "data-qa": "begin",
+        onclick: () => {
+          this.onTap?.();
+          resolve(structuredClone(state));
+        },
+      });
+      const back = iconButton("Back", "back", "btn ghost", { onclick: () => resolve(null), "aria-label": "Back to the title" });
       const panel = h(
         "div",
-        { class: "create panel pop-in" },
-        h("h2", {}, "Who are you?"),
-        h("p", { class: "lead" }, "Your look never changes your chances. It just makes this life yours."),
-        h("div", { class: "field" }, h("label", {}, "Name"), name),
-        h("div", { class: "field" }, h("div", { class: "label" }, "Pronouns"), group<Pronoun>(["she", "he", "they"], () => state.pronoun, (v) => (state.pronoun = v), (v) => ({ she: "she / her", he: "he / him", they: "they / them" })[v], "chip", (v) => v)),
-        h("div", { class: "field" }, h("div", { class: "label" }, "Skin"), group(SKIN_TONES, () => state.look.skin, (v) => (state.look.skin = v), () => null, "swatch", (v) => `Skin tone ${SKIN_TONES.indexOf(v) + 1}`)),
-        h("div", { class: "field" }, h("div", { class: "label" }, "Hair"), group<HairStyle>(HAIR_STYLES, () => state.look.hairStyle, (v) => (state.look.hairStyle = v), (v) => v, "chip", (v) => `${v} hair`)),
-        h("div", { class: "field" }, h("div", { class: "label" }, "Hair colour"), group(HAIR_COLOURS, () => state.look.hair, (v) => (state.look.hair = v), () => null, "swatch", (v) => `Hair colour ${HAIR_COLOURS.indexOf(v) + 1}`)),
-        h("div", { class: "field" }, h("div", { class: "label" }, "Favourite colour"), group(FAVOURITE_COLOURS, () => state.look.colour, (v) => (state.look.colour = v), () => null, "swatch", (v) => `Favourite colour ${FAVOURITE_COLOURS.indexOf(v) + 1}`)),
+        { class: "create sheet pop-in", role: "dialog", "aria-label": "Create your character" },
+        h("div", { class: "sheet-head" }, h("h2", {}, "Who are you?"), h("p", { class: "lead" }, "Your look never changes your chances. It just makes this life yours.")),
         h(
           "div",
-          { class: "field" },
-          h("div", { class: "label" }, "Pace"),
-          group<Assist>(["relaxed", "standard", "brisk"], () => state.assist, (v) => (state.assist = v), (v) => ({ relaxed: "Relaxed", standard: "Standard", brisk: "Brisk" })[v], "chip", (v) => `${v} pace`),
-          h("div", { class: "note" }, "Relaxed is slower with fewer obstacles. You can't lose either way."),
+          { class: "sheet-body" },
+          h("div", { class: "field" }, h("label", {}, "Name", name)),
+          group<Pronoun>("Pronouns", ["she", "he", "they"], () => state.pronoun, (v) => (state.pronoun = v), (v) => ({ she: "she / her", he: "he / him", they: "they / them" })[v], "chip", (v) => `${v} pronouns`),
+          group("Skin", SKIN_TONES, () => state.look.skin, (v) => (state.look.skin = v), () => null, "swatch", (v) => `Skin tone ${SKIN_TONES.indexOf(v) + 1}`),
+          group<HairStyle>("Hair", HAIR_STYLES, () => state.look.hairStyle, (v) => (state.look.hairStyle = v), (v) => v, "chip", (v) => `${v} hair`),
+          group("Hair colour", HAIR_COLOURS, () => state.look.hair, (v) => (state.look.hair = v), () => null, "swatch", (v) => `Hair colour ${HAIR_COLOURS.indexOf(v) + 1}`),
+          group("Favourite colour", FAVOURITE_COLOURS, () => state.look.colour, (v) => (state.look.colour = v), () => null, "swatch", (v) => `Favourite colour ${FAVOURITE_COLOURS.indexOf(v) + 1}`),
+          group<Assist>("Pace", ["relaxed", "standard", "brisk"], () => state.assist, (v) => (state.assist = v), (v) => ({ relaxed: "Relaxed", standard: "Standard", brisk: "Brisk" })[v], "chip", (v) => `${v} pace`),
+          h("p", { class: "note" }, "Relaxed is slower with fewer obstacles. You can't lose either way."),
         ),
-        h(
-          "div",
-          { class: "actions" },
-          h("button", { class: "btn ghost small", type: "button", onclick: () => resolve(null) }, "Back"),
-          h(
-            "button",
-            {
-              class: "btn",
-              type: "button",
-              "data-qa": "begin",
-              onclick: () => {
-                this.onTap?.();
-                resolve(structuredClone(state));
-              },
-            },
-            "Begin this life",
-          ),
-        ),
+        h("div", { class: "sheet-actions" }, back, begin),
       );
-      this.setLayer(h("div", { class: "fade-in", style: "position:absolute;inset:0;pointer-events:none" }, panel));
-      panel.style.pointerEvents = "auto";
+      this.setLayer(h("div", { class: "create-wrap fade-in" }, panel));
       changed();
-      setTimeout(() => name.focus(), 50);
+      // Don't open the on-screen keyboard on phones; desktop gets the name field ready to type.
+      if (!isTouch()) setTimeout(() => name.focus(), 50);
+      else setTimeout(() => begin.focus({ preventScroll: true }), 50);
     });
   }
 
   // ------------------------------------------------------------------ chapter card
   chapterCard(chapter: ChapterDef, subtitle: string, intro: string): Promise<void> {
-    const touch = document.body.classList.contains("touch");
     const el = this.setLayer(
       h(
         "div",
         { class: "chapter-card fade-in", "data-qa": "chapter-card" },
         h(
           "div",
-          {},
+          { class: "chapter-inner" },
           h("div", { class: "num" }, chapter.number),
           h("h1", {}, chapter.title),
           h("div", { class: "sub" }, subtitle),
           intro && h("p", { class: "intro" }, intro),
-          h("button", { class: "btn", type: "button" }, chapter.index === 0 ? "Remember" : "Begin"),
+          iconButton(chapter.index === 0 ? "Remember" : "Begin", "play", "btn big"),
           chapter.hazards.length > 0 &&
-            h("div", { class: "controls" }, touch ? "Swipe up/down to change lanes · tap to jump" : "↑ ↓ or W S to change lanes · Space to jump · Esc to pause"),
+            h("div", { class: "controls" }, isTouch() ? "Swipe up or down to change lanes · tap to jump" : "↑ ↓ or W S to change lanes · Space to jump · Esc to pause"),
         ),
       ),
     );
@@ -248,6 +326,8 @@ export class UI {
   // ------------------------------------------------------------------ HUD
   showHud(show: boolean) {
     if (!show) {
+      this.hudObserver?.disconnect();
+      this.hudObserver = undefined;
       this.hudEl?.remove();
       this.hudEl = undefined;
       this.chapterKey = "";
@@ -255,34 +335,42 @@ export class UI {
       return;
     }
     if (this.hudEl) return;
-    const scores = h("div", { class: "hud-scores" });
+    const scores = h("div", { class: "hud-scores", role: "group", "aria-label": "Your scores" });
     for (const key of ["health", "happiness", "money"] as ScoreKey[]) {
-      const icon = h("span", { class: "icon" });
-      icon.innerHTML = ICONS[key];
       const el = h(
         "div",
-        { class: `score ${key}`, title: SCORE_NAME[key], "aria-label": SCORE_NAME[key] },
-        icon,
+        { class: `score ${key}`, title: SCORE_NAME[key] },
+        icon(key, "ico score-ico"),
         h("span", { class: "value" }, "0"),
-        h("span", { class: "meter", title: "Seven small good things make a point" }, h("i", {})),
+        h("span", { class: "meter", title: `${PICKUPS_PER_POINT} small good things make a point` }, h("i", {})),
         h("span", { class: "sr-only" }, SCORE_NAME[key]),
       );
       this.scoresEl.set(key, el);
       scores.append(el);
     }
     this.chapterEl = h("div", { class: "hud-chapter" });
+    this.companionsEl = h("div", { class: "companions" });
     this.timelineEl = h("div", { class: "timeline", "aria-hidden": "true" });
     for (let i = 1; i <= 7; i++) this.timelineEl.append(h("div", { class: "seg" }, h("div", { class: "fill" })));
     this.toastsEl = h("div", { class: "toasts", "aria-live": "polite" });
-    this.companionsEl = h("div", { class: "companions" });
-    const pause = h("button", { class: "icon-btn", type: "button", "aria-label": "Pause", onclick: () => this.onPause?.() }, "❚❚");
+    const pause = h("button", { class: "icon-btn", type: "button", "aria-label": "Pause and settings", onclick: () => this.onPause?.() }, icon("pause", "ico big-ico"));
     const pad = h(
       "div",
       { class: "touch-pad" },
-      h("div", { class: "group" }, h("button", { type: "button", "aria-label": "Lane up", onclick: () => this.touchHandlers?.up() }, "▲"), h("button", { type: "button", "aria-label": "Lane down", onclick: () => this.touchHandlers?.down() }, "▼")),
-      h("div", { class: "group" }, h("button", { type: "button", "aria-label": "Jump", onclick: () => this.touchHandlers?.jump() }, "⤒")),
+      h(
+        "div",
+        { class: "group lanes" },
+        h("button", { type: "button", "aria-label": "Move up a lane", onclick: () => this.touchHandlers?.up() }, icon("up", "ico pad-ico")),
+        h("button", { type: "button", "aria-label": "Move down a lane", onclick: () => this.touchHandlers?.down() }, icon("down", "ico pad-ico")),
+      ),
+      h("div", { class: "group" }, h("button", { type: "button", "aria-label": "Jump", onclick: () => this.touchHandlers?.jump() }, icon("jump", "ico pad-ico"))),
     );
-    this.hudEl = h("div", { class: "hud" }, scores, this.chapterEl, h("div", { class: "hud-right" }, pause), this.companionsEl, this.toastsEl, this.timelineEl, pad);
+    const top = h("div", { class: "hud-top" }, h("div", { class: "hud-left" }, scores, h("div", { class: "hud-meta" }, this.chapterEl, this.companionsEl)), pause);
+    this.hudEl = h("div", { class: "hud" }, top, this.toastsEl, this.timelineEl, pad);
+    // Toasts always appear just below the top bar, however it wraps on this screen.
+    const hud = this.hudEl;
+    this.hudObserver = new ResizeObserver(() => hud.style.setProperty("--hud-h", `${top.offsetHeight}px`));
+    this.hudObserver.observe(top);
     this.root.insertBefore(this.hudEl, this.root.firstChild);
   }
 
@@ -312,7 +400,7 @@ export class UI {
     const key = `${title}|${age}`;
     if (!this.chapterEl || key === this.chapterKey) return;
     this.chapterKey = key;
-    this.chapterEl.replaceChildren(h("div", { class: "t" }, title), h("div", { class: "age" }, `Age ${age}`));
+    this.chapterEl.replaceChildren(h("span", { class: "t" }, title), h("span", { class: "age" }, `Age ${age}`));
   }
 
   setTimeline(chapter: number, progress: number, marks: number[] = []) {
@@ -321,6 +409,7 @@ export class UI {
       const index = i + 1;
       const fill = seg.querySelector(".fill") as HTMLElement;
       fill.style.width = index < chapter ? "100%" : index === chapter ? `${Math.round(progress * 100)}%` : "0%";
+      seg.classList.toggle("now", index === chapter);
       if (index === chapter && seg.querySelectorAll(".mark").length !== marks.length) {
         seg.querySelectorAll(".mark").forEach((m) => m.remove());
         for (const m of marks) seg.append(h("i", { class: "mark", style: `left:${m * 100}%` }));
@@ -329,38 +418,48 @@ export class UI {
     });
   }
 
-  setCompanions(list: { name: string; ready?: boolean; text: string }[]) {
+  setCompanions(list: Companion[]) {
     const key = JSON.stringify(list);
     if (key === this.companionsKey) return;
     this.companionsKey = key;
-    this.companionsEl?.replaceChildren(...list.map((c) => h("div", { class: `companion ${c.ready ? "ready" : ""}` }, c.text)));
+    this.companionsEl?.replaceChildren(
+      ...list.map((c) => h("div", { class: `companion ${c.ready === false ? "waiting" : ""}` }, icon(c.icon, "ico chip-ico"), h("span", {}, c.text))),
+    );
   }
 
   toast(kind: string, text: string, style = "") {
-    if (!this.toastsEl) return;
+    if (!this.toastsEl || this.root.classList.contains("story-on")) return;
     const t = h("div", { class: `toast ${style}` }, h("span", { class: "kind" }, kind), text);
     this.toastsEl.append(t);
     while (this.toastsEl.children.length > 2) this.toastsEl.firstElementChild?.remove();
     setTimeout(() => t.remove(), 3500);
   }
 
-  /** A friendly first-time tip, bigger and longer than a toast. */
-  hint(text: string) {
-    if (!this.hudEl) return;
+  /** A friendly first-time tip, bigger and longer than a toast. Returns whether it was shown. */
+  hint(text: string): boolean {
+    if (!this.hudEl || this.root.classList.contains("story-on")) return false;
     this.hudEl.querySelector(".hint")?.remove();
     const el = h("div", { class: "hint", role: "status" }, h("span", { class: "kind" }, "Tip"), text);
     this.hudEl.append(el);
     setTimeout(() => el.remove(), 5200);
+    return true;
   }
 
   gust(dir: -1 | 1) {
-    const el = h("div", { class: "gust" }, dir < 0 ? "🍃 Wind! ↑" : "🍃 Wind! ↓");
+    const el = h("div", { class: "gust" }, dir < 0 ? "Wind! ↑" : "Wind! ↓");
     this.hudEl?.append(el);
     setTimeout(() => el.remove(), 1100);
   }
 
+  /** Clears transient HUD messages (a conversation is starting). */
+  private quietHud() {
+    this.toastsEl?.replaceChildren();
+    this.hudEl?.querySelectorAll(".hint, .gust").forEach((n) => n.remove());
+  }
+
   // ------------------------------------------------------------------ story
   private storyLayer(title?: string) {
+    this.quietHud();
     const el = h("div", { class: "story", "data-qa": "story", "aria-live": "polite" }, title ? h("div", { class: "story-title" }, title) : null);
     const layer = this.setLayer(el);
     this.root.classList.add("story-on");
@@ -373,10 +472,10 @@ export class UI {
       onLine?.(line);
       const box = h(
         "div",
-        { class: `line ${line.who === "narrator" ? "narrator" : ""}`, "data-qa": "line", role: "button", tabindex: "0" },
+        { class: `line ${line.who === "narrator" ? "narrator" : ""}`, "data-qa": "line", role: "button", tabindex: "0", "aria-label": `${line.who === "narrator" ? "" : `${nameFor(line.who)}: `}${line.text}. Tap to continue.` },
         line.who !== "narrator" && h("span", { class: "who" }, nameFor(line.who)),
-        line.text,
-        h("span", { class: "next" }, "▶"),
+        h("span", { class: "text" }, line.text),
+        h("span", { class: "next", "aria-hidden": "true" }, isTouch() ? "tap" : "▶"),
       );
       layer.querySelectorAll(".line, .choices").forEach((n) => n.remove());
       layer.append(box);
@@ -401,17 +500,16 @@ export class UI {
         resolve(id);
       };
       const cards = options.map((o, i) => {
-        const fx = effectChips(o.effects);
         const card = h(
           "button",
           { class: `card ${o.star ? "starred" : ""}`, type: "button", disabled: !!o.locked, "data-qa": `option-${o.id}`, style: `animation-delay:${i * 70}ms` },
-          h("span", { class: "key" }, String(i + 1)),
+          h("span", { class: "key", "aria-hidden": "true" }, String(i + 1)),
           h("span", { class: "label" }, o.label),
           o.detail && h("span", { class: "detail" }, o.detail),
-          fx,
+          effectChips(o.effects),
           o.star && h("span", { class: "star" }, "★ This feels like you. +1 Happiness"),
           o.because && h("span", { class: "because" }, `↺ ${o.because}`),
-          o.hint && h("span", { class: "hint" }, `→ ${o.hint}`),
+          o.hint && h("span", { class: "hint-line" }, `→ ${o.hint}`),
           o.locked && h("span", { class: "lock" }, `🔒 ${o.locked}`),
         );
         card.addEventListener("click", () => !o.locked && pick(o.id));
@@ -423,7 +521,12 @@ export class UI {
         if (n >= 1 && n <= options.length && !options[n - 1].locked) pick(options[n - 1].id);
       };
       window.addEventListener("keydown", onKey);
-      layer.append(h("div", { class: "choices" }, h("div", { class: "prompt" }, prompt), h("div", { class: "cards" }, ...cards)));
+      const row = h("div", { class: "cards", role: "group", "aria-label": prompt }, ...cards);
+      // In the landscape card row, the right-edge fade hints at more cards until you reach the end.
+      const edge = () => row.classList.toggle("more", row.scrollLeft + row.clientWidth < row.scrollWidth - 4);
+      row.addEventListener("scroll", edge, { passive: true });
+      layer.append(h("div", { class: "choices" }, h("div", { class: "prompt" }, prompt), row));
+      requestAnimationFrame(edge);
       // Focus the first card only once the lockout has passed, so a held Space/Enter can't choose.
       setTimeout(() => (cards.find((c) => !c.hasAttribute("disabled")) as HTMLElement | undefined)?.focus({ preventScroll: true }), LOCKOUT_MS);
       if (this.autoAdvance && available.length === 0) resolve(options[0].id);
@@ -437,7 +540,7 @@ export class UI {
   // ------------------------------------------------------------------ summaries & modals
   summary(chapter: ChapterDef, lines: string[], outro: string[], keepsakes: number, deltas: Scores, status: string[] = []): Promise<void> {
     const chips = (["health", "happiness", "money"] as ScoreKey[]).map((k) =>
-      h("span", { class: `fx-chip ${k} ${deltas[k] < 0 ? "down" : ""}` }, `${SCORE_NAME[k]} ${deltas[k] >= 0 ? "+" : ""}${deltas[k]}`),
+      h("span", { class: `sum-chip ${k} ${deltas[k] < 0 ? "down" : ""}` }, icon(k, "ico chip-ico"), h("b", {}, `${deltas[k] >= 0 ? "+" : ""}${deltas[k]}`), h("span", { class: "sr-only" }, SCORE_NAME[k])),
     );
     const el = this.setLayer(
       h(
@@ -445,18 +548,22 @@ export class UI {
         { class: "summary fade-in", "data-qa": "summary" },
         h(
           "div",
-          { class: "panel pop-in" },
-          h("div", { class: "kicker" }, `${chapter.number} · complete`),
-          h("h2", {}, chapter.title),
-          h("div", { class: "row" }, ...chips, h("span", { class: "fx-chip bond" }, `Keepsakes ${keepsakes}/3`)),
-          lines.length > 0 && h("ul", {}, ...lines.map((l) => h("li", {}, l))),
-          outro.length > 0 && h("div", { class: "outro" }, ...outro.map((o) => h("p", {}, o))),
-          status.length > 0 && h("div", { class: "status" }, h("div", { class: "kicker" }, "How you're doing"), ...status.map((o) => h("p", {}, o))),
-          h("div", { class: "actions" }, h("button", { class: "btn", type: "button", "data-qa": "continue-chapter" }, "Continue")),
+          { class: "panel sheet pop-in", role: "dialog", "aria-label": `${chapter.title} complete` },
+          h(
+            "div",
+            { class: "sheet-body" },
+            h("div", { class: "kicker" }, `${chapter.number} · complete`),
+            h("h2", {}, chapter.title),
+            h("div", { class: "row" }, ...chips, h("span", { class: "sum-chip keep" }, icon("keepsake", "ico chip-ico"), h("b", {}, `${keepsakes}/3`), h("span", { class: "sr-only" }, "keepsakes"))),
+            lines.length > 0 && h("ul", {}, ...lines.map((l) => h("li", {}, l))),
+            outro.length > 0 && h("div", { class: "outro" }, ...outro.map((o) => h("p", {}, o))),
+            status.length > 0 && h("div", { class: "status" }, h("div", { class: "kicker" }, "How you're doing"), ...status.map((o) => h("p", {}, o))),
+          ),
+          h("div", { class: "sheet-actions" }, iconButton("Continue", "play", "btn", { "data-qa": "continue-chapter" })),
         ),
       ),
     );
-    const button = el.querySelector("button") as HTMLButtonElement;
+    const button = el.querySelector("[data-qa=continue-chapter]") as HTMLButtonElement;
     armLater(button);
     return new Promise((resolve) => {
       button.addEventListener("click", () => {
@@ -470,7 +577,11 @@ export class UI {
 
   message(title: string, text: string, button = "Continue"): Promise<void> {
     const el = this.setLayer(
-      h("div", { class: "modal fade-in", "data-qa": "message" }, h("div", { class: "panel pop-in", role: "alertdialog", "aria-modal": "true", "aria-label": title }, h("h2", {}, title), h("p", {}, text), h("div", { class: "stack" }, h("button", { class: "btn", type: "button" }, button)))),
+      h(
+        "div",
+        { class: "modal fade-in", "data-qa": "message" },
+        h("div", { class: "panel pop-in", role: "alertdialog", "aria-modal": "true", "aria-label": title }, h("h2", {}, title), h("p", {}, text), h("div", { class: "stack" }, iconButton(button, "play", "btn"))),
+      ),
     );
     const b = el.querySelector("button") as HTMLButtonElement;
     armLater(b);
@@ -484,70 +595,90 @@ export class UI {
   }
 
   pauseMenu(prefs: Prefs, onPrefs: (p: Prefs) => void, canQuit: boolean, journal?: () => JournalData): Promise<"resume" | "quit"> {
+    const opener = document.activeElement as HTMLElement | null;
     return new Promise((resolve) => {
       const p = { ...prefs };
-      const toggle = (label: string, key: "music" | "reducedMotion" | "largeText") => {
-        const b = h("button", { class: "toggle", type: "button", "aria-pressed": String(p[key]), "aria-label": label });
-        b.addEventListener("click", () => {
-          p[key] = !p[key];
-          b.setAttribute("aria-pressed", String(p[key]));
-          onPrefs({ ...p });
-        });
-        return h("div", { class: "setting" }, label, b);
-      };
+      const update = () => onPrefs({ ...p });
       const volume = h("input", { type: "range", min: "0", max: "1", step: "0.05", value: String(p.volume), "aria-label": "Volume" }) as HTMLInputElement;
+      const setFill = () => volume.style.setProperty("--fill", `${Math.round(Number(volume.value) * 100)}%`);
+      setFill();
       volume.addEventListener("input", () => {
         p.volume = Number(volume.value);
-        onPrefs({ ...p });
-      });
-      const quality = h("button", { class: "toggle", type: "button", "aria-pressed": String(p.quality === "high"), "aria-label": "High quality graphics" });
-      quality.addEventListener("click", () => {
-        p.quality = p.quality === "high" ? "low" : "high";
-        quality.setAttribute("aria-pressed", String(p.quality === "high"));
-        onPrefs({ ...p });
+        setFill();
+        update();
       });
       const close = (v: "resume" | "quit") => {
         window.removeEventListener("keydown", onKey);
-        this.root.querySelector(".pause-modal")?.remove();
+        el.remove();
+        if (opener?.isConnected) opener.focus({ preventScroll: true });
         resolve(v);
       };
       const onKey = (e: KeyboardEvent) => {
-        if (e.code === "Escape") close("resume");
+        if (e.code === "Escape" && !this.root.querySelector(".journal-modal")) close("resume");
       };
       window.addEventListener("keydown", onKey);
+      const title = canQuit ? "Paused" : "Settings";
       const el = h(
         "div",
-        { class: "modal pause-modal fade-in" },
+        { class: "modal sheet-modal pause-modal fade-in" },
         h(
           "div",
-          { class: "panel pop-in", role: "dialog", "aria-modal": "true", "aria-label": canQuit ? "Paused" : "Settings" },
-          h("h2", {}, canQuit ? "Paused" : "Settings"),
-          h("div", { class: "setting" }, "Volume", volume),
-          toggle("Music", "music"),
-          toggle("Reduced motion", "reducedMotion"),
-          toggle("Larger text", "largeText"),
-          h("div", { class: "setting" }, "High quality graphics", quality),
+          { class: "panel sheet settings-sheet pop-in", role: "dialog", "aria-modal": "true", "aria-label": title },
           h(
             "div",
-            { class: "stack" },
-            h("button", { class: "btn teal", type: "button", onclick: () => close("resume") }, canQuit ? "Resume" : "Done"),
-            journal && h("button", { class: "btn ghost", type: "button", "data-qa": "journal", onclick: () => this.journal(journal()) }, "Your life so far"),
-            canQuit && h("button", { class: "btn ghost", type: "button", onclick: () => close("quit") }, "Save and return to title"),
+            { class: "sheet-head with-close" },
+            icon(canQuit ? "pause" : "settings", "ico head-ico"),
+            h("h2", {}, title),
+            h("button", { class: "close-btn", type: "button", "aria-label": "Close", onclick: () => close("resume") }, icon("close", "ico")),
+          ),
+          h(
+            "div",
+            { class: "settings-grid" },
+            h(
+              "div",
+              { class: "sheet-body settings-list" },
+              h("label", { class: "setting slider-row" }, icon("volume", "ico row-ico"), h("span", { class: "setting-label" }, "Volume"), volume),
+              switchRow("Music", "music", p.music, (v) => {
+                p.music = v;
+                update();
+              }),
+              switchRow("Reduced motion", "motion", p.reducedMotion, (v) => {
+                p.reducedMotion = v;
+                update();
+              }),
+              switchRow("Larger text", "text", p.largeText, (v) => {
+                p.largeText = v;
+                update();
+              }),
+              switchRow("High quality graphics", "quality", p.quality === "high", (v) => {
+                p.quality = v ? "high" : "low";
+                update();
+              }),
+            ),
+            h(
+              "div",
+              { class: "sheet-actions stacked" },
+              iconButton(canQuit ? "Resume" : "Done", "play", "btn teal", { "data-qa": "resume", onclick: () => close("resume") }),
+              journal && iconButton("Your life so far", "journal", "btn ghost", { "data-qa": "journal", onclick: () => this.journal(journal()) }),
+              canQuit && iconButton("Save and return to title", "home", "btn ghost", { "data-qa": "quit", onclick: () => close("quit") }),
+            ),
           ),
         ),
       );
       this.root.append(el);
-      setTimeout(() => (el.querySelector(".stack button") as HTMLButtonElement | null)?.focus({ preventScroll: true }), 30);
+      setTimeout(() => (el.querySelector("[data-qa=resume]") as HTMLButtonElement | null)?.focus({ preventScroll: true }), 30);
     });
   }
 
   /** The people who matter and what this life remembers, from the pause menu. */
   journal(data: JournalData) {
     this.root.querySelector(".journal-modal")?.remove();
+    const opener = document.activeElement as HTMLElement | null;
     const heart = (n: number) => (n <= 0 ? "·" : "♥".repeat(n));
     const close = () => {
-      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onKey, true);
       el.remove();
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "Escape") {
@@ -557,21 +688,25 @@ export class UI {
     };
     const el = h(
       "div",
-      { class: "modal journal-modal fade-in" },
+      { class: "modal sheet-modal journal-modal fade-in" },
       h(
         "div",
-        { class: "panel pop-in journal", role: "dialog", "aria-modal": "true", "aria-label": "Your life so far" },
-        h("h2", {}, "Your life so far"),
-        h("div", { class: "kicker" }, "The people"),
-        h("ul", { class: "people" }, ...data.people.map((p) => h("li", {}, h("b", {}, p.name), h("span", { class: "hearts", "aria-label": `${p.hearts} of 4` }, heart(p.hearts)), h("span", { class: "note" }, p.note)))),
-        h("div", { class: "kicker" }, "What you remember"),
-        h("ul", { class: "memories" }, ...(data.memories.length ? data.memories : ["Nothing yet. It's early."]).map((m) => h("li", {}, m))),
-        h("div", { class: "stack" }, h("button", { class: "btn teal", type: "button", onclick: close }, "Back")),
+        { class: "panel sheet journal pop-in", role: "dialog", "aria-modal": "true", "aria-label": "Your life so far" },
+        h("div", { class: "sheet-head with-close" }, icon("journal", "ico head-ico"), h("h2", {}, "Your life so far"), h("button", { class: "close-btn", type: "button", "aria-label": "Close", onclick: close }, icon("close", "ico"))),
+        h(
+          "div",
+          { class: "sheet-body" },
+          h("div", { class: "kicker" }, "The people"),
+          h("ul", { class: "people" }, ...data.people.map((p) => h("li", {}, h("b", {}, p.name), h("span", { class: "hearts", "aria-label": `${p.hearts} of 4 hearts` }, heart(p.hearts)), h("span", { class: "note" }, p.note)))),
+          h("div", { class: "kicker" }, "What you remember"),
+          h("ul", { class: "memories" }, ...(data.memories.length ? data.memories : ["Nothing yet. It's early."]).map((m) => h("li", {}, m))),
+        ),
+        h("div", { class: "sheet-actions" }, iconButton("Back", "back", "btn teal", { onclick: close })),
       ),
     );
     window.addEventListener("keydown", onKey, true);
     this.root.append(el);
-    setTimeout(() => (el.querySelector(".stack button") as HTMLButtonElement).focus({ preventScroll: true }), 30);
+    setTimeout(() => (el.querySelector(".sheet-actions button") as HTMLButtonElement).focus({ preventScroll: true }), 30);
   }
 
   letter(lines: string[]): Promise<void> {
@@ -582,7 +717,7 @@ export class UI {
         "div",
         { class: "letter-wrap fade-in", "data-qa": "letter" },
         h("div", { class: "letter", role: "document", tabindex: "0", "aria-label": "Nana's letter" }, ...body.map((l) => h("p", {}, l)), h("p", { class: "sign" }, `— ${sign}`)),
-        h("div", { class: "actions" }, h("button", { class: "btn", type: "button" }, "Fold the letter")),
+        h("div", { class: "actions" }, iconButton("Fold the letter", "letter", "btn")),
       ),
     );
     const b = el.querySelector(".actions button") as HTMLButtonElement;
@@ -599,7 +734,7 @@ export class UI {
 
   book(book: Book, end: Finale): Promise<void> {
     const scoreCards = book.scores.map((s) =>
-      h("div", { class: `score-card ${s.key}` }, h("div", { class: "name" }, SCORE_NAME[s.key]), h("div", { class: "big" }, String(s.value)), h("p", {}, s.line)),
+      h("div", { class: `score-card ${s.key}` }, icon(s.key, "ico score-card-ico"), h("div", { class: "big" }, String(s.value)), h("div", { class: "name" }, SCORE_NAME[s.key]), h("p", {}, s.line)),
     );
     const pages = book.chapters.map((c) =>
       h("div", { class: "page" }, h("div", { class: "ages" }, `${c.number} · age ${c.ages}`), h("h3", {}, c.title), h("ul", {}, ...(c.lines.length ? c.lines : ["A quiet chapter."]).map((l) => h("li", {}, l)))),
@@ -628,7 +763,7 @@ export class UI {
               h("ul", {}, ...book.stats.map((p) => h("li", {}, p))),
             ),
           ),
-          h("div", { class: "actions" }, h("button", { class: "btn", type: "button", "data-qa": "again" }, "Live another life")),
+          h("div", { class: "actions" }, iconButton("Live another life", "play", "btn big", { "data-qa": "again" })),
         ),
       ),
     );
@@ -651,7 +786,7 @@ export function effectChips(fx: Effects): HTMLElement {
   const box = h("span", { class: "fx" });
   for (const key of ["health", "happiness", "money"] as ScoreKey[]) {
     const v = fx[key];
-    if (v) box.append(h("span", { class: `fx-chip ${key} ${v < 0 ? "down" : ""}` }, `${SCORE_NAME[key]} ${v > 0 ? "+" : ""}${v}`));
+    if (v) box.append(h("span", { class: `fx-chip ${key} ${v < 0 ? "down" : ""}` }, icon(key, "ico fx-ico"), `${SCORE_NAME[key]} ${v > 0 ? "+" : ""}${v}`));
   }
   if (fx.bonds) {
     for (const [k, v] of Object.entries(fx.bonds) as [BondKey, number][]) {
