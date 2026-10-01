@@ -82,7 +82,7 @@ interface Live {
 
 /** Pickups, keepsakes, letters and hazards in the lanes, streamed around the runner. */
 export class SpawnView {
-  readonly group = new THREE.Group();
+  readonly group = Object.assign(new THREE.Group(), { name: "spawns" });
   private live = new Map<number, Live>();
   private done = new Set<number>();
   private sparkleClock = 0;
@@ -266,12 +266,16 @@ export class SpawnView {
       const centre = this.centre(modelFor(s)) * l.baseScale;
       if (l.taken !== undefined) {
         l.taken += dt;
-        const k = l.taken / 0.5;
-        l.obj.position.y = s.y - centre + k * 1.6;
+        // Small pickups fly to the HUD as an icon (ui.flyPickup), so here they just pop in place;
+        // keepsakes and letters still rise away.
+        const small = s.kind === "pickup";
+        const k = Math.min(1, l.taken / (small ? 0.3 : 0.5));
+        const rise = small ? 0.25 : 1.6;
+        l.obj.position.y = s.y - centre + k * rise;
         l.obj.scale.setScalar(l.baseScale * (1 + k * 0.6) * (1 - k));
         l.obj.rotation.y += dt * 18;
         if (l.halo) {
-          l.halo.position.y = s.y + k * 1.6;
+          l.halo.position.y = s.y + k * rise;
           l.halo.scale.setScalar(1.35 * (1 + k));
         }
         continue;

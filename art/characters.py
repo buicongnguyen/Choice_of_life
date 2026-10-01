@@ -373,6 +373,9 @@ def build_hair(kit, style, colour='#4a2c1d'):
     m = kit.mat('Hair', colour, .42)
     tie = kit.mat('HairTie', 'coral', GLOSS)
     parts = []
+    # Tails that swing (ponytail, pigtails) are separate children whose origin is the hair tie, so
+    # the runtime can sway them on a spring: name -> (parts, pivot).
+    tails = {}
     if style == 'short':
         parts.append(_cap(kit, m, front_cut=.44, back_cut=-.35))
         # A side-swept fringe and a cowlick instead of a row of tufts.
@@ -403,14 +406,15 @@ def build_hair(kit, style, colour='#4a2c1d'):
         parts.append(_cap(kit, m, front_cut=.4, back_cut=-.3))
         parts.append(kit.ball('Fringe', (.12, -.82, .52), (.52, .2, .18), m, 18, 10, rot=(0, math.radians(10), 0)))
         parts.append(kit.torus('Tie', (0, .95, .45), .13, .06, tie, rot=(math.radians(70), 0, 0)))
-        parts.append(kit.limb('Tail', (0, 1.02, .42), (0, 1.3, -.35), .26, .1, m))
-        parts.append(kit.ball('TailTip', (0, 1.28, -.3), .12, m, 12, 8))
+        tails['HairTail'] = ([kit.limb('Tail', (0, 1.02, .42), (0, 1.3, -.35), .26, .1, m),
+                              kit.ball('TailTip', (0, 1.28, -.3), .12, m, 12, 8)], (0, .98, .44))
     elif style == 'pigtails':
         parts.append(_cap(kit, m, front_cut=.4, back_cut=-.3))
         parts.append(kit.ball('Fringe', (0, -.82, .52), (.55, .2, .17), m, 18, 10))
         for s in (-1, 1):
             parts.append(kit.torus('Tie', (s * .95, .15, .3), .12, .055, tie, rot=(0, math.radians(90), 0)))
-            parts.append(kit.limb('Tail', (s * 1.02, .15, .3), (s * 1.45, .3, -.45), .26, .1, m))
+            tails['HairTail' + ('L' if s > 0 else 'R')] = (
+                [kit.limb('Tail', (s * 1.02, .15, .3), (s * 1.45, .3, -.45), .26, .1, m)], (s * .98, .15, .3))
     elif style == 'bun':
         parts.append(_cap(kit, m, front_cut=.4, back_cut=-.4, scale=(1.08, 1.06, 1.04)))
         parts.append(kit.ball('Bun', (0, .45, 1.0), .42, m, 24, 14))
@@ -436,7 +440,10 @@ def build_hair(kit, style, colour='#4a2c1d'):
     else:
         raise ValueError(style)
     hair = kit.join('Hair', parts, pivot=(0, 0, 0), sharp_angle=70)
-    kit.paint([hair], lo=-1.2, hi=1.3, shade=.72)
+    swinging = [kit.join(name, tail_parts, pivot=pivot, sharp_angle=70) for name, (tail_parts, pivot) in tails.items()]
+    kit.paint([hair] + swinging, lo=-1.2, hi=1.3, shade=.72)
+    for tail in swinging:
+        kit.parent(tail, hair)
     return hair
 
 

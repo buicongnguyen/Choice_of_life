@@ -7,6 +7,7 @@ import { CHAPTERS } from "../game/story/chapters";
 import type { PersonId } from "../game/story/model";
 import type { LifeState } from "../game/types";
 import { HAIR_STYLES, personSpec, playerSpec, type CharacterSpec } from "./cast";
+import { SCATTER } from "./scatter";
 import { allPlaceModels, LANDMARK_MODELS } from "./world";
 
 interface Entry {
@@ -84,6 +85,22 @@ describe("asset contract", () => {
         else expect(height, h.model).toBeGreaterThanOrEqual(0.75);
       }
     }
+  });
+
+  it("has every tiny scatter model, each inside its triangle budget", () => {
+    const used = new Set(Object.values(SCATTER).flatMap((kinds) => (kinds ?? []).map((k) => k.model)));
+    for (const name of used) {
+      expect(manifest[name], name).toBeTruthy();
+      expect(manifest[name].triangles, name).toBeLessThanOrEqual(Number(manifest[name].extras.budget));
+      // Drawn hundreds at a time: keep each one small.
+      expect(manifest[name].triangles, name).toBeLessThanOrEqual(260);
+    }
+  });
+
+  it("swinging hair tails and the gull's moving parts are separate, hinged nodes", () => {
+    expect(manifest.hair_ponytail.nodes).toContain("HairTail");
+    expect(manifest.hair_pigtails.nodes).toEqual(expect.arrayContaining(["HairTailL", "HairTailR"]));
+    expect(manifest.gull.nodes).toEqual(expect.arrayContaining(["Body", "Head", "WingL", "WingR"]));
   });
 
   it("stays inside the download budget", () => {

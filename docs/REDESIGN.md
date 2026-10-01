@@ -280,3 +280,77 @@ everything tied to running speed found these problems.
 
 Balance at the new paces (balance.probe.ts, 40 lives each): skilled Health 62, Happiness 76, Money 54;
 casual 45/65/42; idle 24/40/31. "Someone Notices" fired for 6, 25 and 78 of 80 chances.
+
+## 10. Version 2.4 — little living things, and a lighter frame (2026-10-01)
+
+Requested by the owner: study the small touches of the cute_game reference (zoo-pet.store), add
+tiny things that make the world nicer, keep the game smooth on phones, then review the work.
+
+**What the reference does.** Its charm comes from density and reactions, not big features: hundreds
+of tiny props per zone drawn as instances without shadows, gentle motion on everything (a leaf on
+the hero's head wiggles, bags hop, items pulse and blink before they vanish), and quick feedback
+(squash on hit, bouncing debris, a breathing Play button).
+
+**What was added.**
+
+| Detail | Where | How it is drawn |
+|---|---|---|
+| Gulls (the model existed but was never used) | Perched on the quay edge, the sand and the cliff grass. When you run up, a group takes off one after another and flies away from the lanes on its own side: quay gulls out over the water and out of the picture, back-verge gulls up over the roofs. Wing-clatter per group, a squawk now and then. Three circle high over the backdrop. | One instanced draw per body part for every gull, no shadows (`gulls.ts`; simulation in `flock.ts`) |
+| Ground scatter: grass, wildflowers, dandelions, pebbles, shells, starfish, fallen leaves, petals, feathers | Along the verges of each place, never on the lanes (\|z\| ≥ 3 m); grass and flowers sway in the wind | Nine Blender models of 36–248 triangles (`art/sets/tiny.py`), one streamed instanced draw per kind (`scatter.ts`) |
+| Footprints | Milky after spilt milk, brown after coffee, wet after puddles (for 2.6 s); always in the cliff dirt; a light sheen on rain-soaked streets | One instanced draw; the shader ages and fades each print (`marks.ts`) |
+| Ripples | Splash rings on the puddle when you run through it; raindrops ringing on the ground in the storm | Same pool system |
+| Footstep sounds | Wood, grass, cobbles, stone, dirt; splashier when wet; softer for the toddler, the crawling baby and under cutscene narration. One sound every other step (every third for the crawl), so it is a rhythm, not a rattle. | Synthesised (`audio.ts`) |
+| Things that move with your steps | Ponytails and pigtails stream back and swing (now hinged at the hair tie); the backpack and satchel bounce; the elder's cane plants with the left foot and clicks softly every other step | Springs and the gait in `people.ts` |
+| Pickups fly into their score | The collected heart, star or coin hops up and zips into its score icon, which hops; in the world the pickup just pops | DOM + Web Animations (transform/opacity only), at most 8 in the air, under every panel, never catching a touch; just the hop with reduced motion |
+
+Reduced motion keeps gulls perched (none circling, no feathers), hangs hair and bags still, stops
+the grass sway, and leaves out splash and raindrop rings. Battery saver thins the scatter to 55%
+and halves the raindrop rings.
+
+**Making room for them.** The probe (`game/tests/perf-probe.mjs`: a 390×844 phone at 3x with the CPU
+slowed 4×) showed 400–737 draw calls a frame, against a phone budget of about 200:
+- Scenery models are baked while a chapter loads (`bake.ts`): parts that differ only in colour share
+  one mesh with the colour in the vertices; glowing windows and lamps stay separate so dusk still
+  lights them.
+- Each cloud's puffs are one mesh (16 draws instead of ~88).
+- Characters are baked per moving part in idle moments between frames (2–4 ms each on a desktop,
+  so never in the middle of one), with coarse surface finishes so a body part is one or two meshes.
+
+| Scene | Draws before | After, with all the new details | Same machine, same moment: old build → new build |
+|---|---:|---:|---|
+| Harbour | 534 | 310 | 37.9 → 60.0 fps |
+| Coast road | 591 | 341 | 42.8 → 60.0 fps |
+| Storm | 400 | 228 | 48.2 → 58.3 fps |
+| Festival | 737 | 385 | 49.2 → 51.7 fps |
+
+**Automatic quality** (`governor.ts`). Only gameplay is measured (not menus, story scenes or the
+first seconds of a scene). After two slow seconds (under 45 fps) the drawing resolution steps down
+towards 1.25x; after four more slow seconds bloom is turned off (and the interface's background
+blur with it); after that resolution can go down to 1x. It never climbs back to a resolution that
+proved too slow in the same scene, so the picture never pumps between two sizes; each new scene may
+try one step higher. A steady 30 fps with little work per frame is taken for a capped display
+(battery saver), not a slow device. Phones start at 1.5x on High. The composer (bloom) now follows
+the renderer's resolution; before, lowering the resolution saved nothing while bloom was on.
+
+**Review.** Two independent reviews (correctness/performance and player experience/mobile) found
+and fixed, among smaller things:
+- startled gulls hovered at lane height in front of the runner, and their shadows crossed the lanes;
+- gull groups never took off together (each crossed the line on a different frame), and harbour gulls
+  ignored you in the far lanes;
+- footsteps played 7–11 times a second with a thump, and the cane clicked about four times a second;
+- the flying pickups could swallow a swipe on phones (a CSS specificity slip);
+- the governor counted loading frames, could flip between two resolutions, and dropped bloom on
+  phones before trying a lower resolution;
+- a missing gull model would have stopped a chapter loading; scenery was baked mid-run when first
+  seen; extra step, print or click when the player changed age; marks skipped tone mapping and fog.
+
+**Checks.**
+- `ambient.test.ts`: scatter never on lanes, deterministic, thinning keeps a subset; gulls perch only
+  by the sea, a group takes off together, quay gulls never cross the lanes, back gulls climb, nothing
+  moves with reduced motion, circlers carry over between seaside places; the governor's order, no
+  flip-flopping, the settle period and the 30 fps cap.
+- `assets.test.ts`: every tiny model exists within its triangle budget; hair tails and gull parts are
+  separate hinged nodes.
+- `game/tests/ambient-check.mjs` plays each place and checks every detail is present with no page
+  errors; `perf-probe.mjs` gives the numbers above; `gait-probe.mjs` still shows 0% median foot slip;
+  `?view=gulls` in the art viewer shows every gull pose.

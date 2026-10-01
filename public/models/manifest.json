@@ -1721,7 +1721,7 @@
   "triangles": 4936
  },
  "hair_pigtails": {
-  "bytes": 24276,
+  "bytes": 25896,
   "extras": {},
   "group": "hair",
   "materials": [
@@ -1729,12 +1729,14 @@
    "HairTie"
   ],
   "nodes": [
-   "Hair"
+   "Hair",
+   "HairTailL",
+   "HairTailR"
   ],
   "triangles": 4636
  },
  "hair_ponytail": {
-  "bytes": 22252,
+  "bytes": 23304,
   "extras": {},
   "group": "hair",
   "materials": [
@@ -1742,7 +1744,8 @@
    "HairTie"
   ],
   "nodes": [
-   "Hair"
+   "Hair",
+   "HairTail"
   ],
   "triangles": 4200
  },
@@ -3330,6 +3333,154 @@
    "tin"
   ],
   "triangles": 1314
+ },
+ "tiny_feather": {
+  "bytes": 3504,
+  "extras": {
+   "budget": 50,
+   "height": 0.011
+  },
+  "group": "tiny",
+  "materials": [
+   "Feather",
+   "FeatherTip"
+  ],
+  "nodes": [
+   "tiny_feather"
+  ],
+  "triangles": 40
+ },
+ "tiny_flowers": {
+  "bytes": 8768,
+  "extras": {
+   "budget": 260,
+   "height": 0.226
+  },
+  "group": "tiny",
+  "materials": [
+   "FlowerCentre",
+   "PetalLilac",
+   "PetalPink",
+   "PetalSun",
+   "PetalWhite",
+   "Stem"
+  ],
+  "nodes": [
+   "tiny_flowers"
+  ],
+  "triangles": 248
+ },
+ "tiny_leaf": {
+  "bytes": 3360,
+  "extras": {
+   "budget": 40,
+   "height": 0.015
+  },
+  "group": "tiny",
+  "materials": [
+   "FallenLeaf",
+   "LeafVein"
+  ],
+  "nodes": [
+   "tiny_leaf"
+  ],
+  "triangles": 36
+ },
+ "tiny_pebbles": {
+  "bytes": 4604,
+  "extras": {
+   "budget": 160,
+   "height": 0.043
+  },
+  "group": "tiny",
+  "materials": [
+   "Pebble",
+   "PebbleDark",
+   "PebbleWarm"
+  ],
+  "nodes": [
+   "tiny_pebbles"
+  ],
+  "triangles": 126
+ },
+ "tiny_petals": {
+  "bytes": 3544,
+  "extras": {
+   "budget": 120,
+   "height": 0.011
+  },
+  "group": "tiny",
+  "materials": [
+   "FallenPetal"
+  ],
+  "nodes": [
+   "tiny_petals"
+  ],
+  "triangles": 96
+ },
+ "tiny_shell": {
+  "bytes": 3912,
+  "extras": {
+   "budget": 90,
+   "height": 0.025
+  },
+  "group": "tiny",
+  "materials": [
+   "Shell",
+   "ShellRib"
+  ],
+  "nodes": [
+   "tiny_shell"
+  ],
+  "triangles": 60
+ },
+ "tiny_starfish": {
+  "bytes": 5092,
+  "extras": {
+   "budget": 130,
+   "height": 0.03
+  },
+  "group": "tiny",
+  "materials": [
+   "Starfish",
+   "StarfishDot"
+  ],
+  "nodes": [
+   "tiny_starfish"
+  ],
+  "triangles": 116
+ },
+ "tiny_tuft": {
+  "bytes": 3764,
+  "extras": {
+   "budget": 60,
+   "height": 0.196
+  },
+  "group": "tiny",
+  "materials": [
+   "Grass",
+   "GrassLight"
+  ],
+  "nodes": [
+   "tiny_tuft"
+  ],
+  "triangles": 40
+ },
+ "tiny_weeds": {
+  "bytes": 4908,
+  "extras": {
+   "budget": 160,
+   "height": 0.152
+  },
+  "group": "tiny",
+  "materials": [
+   "Dandelion",
+   "Weed"
+  ],
+  "nodes": [
+   "tiny_weeds"
+  ],
+  "triangles": 148
  },
  "tower_a": {
   "bytes": 48612,

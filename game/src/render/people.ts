@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 import { findNode, instance, readyAll, recolour } from "./assets";
 import { HEAD_ACCESSORIES, SOCKETS, type CharacterSpec } from "./cast";
+import { bakeParts } from "./bake";
 import { CRANK_RATIO, gaitParams, scaleGait, solveGait, type Gait, type Limb } from "./gait";
 
 export type Anim = "idle" | "run" | "walk" | "toddle" | "crawl" | "bike" | "talk" | "wave" | "cheer" | "sit" | "dig";
@@ -12,6 +13,22 @@ const DOG_JOINTS = ["Body", "Head", "EarL", "EarR", "Tail", "LegFL", "LegFR", "L
 type Joint = (typeof JOINTS)[number] | (typeof DOG_JOINTS)[number];
 /** A limb that walks: its rest floor contact (model units) and where that sits on the limb. */
 type RigLimb = Limb & { name: Joint; node: THREE.Object3D; contact: THREE.Vector3; restScale: THREE.Vector3 };
+/** Something that bounces with each step: a bag on the back (moves) or a hair tail (swings). */
+interface Spring {
+  node: THREE.Object3D;
+  kind: "bag" | "tail";
+  restPos: THREE.Vector3;
+  restRot: THREE.Euler;
+  /** -1, 0 or 1: which side of the head a tail hangs from. */
+  side: number;
+  /** Bag: vertical offset (m). Tail: swing back (rad). */
+  x: number;
+  v: number;
+  /** Tail: side-to-side swing (rad). */
+  sway: number;
+  swayV: number;
+}
+
 /** The crawling baby's knee touches the floor this far ahead of its hip (art/characters.py build_baby). */
 const BABY_KNEE_AHEAD = 0.07;
 
@@ -28,7 +45,7 @@ export async function preloadSpecs(specs: CharacterSpec[]) {
 
 /** A composed, animated toy person (or dog). Position and face it through `root`. */
 export class Person {
-  readonly root = new THREE.Group();
+  readonly root = Object.assign(new THREE.Group(), { name: "people" });
   readonly model: THREE.Object3D;
   readonly isDog: boolean;
   anim: Anim = "idle";
@@ -40,6 +57,8 @@ export class Person {
   stumble = 0;
   /** Holding an umbrella raises the right arm. */
   holdingUp = false;
+  /** Reduced motion: hair and bags hang still. */
+  static calm = false;
   private joints = new Map<Joint, THREE.Object3D>();
   private rest = new Map<THREE.Object3D, THREE.Euler>();
   private phase = Math.random() * 10;
@@ -57,10 +76,22 @@ export class Person {
   /** A crawl plants the hands as well as the knees. */
   private crawlRig: RigLimb[] = [];
   private ownMaterials: THREE.Material[] = [];
+  /** Per-part merged geometry made for this person (see bake.ts bakeParts). */
+  private ownGeometries: THREE.BufferGeometry[] = [];
   /** Hip pivot height above the ground (m). */
   readonly legLength: number;
   /** Counts steps (one per half stride) so footfall effects land on real steps. */
   footfalls = 0;
+  /** Counts the cane touching down (an elder's cane plants with every left step). */
+  caneTaps = 0;
+  private springs: Spring[] = [];
+  /** Height and vertical speed of the body last frame (m, m/s): the springs react to changes. */
+  private bodyY = 0;
+  private bodyV = 0;
+  private cane = false;
+  /** Shoulder height above the floor (model units): the cane arm's reach. */
+  private shoulderY = 0;
+  private lastFootfalls = 0;
   /** On the bicycle the legs follow the crank angle instead of their own rhythm. */
   pedal?: number;
 
@@ -90,6 +121,11 @@ export class Person {
       this.ownMaterials.push(...recolour(hair, { Hair: spec.colours.Hair ?? "#4a2c1d" }));
       hair.scale.setScalar(this.headRadius);
       headCentre.add(hair);
+      // Ponytails and pigtails are hinged at the hair tie (art/characters.py build_hair).
+      for (const name of ["HairTail", "HairTailL", "HairTailR"]) {
+        const node = findNode(hair, name);
+        if (node) this.springs.push(this.spring(node, "tail", name.endsWith("L") ? 1 : name.endsWith("R") ? -1 : 0));
+      }
     }
     for (const acc of spec.accessories ?? []) {
       const item = instance(`acc_${acc}`);
@@ -111,6 +147,8 @@ export class Person {
           item.rotation.x = -UMBRELLA_ARM;
         }
         socket.add(item);
+        if (acc === "backpack" || acc === "satchel") this.springs.push(this.spring(item, "bag", 0));
+        if (acc === "cane") this.cane = true;
       }
     }
     if (spec.scale) this.model.scale.setScalar(spec.scale);
@@ -139,6 +177,61 @@ export class Person {
       this.legRig = rig(limb("LegL", 0), limb("LegR", 0.5));
     }
     this.legLength = Math.max(0.1, (this.legRig[0]?.down ?? 0.3) * this.unit);
+    const shoulder = this.joints.get("ArmR");
+    this.shoulderY = shoulder ? inModel(shoulder).y : 0;
+    // Merging takes a few milliseconds, so it waits for an idle moment between frames (see bake()).
+    queueBake(this);
+  }
+
+  private baked = false;
+  private disposed = false;
+
+  /**
+   * Merges each moving part's flat-coloured pieces (bake.ts bakeParts): about half the draw calls,
+   * same look. Until then the person draws unmerged, so a new character never stalls a frame.
+   */
+  bake() {
+    if (this.baked || this.disposed) return;
+    this.baked = true;
+    const parts = new Set<THREE.Object3D>([this.model, ...this.joints.values(), ...this.springs.map((sp) => sp.node)]);
+    this.ownGeometries = bakeParts(this.model, parts);
+  }
+
+  private spring(node: THREE.Object3D, kind: Spring["kind"], side: number): Spring {
+    return { node, kind, restPos: node.position.clone(), restRot: node.rotation.clone(), side, x: 0, v: 0, sway: 0, swayV: 0 };
+  }
+
+  /**
+   * Bags lag behind the body's bob and land with a bounce; hair tails stream back with speed,
+   * bounce, and swing side to side with the steps. `accel` is the body's vertical acceleration.
+   */
+  private updateSprings(dt: number, accel: number, side: number) {
+    if (dt <= 0) return;
+    if (Person.calm) {
+      for (const sp of this.springs) {
+        sp.x = sp.v = sp.sway = sp.swayV = 0;
+        sp.node.position.copy(sp.restPos);
+        sp.node.rotation.copy(sp.restRot);
+      }
+      return;
+    }
+    const h = Math.min(dt, 1 / 30);
+    for (const sp of this.springs) {
+      if (sp.kind === "bag") {
+        sp.v += (-220 * sp.x - 14 * sp.v - accel) * h;
+        sp.x = Math.max(-0.05, Math.min(0.05, sp.x + sp.v * h));
+        sp.node.position.y = sp.restPos.y + sp.x / this.unit;
+        sp.node.rotation.x = sp.restRot.x - sp.x * 5;
+        continue;
+      }
+      const back = Math.min(0.6, this.speed * 0.09);
+      sp.v += (-120 * (sp.x - back) - 9 * sp.v + accel * 0.06) * h;
+      sp.x = Math.max(-0.4, Math.min(0.9, sp.x + sp.v * h));
+      const swayTarget = side * 0.18 * Math.min(1, this.speed / 2) + Math.sin(this.t * 1.6 + sp.side) * 0.03;
+      sp.swayV += (-80 * (sp.sway - swayTarget) - 8 * sp.swayV) * h;
+      sp.sway += sp.swayV * h;
+      sp.node.rotation.set(sp.restRot.x + sp.x, sp.restRot.y, sp.restRot.z + sp.sway);
+    }
   }
 
   /**
@@ -199,6 +292,8 @@ export class Person {
     let bob = 0;
     /** A foot is planted this frame: sway the torso, not the hips, so the feet stay on the floor. */
     let grounded = false;
+    /** -1..1 with the stride, for things that swing side to side. */
+    let side = 0;
     let lean = 0;
     let legL = 0,
       legR = 0,
@@ -220,6 +315,7 @@ export class Person {
       armR = -legR * armSwing;
       bob = step.body;
       grounded = true;
+      side = step.s;
       return step.s;
     };
 
@@ -232,6 +328,14 @@ export class Person {
       }
       case "walk": {
         const s = walk("walk");
+        if (this.cane && this.legRig[0]) {
+          // The cane in the right hand moves with the left leg like a third foot: its tip sits
+          // where the left foot is, so it plants and lifts with that step.
+          const leg = this.legRig[0];
+          const reach = leg.down * (leg.node.scale.y / leg.restScale.y);
+          armR = Math.asin(Math.max(-0.95, Math.min(0.95, (reach * Math.sin(legL)) / Math.max(0.2, this.shoulderY))));
+          if (this.footfalls !== this.lastFootfalls && Math.floor(this.cycle * 2) % 2 === 0 && this.lift <= 0.02) this.caneTaps++;
+        }
         lean = 0.05;
         roll = s * 0.03;
         break;
@@ -330,6 +434,16 @@ export class Person {
     }
 
     if (this.bodyNode) this.bodyNode.position.y = this.hipsRestY + bob;
+    this.lastFootfalls = this.footfalls;
+    if (this.springs.length) {
+      const y = this.root.position.y + bob * this.unit;
+      const v = dt > 0 ? (y - this.bodyY) / dt : 0;
+      // Clamped: a teleport (a new scene) would otherwise fling the springs.
+      const accel = dt > 0 ? Math.max(-60, Math.min(60, (v - this.bodyV) / dt)) : 0;
+      this.bodyY = y;
+      this.bodyV = Math.max(-8, Math.min(8, v));
+      this.updateSprings(dt, accel, side);
+    }
     this.pose("Hips", 0, 0, grounded ? 0 : roll);
     this.pose("Torso", lean, 0, grounded ? roll : -roll * 0.5);
     this.pose("Head", headNod - lean * 0.6, headTurn, 0);
@@ -353,9 +467,37 @@ export class Person {
   }
 
   dispose() {
+    this.disposed = true;
     this.root.removeFromParent();
     for (const m of this.ownMaterials) m.dispose();
     this.ownMaterials = [];
+    for (const g of this.ownGeometries) g.dispose();
+    this.ownGeometries = [];
+  }
+}
+
+/** People waiting to be merged, one per idle moment. */
+const bakeQueue: Person[] = [];
+let bakeScheduled = false;
+
+function queueBake(person?: Person) {
+  if (person) bakeQueue.push(person);
+  if (bakeScheduled || !bakeQueue.length) return;
+  bakeScheduled = true;
+  if (typeof requestIdleCallback === "function") {
+    requestIdleCallback((deadline) => {
+      bakeScheduled = false;
+      // A bake takes a few milliseconds (several on a phone): only start one with room to spare.
+      if (deadline.timeRemaining() >= 8) bakeQueue.shift()?.bake();
+      queueBake();
+    });
+  } else {
+    // No idle callbacks (Safari): spread the bakes out instead of running them back to back.
+    setTimeout(() => {
+      bakeScheduled = false;
+      bakeQueue.shift()?.bake();
+      queueBake();
+    }, 250);
   }
 }
 

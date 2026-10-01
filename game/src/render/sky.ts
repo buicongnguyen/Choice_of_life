@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 import type { SkyId } from "../game/story/model";
 
@@ -186,7 +187,7 @@ export function sunDirection(m: Mood): THREE.Vector3 {
 
 /** Gradient dome, sun glow, stars and a drifting cloud field that follow the camera. */
 export class Sky {
-  readonly group = new THREE.Group();
+  readonly group = Object.assign(new THREE.Group(), { name: "sky" });
   private dome: THREE.Mesh<THREE.SphereGeometry, THREE.ShaderMaterial>;
   private clouds = new THREE.Group();
   private cloudMat = new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1, metalness: 0, flatShading: false });
@@ -244,16 +245,22 @@ export class Sky {
 
   private buildClouds() {
     const puff = new THREE.IcosahedronGeometry(1, 2);
+    const m = new THREE.Matrix4();
     for (let i = 0; i < 16; i++) {
-      const cloud = new THREE.Group();
+      // Each cloud's puffs are merged into one mesh: one draw call per cloud.
       const n = 4 + (i % 4);
+      const puffs: THREE.BufferGeometry[] = [];
       for (let k = 0; k < n; k++) {
-        const m = new THREE.Mesh(puff, this.cloudMat);
         const r = 3 + ((i * 7 + k * 13) % 5);
-        m.scale.set(r * 1.3, r * 0.85, r);
-        m.position.set((k - n / 2) * r * 1.1, Math.sin(k * 1.7) * r * 0.35, Math.cos(k * 2.1) * r * 0.4);
-        cloud.add(m);
+        m.compose(
+          new THREE.Vector3((k - n / 2) * r * 1.1, Math.sin(k * 1.7) * r * 0.35, Math.cos(k * 2.1) * r * 0.4),
+          new THREE.Quaternion(),
+          new THREE.Vector3(r * 1.3, r * 0.85, r),
+        );
+        puffs.push(puff.clone().applyMatrix4(m));
       }
+      const cloud = new THREE.Mesh(mergeGeometries(puffs, false) ?? puff, this.cloudMat);
+      for (const g of puffs) g.dispose();
       cloud.position.set(i * 38 - 300, 34 + ((i * 17) % 22), -150 - ((i * 29) % 90));
       this.cloudOffsets.push(cloud.position.x);
       this.clouds.add(cloud);

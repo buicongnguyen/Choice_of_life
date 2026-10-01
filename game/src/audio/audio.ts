@@ -36,6 +36,18 @@ const MOTIF: [number, number][] = [
 
 const midiHz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
+/** What the ground under a footstep sounds like. */
+export type Surface = "wood" | "grass" | "cobble" | "stone" | "dirt";
+
+/** Footstep colour per surface: a filtered noise tick (band centre, Q, length) and a body thump. */
+const STEP_SOUND: Record<Surface, { freq: number; q: number; len: number; thump: number; gain: number }> = {
+  wood: { freq: 1400, q: 1.2, len: 0.05, thump: 150, gain: 0.5 },
+  grass: { freq: 3200, q: 0.7, len: 0.09, thump: 0, gain: 0.35 },
+  cobble: { freq: 2200, q: 1.6, len: 0.035, thump: 120, gain: 0.45 },
+  stone: { freq: 1500, q: 1.1, len: 0.04, thump: 110, gain: 0.4 },
+  dirt: { freq: 900, q: 0.8, len: 0.08, thump: 90, gain: 0.45 },
+};
+
 export class Audio {
   private ctx?: AudioContext;
   private master?: GainNode;
@@ -355,6 +367,83 @@ export class Audio {
   tap() {
     if (!this.sfxReady) return;
     this.note(midiHz(88), this.ctx!.currentTime, 0.08, "sine", 0.05, this.sfxBus!);
+  }
+
+  private lastStep = 0;
+
+  /** A noise burst through a band-pass filter, for ticks, rustles and splashes. */
+  private burst(at: number, freq: number, q: number, len: number, gain: number, type: BiquadFilterType = "bandpass") {
+    const ctx = this.ctx!;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise!;
+    const f = ctx.createBiquadFilter();
+    f.type = type;
+    f.frequency.value = freq;
+    f.Q.value = q;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gain, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+    src.connect(f).connect(g).connect(this.sfxBus!);
+    src.start(at, Math.random() * 1.5);
+    src.stop(at + len + 0.02);
+  }
+
+  /**
+   * One footstep. `weight` scales it (a crawling baby pats, an adult treads); wet ground adds a
+   * splashy hiss. Steps closer than 70 ms apart are skipped (fast-forwarded playtests).
+   */
+  step(surface: Surface, weight = 1, wet = false) {
+    if (!this.sfxReady || !this.noise) return;
+    const ctx = this.ctx!;
+    const at = ctx.currentTime;
+    if (at - this.lastStep < 0.07) return;
+    this.lastStep = at;
+    const look = STEP_SOUND[surface];
+    const vary = 0.85 + Math.random() * 0.3;
+    const gain = 0.09 * look.gain * weight * vary;
+    this.burst(at, look.freq * vary, look.q, look.len, gain);
+    if (look.thump) this.note(look.thump * vary, at, 0.05, "sine", gain * 0.6, this.sfxBus!, 0.002);
+    if (wet) this.burst(at + 0.01, 4200, 0.6, 0.12, gain * 0.9, "highpass");
+  }
+
+  /** The tip of a cane on the ground: a soft wooden click (filtered noise, not a pitched note). */
+  tock() {
+    if (!this.sfxReady || !this.noise) return;
+    this.burst(this.ctx!.currentTime, 1800, 3, 0.03, 0.018);
+  }
+
+  /** Wings clattering as gulls take off, and (sometimes) a squawk. */
+  gulls(count: number, squawk: boolean) {
+    if (!this.sfxReady || !this.noise) return;
+    const ctx = this.ctx!;
+    const at = ctx.currentTime;
+    for (let i = 0; i < Math.min(6, count * 2 + 2); i++) this.burst(at + i * 0.07 + Math.random() * 0.03, 700, 0.9, 0.06, 0.05);
+    if (!squawk) return;
+    const osc = ctx.createOscillator();
+    const f = ctx.createBiquadFilter();
+    const g = ctx.createGain();
+    osc.type = "sawtooth";
+    const t = at + 0.05;
+    osc.frequency.setValueAtTime(950, t);
+    osc.frequency.exponentialRampToValueAtTime(1500, t + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(780, t + 0.3);
+    f.type = "bandpass";
+    f.frequency.value = 1600;
+    f.Q.value = 2.5;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.03, t + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+    osc.connect(f).connect(g).connect(this.sfxBus!);
+    osc.start(t);
+    osc.stop(t + 0.36);
+  }
+
+  /** Running through a puddle. */
+  splash() {
+    if (!this.sfxReady || !this.noise) return;
+    const at = this.ctx!.currentTime;
+    this.burst(at, 1800, 0.5, 0.3, 0.12, "highpass");
+    [96, 91, 99].forEach((m, i) => this.note(midiHz(m), at + 0.05 + i * 0.06, 0.05, "sine", 0.02, this.sfxBus!, 0.002));
   }
 
   whoosh() {

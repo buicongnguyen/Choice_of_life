@@ -32,12 +32,15 @@ import { findNode, instance, loadManifest, readyAll } from "./render/assets";
 import { CameraDirector } from "./render/camera";
 import { DISPLAY_NAME, FAVOURITE_COLOURS, HAIR_COLOURS, personSpec, playerSpec, SKIN_TONES, type CharacterSpec } from "./render/cast";
 import { Engine } from "./render/engine";
+import { makeGovernor, type Governor, type GovernorChange } from "./render/governor";
 import { MOODS } from "./render/sky";
 import { Particles, Rain } from "./render/fx";
 import { disposeSprite, nameBubble } from "./render/label";
 import { CRANK_RATIO } from "./render/gait";
+import { sway } from "./render/instancing";
 import { LaneGlow } from "./render/lane";
-import { createPerson, preloadSpecs, type Person } from "./render/people";
+import { Marks, type PrintKind } from "./render/marks";
+import { createPerson, Person, preloadSpecs } from "./render/people";
 import { SpawnView } from "./render/spawns";
 import { World } from "./render/world";
 import { nameOf, UI, type CreateResult } from "./ui/ui";
@@ -56,6 +59,10 @@ interface Qa {
   events: string[];
   /** World position of the player's left foot and Biscuit's front paw (gait verification). */
   feet: () => { player?: { x: number; y: number }; dog?: { x: number; y: number }; speed: number } | null;
+  /** Renderer cost of the last frame (draw calls, triangles) and the drawing resolution. */
+  perf: () => { calls: number; triangles: number; pixelRatio: number; geometries: number; cpu: number; meshes: Record<string, number>; fps: number; post: boolean };
+  /** The small living things in view: scatter instances, gulls by state, marks on the ground. */
+  ambient: () => { scatter: Record<string, number>; gulls: Record<string, number>; marks: { prints: number; ripples: number }; steps: number } | null;
 }
 
 const DEFAULT_LOOK: CreateResult = {
@@ -72,6 +79,14 @@ export async function startGame(params: URLSearchParams) {
   const game = new Game(params);
   await game.boot();
 }
+
+/** Hazards you can run through that leave your feet wet, and what the prints look like. */
+const PUDDLES: Record<string, PrintKind> = {
+  hz_puddle: "wet",
+  hz_storm_puddle: "wet",
+  hz_milk_puddle: "milk",
+  hz_coffee_spill: "coffee",
+};
 
 class Game {
   private engine!: Engine;
@@ -145,7 +160,7 @@ class Game {
     };
     this.ui.onPause = () => void this.pause();
     this.ui.touchHandlers = { up: () => this.lane(-1), down: () => this.lane(1), jump: () => this.jump() };
-    this.engine.scene.add(this.particles.points, this.rain.lines, this.laneGlow.mesh);
+    this.engine.scene.add(this.particles.points, this.rain.lines, this.laneGlow.mesh, this.marks.group);
     this.engine.onLightning = () => audio.thunder();
     this.applyPrefs(this.prefs);
     this.bindInput(canvas);
@@ -236,9 +251,17 @@ class Game {
     document.body.classList.toggle("reduced-motion", p.reducedMotion);
     document.body.classList.toggle("large-text", p.largeText);
     this.director.reducedMotion = p.reducedMotion;
+    Person.calm = p.reducedMotion;
     this.engine.reducedMotion = p.reducedMotion;
-    document.body.classList.toggle("low-gfx", (this.params.get("q") === "low" ? "low" : p.quality) === "low");
-    this.engine.setQuality(this.params.get("q") === "low" ? "low" : p.quality);
+    const quality = this.params.get("q") === "low" ? "low" : p.quality;
+    document.body.classList.toggle("low-gfx", quality === "low");
+    // Battery saver thins the ground scatter (applies to the next world built).
+    World.density = quality === "low" ? 0.55 : 1;
+    if (!this.governor || quality !== this.engine.quality) {
+      this.engine.setQuality(quality);
+      this.governor = makeGovernor(quality);
+      this.engine.setPixelRatio(this.governor.ratio);
+    }
   }
 
   private async pause() {
@@ -260,8 +283,30 @@ class Game {
   }
 
   // ======================================================================= main loop
+  /** Main-thread milliseconds the last frame took (simulation, scene update and render calls). */
+  private frameCpu = 0;
+  /** Lowers resolution, then bloom, when this device can't keep up (see governor.ts). */
+  private governor?: Governor;
+  private wasMeasuring = false;
+
   private frame() {
-    const raw = Math.min(this.qa?.autopilot ? 0.2 : 0.05, this.clock.getDelta());
+    const started = performance.now();
+    const delta = this.clock.getDelta();
+    const raw = Math.min(this.qa?.autopilot ? 0.2 : 0.05, delta);
+    // Only gameplay is measured: menus, story scenes and loading are not the device's pace.
+    const measuring = !!this.governor && this.mode === "run" && !this.paused && !this.cutscene && !!this.runner;
+    let change: GovernorChange = null;
+    if (measuring) {
+      if (!this.wasMeasuring) this.governor!.settle(2.5);
+      change = this.governor!.sample(delta, this.frameCpu);
+    } else this.governor?.idle();
+    this.wasMeasuring = measuring;
+    if (change === "ratio") this.engine.setPixelRatio(this.governor!.ratio);
+    else if (change === "post") {
+      this.engine.dropPost();
+      // The interface's background blur is costly too; drop it with bloom.
+      document.body.classList.add("low-gfx");
+    }
     const dt = this.paused ? 0 : raw * (this.qa?.timeScale ?? 1);
     if (this.mode === "run" && this.runner && !this.paused) {
       this.accumulator += dt;
@@ -282,6 +327,7 @@ class Game {
     this.alpha = this.mode === "run" ? Math.min(1, this.accumulator / STEP) : 1;
     this.updateScene(dt);
     this.engine.render(dt);
+    this.frameCpu = performance.now() - started;
     requestAnimationFrame(() => this.frame());
   }
 
@@ -319,6 +365,17 @@ class Game {
       this.followCompanions(dt);
       if (this.world) {
         this.world.update(this.engine.camera.position.x, t);
+        const near = this.critterRunner;
+        near.x = rx;
+        near.z = rz;
+        near.speed = r.speed;
+        for (const ev of this.world.updateCritters(dt, near, this.engine.camera.position.x, this.prefs.reducedMotion)) {
+          // A squawk now and then (not for every group), and wing-clatter for each group.
+          const squawk = this.engine.time - this.lastSquawk > 8 && Math.random() < 0.3;
+          if (squawk) this.lastSquawk = this.engine.time;
+          audio.gulls(ev.count, squawk);
+          this.particles.emit(this.scratch.set(ev.x, ev.y + 0.3, ev.z), { count: 4 + ev.count * 2, colour: ["#ffffff", "#e8eef7"], speed: 1.6, up: 0.8, life: 0.7, size: 0.22, gravity: 1.5 });
+        }
         const sea = this.world.seaAt(r.x);
         this.engine.sea.mesh.visible = sea.shore !== null;
         if (sea.shore !== null) {
@@ -357,16 +414,55 @@ class Game {
 
   private lastFootfalls = 0;
   private moteClock = 0;
+  /** Footprints and ripple rings on the ground. */
+  private marks = new Marks();
+  /** After running through a puddle (or spilt milk), footprints stay wet for a moment. */
+  private wetPrints: { kind: PrintKind; until: number } | null = null;
+  private lastCaneTaps = 0;
+  private lastSquawk = -10;
+  /** Reused every frame for the gulls (no per-frame allocation). */
+  private critterRunner = { x: 0, z: 0, speed: 0 };
+  private stepCount = 0;
   /** Footstep dust, and air that fits the hour: warm motes at dusk, leaves in the storm. */
   private ambient(dt: number) {
     const r = this.runner;
-    // A puff of dust on each real footfall, left on the ground where the foot came down.
-    const feet = this.player?.footfalls ?? 0;
-    if (r && this.mode === "run" && !r.airborne && r.speed > 1.5 && !this.bike && feet !== this.lastFootfalls) {
-      const at = this.player?.lastFootfall() ?? new THREE.Vector3(r.x, 0, r.z);
-      this.particles.emit(new THREE.Vector3(at.x, 0.06, at.z), { count: 2, colour: "#fff6e6", speed: 0.5, up: 0.3, life: 0.5, size: 0.26, gravity: -0.4, spread: 0.2 });
+    sway.time.value = this.engine.time;
+    sway.amount.value = this.prefs.reducedMotion ? 0 : 1;
+    this.marks.update(dt);
+    // Each real footfall: a step sound for the ground underfoot, a puff of dust, and a print where
+    // the ground takes one (soft dirt, rain-soaked streets, or wet feet after a puddle).
+    const p = this.player;
+    const feet = p?.footfalls ?? 0;
+    if (r && p && this.world && this.mode === "run" && !r.airborne && !this.bike && feet !== this.lastFootfalls) {
+      const at = p.lastFootfall() ?? new THREE.Vector3(r.x, 0, r.z);
+      const ground = this.world.groundAt(r.x);
+      const crawling = p.anim === "crawl";
+      const wet = this.wetPrints && this.wetPrints.until > this.engine.time ? this.wetPrints.kind : null;
+      // Feet land 6-11 times a second at game speed: sound every other step (every third for a
+      // crawl) so it reads as a rhythm, not a rattle; softer under cutscene narration.
+      if (feet % (crawling ? 3 : 2) === 0) {
+        const weight = (crawling ? 0.35 : p.anim === "toddle" ? 0.6 : 1) * (this.cutscene ? 0.4 : 1);
+        audio.step(ground.surface, weight, ground.wet === true || wet !== null);
+        this.stepCount++;
+      }
+      if (r.speed > 1.5) this.particles.emit(new THREE.Vector3(at.x, 0.06, at.z), { count: 2, colour: "#fff6e6", speed: 0.5, up: 0.3, life: 0.5, size: 0.26, gravity: -0.4, spread: 0.2 });
+      const print = wet ?? ground.prints;
+      if (print && !crawling) this.marks.footprint(at, print, p.legLength / 0.46);
     }
     this.lastFootfalls = feet;
+    // The elder's cane taps down with every left step.
+    const taps = p?.caneTaps ?? 0;
+    if (p && r && taps !== this.lastCaneTaps && this.mode === "run" && !r.airborne) {
+      if (taps % 2 === 0) audio.tock();
+      const at = p.lastFootfall();
+      if (at) this.particles.emit(new THREE.Vector3(at.x, 0.05, at.z - 0.35), { count: 1, colour: "#fff6e6", speed: 0.3, up: 0.3, life: 0.4, size: 0.2, gravity: -0.3 });
+    }
+    this.lastCaneTaps = taps;
+    // Raindrops ring on the ground in a storm (fewer on battery saver).
+    if (this.engine.mood.rain > 0 && this.world && !this.prefs.reducedMotion) {
+      const c = this.engine.camera.position.x;
+      this.marks.rain(dt, this.engine.quality === "low" ? 10 : 22, c - 6, c + 30, -3.4, 5.6);
+    }
     if (this.prefs.reducedMotion) return;
     const mood = this.engine.mood;
     const warm = mood === MOODS.sunset || mood === MOODS.dusk;
@@ -596,6 +692,14 @@ class Game {
   }
 
 
+  /** Where a world point appears on screen (CSS pixels), or null when it is behind the camera. */
+  private screenPoint(world: THREE.Vector3): { x: number; y: number } | null {
+    const v = world.clone().project(this.engine.camera);
+    if (v.z > 1) return null;
+    const rect = this.engine.canvas.getBoundingClientRect();
+    return { x: rect.left + ((v.x + 1) / 2) * rect.width, y: rect.top + ((1 - v.y) / 2) * rect.height };
+  }
+
   private hasBiscuit(chapter: number) {
     return has(this.life!, "biscuit") && chapter >= 2 && chapter <= 4;
   }
@@ -640,6 +744,8 @@ class Game {
     }
     this.player?.dispose();
     this.player = person;
+    this.lastFootfalls = 0;
+    this.lastCaneTaps = 0;
     this.playerAge = age;
     person.face(Math.PI / 2);
     this.engine.scene.add(person.root);
@@ -762,6 +868,8 @@ class Game {
         }
         const { delta } = runnerPickup(life, score);
         audio.pickup(score, r.streak);
+        const at = this.screenPoint(this.scratch.set(ev.spawn.x, ev.spawn.y, LANE_Z[ev.spawn.lane]));
+        if (at) this.ui.flyPickup(score, at);
         if (delta[score]) {
           this.ui.delta(score, delta[score]);
           audio.point(score);
@@ -811,6 +919,15 @@ class Game {
         if (this.player) this.player.stumble = 0.7;
         this.director.shake = 0.25;
         audio.hit();
+        const wetKind = PUDDLES[hz.model];
+        if (wetKind) {
+          // Running through it: a splash, rings on the surface, and wet footprints for a moment.
+          if (!this.prefs.reducedMotion) this.marks.splash(ev.spawn.x, LANE_Z[ev.spawn.lane], 1, Math.min(0.08, hz.height ?? 0.05) + 0.01);
+          audio.splash();
+          const drops = wetKind === "milk" ? ["#ffffff", "#fffaf0"] : wetKind === "coffee" ? ["#c98a5a", "#fff1d6"] : ["#dff1ff", "#9fd3ff"];
+          this.particles.emit(new THREE.Vector3(ev.spawn.x, 0.15, LANE_Z[ev.spawn.lane]), { count: 14, colour: drops, speed: 3, up: 1.6, life: 0.6, size: 0.22, gravity: 8 });
+          this.wetPrints = { kind: wetKind, until: this.engine.time + 2.6 };
+        }
         this.qa?.events.push(`hit:${hz.model}`);
         void this.checkRecovery();
         break;
@@ -1193,6 +1310,24 @@ class Game {
       policy: this.params.get("policy") ?? "mixed",
       timeScale: Number(this.params.get("speed") ?? 1),
       events: [],
+      perf: () => {
+        const info = this.engine.renderer.info;
+        // Visible meshes under each top-level group of the scene: where the draw calls come from.
+        const meshes: Record<string, number> = {};
+        for (const top of this.engine.scene.children) {
+          let n = 0;
+          top.traverseVisible((o) => {
+            if ((o as THREE.Mesh).isMesh) n++;
+          });
+          if (n) meshes[top.name || top.type] = (meshes[top.name || top.type] ?? 0) + n;
+        }
+        return { calls: info.render.calls, triangles: info.render.triangles, pixelRatio: this.engine.renderer.getPixelRatio(), geometries: info.memory.geometries, cpu: this.frameCpu, meshes, fps: this.governor?.fps ?? 0, post: this.engine.post };
+      },
+      ambient: () => {
+        if (!this.world) return null;
+        const camX = this.engine.camera.position.x;
+        return { scatter: this.world.scatter.counts(), gulls: this.world.gullCounts(camX), marks: this.marks.live(), steps: this.stepCount };
+      },
       feet: () => {
         if (!this.runner) return null;
         // Where the left leg (a crawling baby's knee) and Biscuit's front paw meet the floor.

@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 
+import { bakeModel } from "./bake";
+
 export interface ManifestEntry {
   group: string;
   bytes: number;
@@ -88,6 +90,8 @@ export function loadModel(name: string): Promise<THREE.Object3D> {
         box.position.y = 0.5;
         const g = new THREE.Group();
         g.add(box);
+        // Marked, so code that needs the real model's parts (instancing, rigs) can skip it.
+        g.userData.placeholder = true;
         sizes.set(name, new THREE.Box3().setFromObject(g));
         return g as THREE.Object3D;
       });
@@ -108,6 +112,23 @@ export function instance(name: string): THREE.Object3D {
 }
 
 const loadedTemplates = new Map<string, THREE.Object3D>();
+const bakedTemplates = new Map<string, THREE.Object3D>();
+
+/**
+ * Like `instance`, but with the model's plain parts merged into one mesh per surface finish
+ * (see bake.ts): far fewer draw calls for static scenery. Not for models that are recoloured or
+ * have moving parts.
+ */
+export function instanceBaked(name: string): THREE.Object3D {
+  let baked = bakedTemplates.get(name);
+  if (!baked) {
+    const template = loadedTemplates.get(name);
+    if (!template) throw new Error(`model ${name} not preloaded`);
+    baked = bakeModel(template);
+    bakedTemplates.set(name, baked);
+  }
+  return baked.clone(true);
+}
 export async function ready(name: string) {
   const t = await loadModel(name);
   loadedTemplates.set(name, t);
@@ -117,6 +138,17 @@ export async function readyAll(names: Iterable<string>) {
   await Promise.all([...new Set(names)].map((n) => ready(n)));
 }
 export const isReady = (name: string) => loadedTemplates.has(name);
+/** The shared template of a preloaded model (do not modify it). */
+export const loadedTemplate = (name: string) => loadedTemplates.get(name);
+/** Loaded and real (not the stand-in box used when a download failed). */
+export const isUsable = (name: string) => !!loadedTemplates.get(name) && !loadedTemplates.get(name)!.userData.placeholder;
+
+/** Bakes these models now (during loading), so streaming them in later costs nothing. */
+export function prebake(names: Iterable<string>) {
+  for (const name of names) {
+    if (!bakedTemplates.has(name) && loadedTemplates.has(name)) bakedTemplates.set(name, bakeModel(loadedTemplates.get(name)!));
+  }
+}
 
 export function modelSize(name: string): THREE.Vector3 {
   const box = sizes.get(name);

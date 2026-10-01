@@ -41,7 +41,7 @@ body.large-text { --scale: 1.18; }
 #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 #ui { position: fixed; inset: 0; pointer-events: none; font-size: calc(16px * var(--scale)); }
 #ui > * { pointer-events: auto; }
-#ui > .hud, #ui > .veil, #ui > .loading { pointer-events: none; }
+#ui > .hud, #ui > .veil, #ui > .loading, #ui > .fly-pickup { pointer-events: none; }
 button { font-family: var(--display); cursor: pointer; color: inherit; }
 button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 4px solid var(--marigold); outline-offset: 3px; }
 img.ico { display: block; width: 1.6em; height: 1.6em; flex: none; pointer-events: none; user-select: none; }
@@ -147,6 +147,11 @@ body.low-gfx .title-tag, body.low-gfx .hud-chapter, body.low-gfx .choices .promp
 .score.bump { animation: bump 0.45s ease; }
 .score.low .value { color: var(--coral-deep); }
 @keyframes bump { 30% { transform: scale(1.16); } 100% { transform: scale(1); } }
+/* A pickup flying into its score (ui.flyPickup), and the score's hop when it lands. */
+.fly-pickup { position: fixed; left: 0; top: 0; width: 30px; height: 30px; margin: -15px 0 0 -15px; pointer-events: none; z-index: 0; will-change: transform, opacity; filter: drop-shadow(0 2px 3px rgba(42, 31, 61, 0.35)); }
+.fly-pickup .ico { width: 100%; height: 100%; }
+.score.tick .score-ico { animation: tick 0.32s ease-out; }
+@keyframes tick { 40% { transform: scale(1.32) rotate(-8deg); } 100% { transform: scale(1); } }
 .delta { position: absolute; left: 50%; top: 100%; font-family: var(--display); font-weight: 700; font-size: 1em; animation: floatUp 1.3s ease forwards; pointer-events: none; white-space: nowrap; text-shadow: 0 2px 0 #fff; }
 .delta.up { color: var(--teal-deep); } .delta.down { color: var(--coral-deep); }
 @keyframes floatUp { from { opacity: 0; transform: translate(-50%, -4px); } 15% { opacity: 1; } to { opacity: 0; transform: translate(-50%, 22px); } }

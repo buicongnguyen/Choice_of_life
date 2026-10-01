@@ -4,7 +4,12 @@ import { has } from "../game/life";
 import { rng, type Rng } from "../game/rng";
 import { resolve, type ChapterDef, type PlaceId } from "../game/story/model";
 import type { LifeState } from "../game/types";
-import { hasModel, instance, modelBox, readyAll } from "./assets";
+import type { Surface } from "../audio/audio";
+import { hasModel, instanceBaked, isUsable, modelBox, prebake, readyAll } from "./assets";
+import { Flock, PERCHES, planGulls, type FlockEvent, type Gull } from "./flock";
+import { GullView } from "./gulls";
+import type { PrintKind } from "./marks";
+import { Scatter, scatterModels } from "./scatter";
 
 /** How a model is positioned in depth. */
 type Anchor =
@@ -401,8 +406,25 @@ export function chapterModels(chapter: ChapterDef, s: LifeState): string[] {
     style.rows.forEach((r) => r.models.forEach((m) => names.add(m.name)));
   }
   landmarksFor(chapter, s, {}).forEach((l) => names.add(l.model));
+  scatterModels(chapter, s).forEach((n) => names.add(n));
+  if (resolve(chapter.places, s).some((seg) => PERCHES[seg.place])) names.add("gull");
   return [...names].filter(hasModel);
 }
+
+/** What footsteps sound like, and what they leave behind, on each place's ground. */
+const GROUND: Record<PlaceId, { surface: Surface; wet?: boolean; prints?: PrintKind }> = {
+  home: { surface: "wood" },
+  garden: { surface: "grass" },
+  harbour: { surface: "cobble" },
+  festival: { surface: "cobble" },
+  storm_harbour: { surface: "cobble", wet: true, prints: "rain" },
+  coast: { surface: "stone" },
+  cliff: { surface: "dirt", prints: "dirt" },
+  dusk_cliff: { surface: "dirt", prints: "dirt" },
+  station: { surface: "stone" },
+  city: { surface: "stone" },
+  storm_city: { surface: "stone", wet: true, prints: "rain" },
+};
 
 function weighted(r: Rng, picks: Pick[]): string {
   const total = picks.reduce((sum, p) => sum + (p.weight ?? 1), 0);
@@ -489,30 +511,80 @@ export function layoutChapter(chapter: ChapterDef, s: LifeState, encounterXs: Re
 
 /** Streams placements in and out around the camera and owns the generated base geometry. */
 export class World {
-  readonly group = new THREE.Group();
+  readonly group = Object.assign(new THREE.Group(), { name: "world" });
   private live = new Map<number, THREE.Object3D>();
   private floaters: { obj: THREE.Object3D; phase: number; baseY: number }[] = [];
   private base = new THREE.Group();
   /** Geometry and materials generated here (not shared with model templates) are freed on dispose. */
   private owned: { dispose(): void }[] = [];
+  /** How much ground scatter to draw (Low quality thins it); read when a world is built. */
+  static density = 1;
+  readonly scatter: Scatter;
+  readonly flock: Flock;
+  private gulls?: GullView;
 
   constructor(
     readonly placements: Placement[],
     readonly chapter: ChapterDef,
     readonly life: LifeState,
   ) {
+    // Resolved once: this world shows these places (it is rebuilt when a choice changes them).
+    this.segments = resolve(chapter.places, life);
     this.group.add(this.base);
     this.buildBase();
+    this.scatter = new Scatter(chapter, life, World.density);
+    this.group.add(this.scatter.group);
+    this.flock = new Flock(planGulls(chapter, life), (x) => this.placeAt(x));
+    if (this.segments.some((seg) => PERCHES[seg.place]) && isUsable("gull")) {
+      try {
+        this.gulls = new GullView();
+        this.group.add(this.gulls.rig.group);
+      } catch (error) {
+        // Gulls are decoration: a broken model must never stop a chapter from loading.
+        console.warn("gulls unavailable", error);
+      }
+    }
+  }
+
+  private readonly segments: { from: number; place: PlaceId }[];
+
+  /** The place under course position x. */
+  placeAt(x: number): PlaceId {
+    let place = this.segments[0].place;
+    for (const seg of this.segments) if (x >= seg.from * this.chapter.length) place = seg.place;
+    return place;
+  }
+
+  /** The ground at x: how footsteps sound and whether they leave prints. */
+  groundAt(x: number) {
+    return GROUND[this.placeAt(x)];
+  }
+
+  /** Moves the gulls (they react to the runner) and returns take-offs, for sound and feathers. */
+  updateCritters(dt: number, runner: { x: number; z: number; speed: number }, cameraX: number, calm = false): FlockEvent[] {
+    const events = this.flock.update(dt, runner, cameraX, calm);
+    this.gulls?.update(this.flock.visible(cameraX));
+    return events;
+  }
+
+  /** Gulls drawn now, by what they are doing (for QA). */
+  gullCounts(cameraX: number): Record<Gull["mode"], number> {
+    const out: Record<Gull["mode"], number> = { perched: 0, flying: 0, circling: 0, gone: 0 };
+    for (const g of this.flock.visible(cameraX)) out[g.mode]++;
+    return out;
   }
 
   static async prepare(chapter: ChapterDef, s: LifeState, encounterXs: Record<string, number>): Promise<World> {
-    await readyAll(chapterModels(chapter, s));
+    const models = chapterModels(chapter, s);
+    await readyAll(models);
+    // Bake scenery while loading (5-15 ms a model), never when it first streams into view.
+    prebake(models);
     return new World(layoutChapter(chapter, s, encounterXs), chapter, s);
   }
 
   /** Flat base planes, the quay wall and the cliff edge for each place segment. */
   private buildBase() {
-    const segments = resolve(this.chapter.places, this.life);
+    const segments = this.segments;
     segments.forEach((seg, i) => {
       const x0 = i === 0 ? -80 : seg.from * this.chapter.length;
       const x1 = i === segments.length - 1 ? this.chapter.length + 140 : segments[i + 1].from * this.chapter.length;
@@ -655,22 +727,17 @@ export class World {
 
   /** The lane-highlight colour for the place at x. */
   laneGlowAt(x: number): string {
-    const segments = resolve(this.chapter.places, this.life);
-    let place = segments[0].place;
-    for (const seg of segments) if (x >= seg.from * this.chapter.length) place = seg.place;
-    return LANE_GUIDES[place]?.glow ?? ROAD_GLOW;
+    return LANE_GUIDES[this.placeAt(x)]?.glow ?? ROAD_GLOW;
   }
 
   /** Where the sea should sit for the place at x (for the Engine's sea). */
   seaAt(x: number): { shore: number | null; y: number } {
-    const segments = resolve(this.chapter.places, this.life);
-    let place = segments[0].place;
-    for (const seg of segments) if (x >= seg.from * this.chapter.length) place = seg.place;
-    const style = PLACES[place];
+    const style = PLACES[this.placeAt(x)];
     return { shore: style.shore, y: style.seaY ?? -0.35 };
   }
 
   update(cameraX: number, time: number) {
+    this.scatter.update(cameraX);
     const lo = cameraX - 45;
     const hi = cameraX + 120;
     // Remove what fell behind.
@@ -688,7 +755,7 @@ export class World {
       if (p.x < lo) continue;
       if (p.x > hi) break;
       if (this.live.has(i)) continue;
-      const obj = instance(p.name);
+      const obj = instanceBaked(p.name);
       obj.position.set(p.x, p.y, p.z);
       obj.rotation.y = p.yaw;
       obj.scale.setScalar(p.scale);
@@ -712,6 +779,8 @@ export class World {
   dispose() {
     this.group.removeFromParent();
     this.live.clear();
+    this.scatter.dispose();
+    this.gulls?.dispose();
     this.base.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;

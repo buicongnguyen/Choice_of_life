@@ -42,6 +42,8 @@ export class Engine {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, options.quality === "high" ? 2 : 1.25));
+    // Count every pass of a frame (bloom renders several times), not just the last one.
+    this.renderer.info.autoReset = false;
 
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -78,26 +80,48 @@ export class Engine {
     this.passes = [render, this.bloom, output];
   }
 
+  get quality() {
+    return this.options.quality;
+  }
+
+  /** Whether the bloom pass is running. */
+  get post() {
+    return !!this.composer;
+  }
+
   setQuality(quality: "high" | "low") {
     if (quality === this.options.quality) return;
     this.options.quality = quality;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality === "high" ? 2 : 1.25));
     if (quality === "high" && !this.composer) this.setupPost();
-    if (quality === "low") {
-      // EffectComposer.dispose() frees only its own targets; the passes hold the bloom targets.
-      for (const pass of this.passes) pass.dispose();
-      this.passes = [];
-      this.composer?.dispose();
-      this.composer = undefined;
-      this.bloom = undefined;
-    }
+    if (quality === "low") this.dropPost();
     this.resize();
+  }
+
+  /** Drawing resolution (device pixels per CSS pixel); the quality governor adjusts it. */
+  setPixelRatio(ratio: number) {
+    if (Math.abs(this.renderer.getPixelRatio() - ratio) < 1e-3) return;
+    this.renderer.setPixelRatio(ratio);
+    this.resize();
+  }
+
+  /** Turns bloom off (low quality, or the governor saving frame time on a slow device). */
+  dropPost() {
+    // EffectComposer.dispose() frees only its own targets; the passes hold the bloom targets.
+    for (const pass of this.passes) pass.dispose();
+    this.passes = [];
+    this.composer?.dispose();
+    this.composer = undefined;
+    this.bloom = undefined;
   }
 
   resize() {
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
     this.renderer.setSize(w, h, false);
+    // The composer keeps its own pixel ratio: without this, bloom renders at the old resolution
+    // and lowering the renderer's ratio saves nothing.
+    this.composer?.setPixelRatio(this.renderer.getPixelRatio());
     this.composer?.setSize(w, h);
     this.camera.aspect = w / h;
     // Keep the lanes framed on tall phone screens by widening the view.
@@ -149,6 +173,7 @@ export class Engine {
   onLightning?: () => void;
 
   render(dt: number) {
+    this.renderer.info.reset();
     this.time += dt;
     // Storms flash now and then; the hemisphere light carries the flash.
     if (this.mood.rain > 0 && dt > 0 && !this.reducedMotion) {

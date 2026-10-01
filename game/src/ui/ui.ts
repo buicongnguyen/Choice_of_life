@@ -382,6 +382,50 @@ export class UI {
     }
   }
 
+  private flying = 0;
+
+  /**
+   * A collected pickup flies from where it was on screen into its score in the HUD, which gives a
+   * little hop when it lands. Transform and opacity only, so it runs on the compositor; skipped
+   * (just the hop) with reduced motion or when many are already in the air.
+   */
+  flyPickup(key: ScoreKey, from: { x: number; y: number }) {
+    const chip = this.scoresEl.get(key);
+    const target = chip?.querySelector(".score-ico") as HTMLElement | null;
+    if (!chip || !target || !this.hudEl) return;
+    const hop = () => {
+      chip.classList.remove("tick");
+      void chip.offsetWidth;
+      chip.classList.add("tick");
+    };
+    if (this.flying >= 8 || document.body.classList.contains("reduced-motion") || typeof Element.prototype.animate !== "function") return hop();
+    const to = target.getBoundingClientRect();
+    const tx = to.left + to.width / 2;
+    const ty = to.top + to.height / 2;
+    const el = h("span", { class: "fly-pickup", "aria-hidden": "true" }, icon(key, "ico"));
+    // First in the overlay: under the HUD and every panel, so it slips into its score and never
+    // covers a dialog that opens while it is in the air.
+    this.root.insertBefore(el, this.root.firstChild);
+    this.flying++;
+    const anim = el.animate(
+      [
+        { transform: `translate(${from.x}px, ${from.y}px) scale(1.15)`, opacity: 1 },
+        // A small hop up before it zips to the score.
+        { transform: `translate(${from.x + (tx - from.x) * 0.25}px, ${from.y + (ty - from.y) * 0.15 - 28}px) scale(1)`, opacity: 1, offset: 0.3 },
+        { transform: `translate(${tx}px, ${ty}px) scale(0.55)`, opacity: 0.9 },
+      ],
+      { duration: 560, easing: "cubic-bezier(.45,0,.65,1)" },
+    );
+    let done = false;
+    anim.onfinish = anim.oncancel = () => {
+      if (done) return;
+      done = true;
+      el.remove();
+      this.flying--;
+      hop();
+    };
+  }
+
   delta(key: ScoreKey, value: number) {
     const el = this.scoresEl.get(key);
     if (!el || !value) return;
